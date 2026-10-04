@@ -1,1 +1,5 @@
 claude-refrence/
+third_party/
+build/
+dist/
+*.o
