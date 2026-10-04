@@ -45,7 +45,7 @@ namespace rig
 				f.push_back(t);
 			if (f[0] == "rig" && f.size() >= 3)
 				s_rigs[f[1]].scale = std::stof(f[2]);
-			else if (f[0] == "part" && f.size() >= 10)
+			else if (f[0] == "part" && f.size() >= 9) // part;rig;model;kind;x;y;z;bone0;bone1
 			{
 				PartDef p;
 				p.model = f[2];
@@ -58,15 +58,18 @@ namespace rig
 				s_rigs[f[1]].parts.push_back(p);
 			}
 		}
-		logf("rigs: %d loaded", (int)s_rigs.size());
+		int parts = 0;
+		for (auto &kv : s_rigs)
+			parts += (int)kv.second.parts.size();
+		logf("rigs: %d loaded, %d parts", (int)s_rigs.size(), parts);
 		return !s_rigs.empty();
 	}
 
 	bool available(const std::string &r)
 	{
 		auto it = s_rigs.find(r);
-		if (it == s_rigs.end() || !collision::dlc())
-			return false;
+		if (it == s_rigs.end() || it->second.parts.empty() || !collision::dlc())
+			return false; // never "available" with nothing to show (the GTA ped would just vanish)
 		for (auto &p : it->second.parts)
 			if (!IS_MODEL_VALID(GET_HASH_KEY(p.model.c_str())))
 				return false;
