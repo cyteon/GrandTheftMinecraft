@@ -3,3 +3,4 @@ third_party/
 build/
 dist/
 *.o
+mc_source/
