@@ -357,6 +357,7 @@ static class Build
         byte[] ytyp = XmlMeta.GetData(ytypDoc, MetaFormat.RSC, srcDir);
         files.Add(($"{PropsRpf}.ytyp", ytyp));
         files.Add(($"{TexDict}.ytd", ytd)); // last: the ASI rewrites it with the player's own textures
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outRpf))); // fresh checkouts have no build/
         WriteTexLayout(srcDir, ytd, Path.Combine(Path.GetDirectoryName(Path.GetFullPath(outRpf)), "dlc_tex.txt"));
         Console.WriteLine($"built {models.Count} drawables, {TexDict}.ytd ({textures.Count} textures, {ytd.Length / 1024} KB), {PropsRpf}.ytyp");
 
