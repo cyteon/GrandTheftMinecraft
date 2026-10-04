@@ -721,6 +721,30 @@ namespace fx
 		return best;
 	}
 
+	static const char *WINDOWS[] = {"window_lf", "window_rf", "window_lr", "window_rr",
+	                                "window_lm", "window_rm", "windscreen", "windscreen_r"};
+
+	// which window (SMASH_VEHICLE_WINDOW index) a hit on a vehicle went into, or -1: GTA's line probes report the
+	// car body's material for windows, so go by how close the hit is to a window bone
+	static int window_at(int veh, const V3 &p)
+	{
+		int best = -1;
+		float bestD = 1e9f;
+		for (int i = 0; i < 8; i++)
+		{
+			int bi = GET_ENTITY_BONE_INDEX_BY_NAME(veh, WINDOWS[i]);
+			if (bi < 0)
+				continue;
+			V3 w = GET_WORLD_POSITION_OF_ENTITY_BONE(veh, bi);
+			float reach = i >= 6 ? 1.1f : 0.7f; // windscreens are wide
+			float d = (w - p).len();
+			// at window height: a hit on the door just below a side window is bodywork
+			if (d < reach && p.z > w.z - 0.25f && d < bestD)
+				bestD = d, best = i;
+		}
+		return best;
+	}
+
 	void blood(const V3 &p, const V3 &dir)
 	{
 		for (int k = 0; k < 10 && s_debris.size() < 800; k++)
@@ -793,7 +817,14 @@ namespace fx
 					V3 victimAt;
 					if (a.inside && DOES_ENTITY_EXIST(a.inside))
 						victim = occupant_on_path(a.inside, a.p, next, victimAt);
-					if (!victim && gh.hit && type == 2 && !glass_passes(gh.material)) // riders, open cars
+					int window = gh.hit && type == 2 ? window_at(gh.entity, gh.pos) : -1;
+					if (gh.hit && type == 2)
+					{
+						static int logged = 0;
+						if (logged++ < 8)
+							logf("arrow hit vehicle: material 0x%08X, window %d", (unsigned)gh.material, window);
+					}
+					if (!victim && gh.hit && type == 2 && window < 0 && !glass_passes(gh.material)) // riders, open cars
 						victim = occupant_on_path(gh.entity, a.p, gh.pos + dir * 0.3f, victimAt);
 					if (victim && (!vh.hit || (victimAt - a.p).len() < vh.t))
 					{
@@ -813,13 +844,11 @@ namespace fx
 						audio::play_at("random/bowhit", vh.pos, 1.0f, frand(1.0f, 1.3f));
 					}
 					// glass: smash car windows and fly on into the car; shop windows just let it through
-					else if (gh.hit && glass_passes(gh.material))
+					else if (gh.hit && (window >= 0 || glass_passes(gh.material)))
 					{
 						if (type == 2)
 						{
-							static const char *WIN[] = {"window_lf", "window_rf", "window_lr", "window_rr",
-							                            "window_lm", "window_rm", "windscreen", "windscreen_r"};
-							int w = nearest_vehicle_bone(gh.entity, gh.pos, WIN, 8, 2.5f);
+							int w = window >= 0 ? window : nearest_vehicle_bone(gh.entity, gh.pos, WINDOWS, 8, 2.5f);
 							if (w >= 0)
 								SMASH_VEHICLE_WINDOW(gh.entity, w);
 							a.inside = gh.entity;
