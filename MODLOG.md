@@ -97,3 +97,4 @@ copies the world/config into `_gtm_backup\`.
   script-simulated (60 m/s * power, 20 m/s^2, drag 0.99/tick), peds/vehicles hit via SHOOT_SINGLE_BULLET_BETWEEN_COORDS
   (pistol, owner = player), stick in world/blocks 60 s. Bow/crossbow poses from ItemInHandRenderer; crossbow model
   display rotation [-90,0,-55].
+- 2026-10-04: user confirmed Stage 2 leftovers (prop hand, physics TNT, chips) and bow/crossbow work in game. Next candidates: Stage 3 mobs, Stage 4 polish.
