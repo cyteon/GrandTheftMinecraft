@@ -57,3 +57,4 @@ interact with GTA (blocks with collision, TNT, ender pearls, and mobs that fight
 `ScriptHookV.dll`, `dinput8.dll`, `args.txt` (only if it created them), `GrandTheftMinecraft.asi`,
 `GrandTheftMinecraft\` (data, `gtm.log`, `world.txt`, `config.ini`). `install.ps1 -Remove` deletes exactly those and
 copies the world/config into `_gtm_backup\`.
+- 2026-10-04: installed stage 1 into GTA Modding (user approved). User launches PlayGTAV.exe from that folder and tests themselves.
