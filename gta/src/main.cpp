@@ -12,6 +12,9 @@
 #include "interact.h"
 #include "items.h"
 #include "log.h"
+#include "dlcpatch.h"
+#include "mcassets.h"
+#include "version.h"
 #include "render2d.h"
 #include "world.h"
 #include <cstdio>
@@ -26,6 +29,7 @@ static bool s_calib = false;
 static int s_stress = 0; // F11: DRAW_POLY stress test (triangles per frame), cycles 0 → 2k → 5k → 10k → 20k → 0
 static bool s_worldReady = false;
 static float s_fps = 60.0f;
+static bool s_inited = false, s_online = false, s_setupNotified = false;
 static bool s_pedHidden = false;
 
 static void notify(const char *text)
@@ -126,7 +130,7 @@ static std::string debug_text()
 	char buf[1024];
 	V3 sz = collision::model_size();
 	std::snprintf(buf, sizeof buf,
-	              "GrandTheftMinecraft (stage 1)  %.0f fps\n"
+	              "GrandTheftMinecraft " GTM_VERSION "  %.0f fps\n"
 	              "Mode: %s%s%s\n"
 	              "XYZ: %.2f / %.2f / %.2f\n"
 	              "Blocks: %d in %d builds, drawn %d, faces %d, polys %d / %d\n"
@@ -143,8 +147,37 @@ static std::string debug_text()
 	return buf;
 }
 
+// GTA's own text (the Minecraft font isn't built until setup has run)
+static void status_text(const std::string &msg, float y)
+{
+	SET_TEXT_FONT(0);
+	SET_TEXT_SCALE(0.0f, 0.38f);
+	SET_TEXT_COLOUR(255, 255, 255, 230);
+	SET_TEXT_OUTLINE();
+	BEGIN_TEXT_COMMAND_DISPLAY_TEXT("STRING");
+	ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME(("GrandTheftMinecraft: " + msg).c_str());
+	END_TEXT_COMMAND_DISPLAY_TEXT(0.012f, y, 0);
+}
+
+// Never anything in GTA Online: if a session starts, everything Minecraft goes away until story mode.
+static bool online_guard()
+{
+	bool online = NETWORK_IS_SESSION_STARTED() || NETWORK_IS_GAME_IN_PROGRESS();
+	if (online && !s_online)
+	{
+		logf("GTA Online session detected: GrandTheftMinecraft disabled");
+		collision::clear();
+		hand::hide();
+		flight::stop();
+	}
+	s_online = online;
+	return online;
+}
+
 static void tick()
 {
+	if (online_guard())
+		return;
 	update_frame();
 	input::begin_frame();
 	r2d::begin_frame();
@@ -290,23 +323,54 @@ static void tick()
 	world_save_if_dirty();
 }
 
-static void script_main()
+static void init_all()
 {
-	logf("script start");
-	config_load();
-	g_mcMode = g_cfg.startEnabled;
 	if (!r2d::init())
-		logf("GUI textures missing: is the GrandTheftMinecraft folder next to GTA5.exe?");
+		logf("GUI textures missing in %s", g_dataDir.c_str());
 	if (!items_load())
-		logf("no items: run tools/extract_mc.py and reinstall");
+		logf("no items.txt: setup hasn't finished");
 	gui::init();
 	fx::init();
 	world_load();
 	audio::init();
+	s_inited = true;
 	logf("ready: %d items, mode %s", (int)g_items.size(), g_mcMode ? "on" : "off");
+}
+
+static void script_main()
+{
+	logf("script start (GrandTheftMinecraft " GTM_VERSION ")");
+	g_mcMode = g_cfg.startEnabled;
+	if (mcassets::data_ready())
+		init_all();
+	mcassets::start_if_needed();
 	while (true)
 	{
-		tick();
+		if (!s_inited)
+		{
+			if (mcassets::data_ready())
+				init_all();
+			else if (!online_guard())
+				status_text(mcassets::status(), 0.012f); // first launch: building from Minecraft
+		}
+		if (s_inited)
+		{
+			tick();
+			if (mcassets::running() && !s_online)
+				status_text(mcassets::status(), 0.012f);
+		}
+		if (mcassets::finished() && !s_setupNotified)
+		{
+			s_setupNotified = true;
+			std::string msg = "~g~GrandTheftMinecraft~s~: " + mcassets::status();
+			notify(msg.c_str());
+		}
+		if (mcassets::failed() && !s_setupNotified)
+		{
+			s_setupNotified = true;
+			std::string msg = "~r~GrandTheftMinecraft~s~: " + mcassets::status();
+			notify(msg.c_str());
+		}
 		WAIT(0);
 	}
 }
@@ -331,7 +395,11 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID)
 		g_dataDir = dir + "GrandTheftMinecraft\\";
 		CreateDirectoryA(g_dataDir.c_str(), nullptr);
 		log_open(g_dataDir + "gtm.log");
-		logf("GrandTheftMinecraft loaded from %s", path);
+		logf("GrandTheftMinecraft " GTM_VERSION " loaded from %s", path);
+		config_load();
+		// before GTA mounts DLC packs: fill the block pack with the textures setup built last session
+		if (dlcpatch::apply_pending())
+			logf("block pack textured");
 		if (!shv::load())
 		{
 			logf("ScriptHookV binding failed; not starting");

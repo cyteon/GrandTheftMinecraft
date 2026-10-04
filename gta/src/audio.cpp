@@ -1,9 +1,11 @@
+#define STB_VORBIS_HEADER_ONLY
+#include "../vendor/stb_vorbis.c"
 #define MINIAUDIO_IMPLEMENTATION
 #define MA_NO_ENCODING
 #define MA_NO_GENERATION
 #define MA_NO_FLAC
 #define MA_NO_MP3
-#include "../../third_party/miniaudio.h"
+#include "../vendor/miniaudio.h"
 
 #include "audio.h"
 #include "config.h"
@@ -78,15 +80,15 @@ namespace audio
 		if (it == s_variants.end())
 		{
 			n = 0;
-			while (n < 8 && exists(g_dataDir + "sounds/" + name + std::to_string(n + 1) + ".wav"))
+			while (n < 8 && (exists(g_dataDir + "sounds/" + name + std::to_string(n + 1) + ".ogg") ||
+			                 exists(g_dataDir + "sounds/" + name + std::to_string(n + 1) + ".wav")))
 				n++;
 			s_variants[name] = n;
 		}
 		else
 			n = it->second;
-		if (n == 0)
-			return g_dataDir + "sounds/" + name + ".wav";
-		return g_dataDir + "sounds/" + name + std::to_string(1 + rand() % n) + ".wav";
+		std::string base = g_dataDir + "sounds/" + name + (n ? std::to_string(1 + rand() % n) : std::string());
+		return exists(base + ".ogg") ? base + ".ogg" : base + ".wav";
 	}
 
 	void play(const std::string &name, const V3 *pos, float volume, float pitch, float maxDist)
@@ -125,3 +127,7 @@ namespace audio
 			play_at("dig/" + (group == "glass" ? std::string("stone") : group), pos, 1.0f, 0.8f);
 	}
 }
+
+// stb_vorbis implementation last: it defines short macros (L, C, R) that would clash with our headers
+#undef STB_VORBIS_HEADER_ONLY
+#include "../vendor/stb_vorbis.c"

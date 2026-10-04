@@ -1,5 +1,6 @@
 #include "collision.h"
 #include "config.h"
+#include "dlcpatch.h"
 #include "items.h"
 #include "log.h"
 #include "world.h"
@@ -92,7 +93,9 @@ namespace collision
 				found++;
 			}
 		}
-		s_dlc = found > 0;
+		s_dlc = found > 0 && dlcpatch::dlc_ready();
+		if (found > 0 && !s_dlc)
+			logf("blocks: DLC loaded but its textures aren't filled yet (restart GTA once after setup)");
 		if (s_dlc)
 		{
 			s_name = "gtm_* (DLC)";

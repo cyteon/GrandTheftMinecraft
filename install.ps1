@@ -8,7 +8,8 @@
   powershell -ExecutionPolicy Bypass -File install.ps1 -Remove
 
   Install copies:  ScriptHookV.dll, dinput8.dll (ASI loader), args.txt (-nobattleye), GrandTheftMinecraft.asi and
-  the GrandTheftMinecraft\ data folder. Your world.txt and config.ini are kept when updating.
+  GrandTheftMinecraft\defs.txt + dlc_tex.txt (the mod builds everything Minecraft from them on first launch).
+  Your world.txt and config.ini are kept when updating. This is the developer install; players use the .oiv.
   Every file it adds is listed in GrandTheftMinecraft\install-manifest.txt; -Remove deletes exactly those and
   keeps a copy of your world in _gtm_backup\.
 #>
@@ -53,10 +54,10 @@ if ($Remove) {
 }
 
 $Asi = Join-Path $Repo "build\GrandTheftMinecraft.asi"
-$BuiltData = Join-Path $Repo "build\GrandTheftMinecraft"
 $Runtime = Join-Path $Repo "third_party\runtime"
 if (-not (Test-Path $Asi)) { throw "Build first: $Asi is missing (run build.sh)" }
-if (-not (Test-Path (Join-Path $BuiltData "items.txt"))) { throw "Run tools\extract_mc.py first ($BuiltData)" }
+$Layout = Join-Path $Repo "build\dlc\gtm\dlc_tex.txt"
+if (-not (Test-Path $Layout)) { throw "Build the block pack first (tools\make_dlc_src.py, gtmpack build)" }
 
 $added = New-Object System.Collections.Generic.List[string]
 if (Test-Path $Manifest) { $added.AddRange([string[]](Get-Content $Manifest)) }
@@ -92,14 +93,11 @@ Track "GrandTheftMinecraft.asi"
 Write-Host "installed GrandTheftMinecraft.asi"
 
 New-Item -ItemType Directory -Force $Data | Out-Null
-Get-ChildItem $BuiltData -Recurse -File | ForEach-Object {
-	$rel = $_.FullName.Substring($BuiltData.Length + 1)
-	if ($rel -in "world.txt", "config.ini") { return }
-	$dst = Join-Path $Data $rel
-	New-Item -ItemType Directory -Force (Split-Path -Parent $dst) | Out-Null
-	Copy-Item $_.FullName $dst -Force
-}
-Write-Host "installed GrandTheftMinecraft\ data folder"
+Copy-Item (Join-Path $Repo "data\defs.txt") (Join-Path $Data "defs.txt") -Force
+Copy-Item $Layout (Join-Path $Data "dlc_tex.txt") -Force
+# a new block pack has blank textures again: forget the old fill so the mod rebuilds it
+Remove-Item (Join-Path $Data "dlc_ready.txt") -ErrorAction SilentlyContinue
+Write-Host "installed GrandTheftMinecraft\ defs (the mod builds the Minecraft assets on first launch)"
 
 # ---- Stage 2: textured block props as an add-on DLC, loaded through OpenIV's mods folder ----
 if (-not $NoDlc) {

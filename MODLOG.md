@@ -98,3 +98,16 @@ copies the world/config into `_gtm_backup\`.
   (pistol, owner = player), stick in world/blocks 60 s. Bow/crossbow poses from ItemInHandRenderer; crossbow model
   display rotation [-90,0,-55].
 - 2026-10-04: user confirmed Stage 2 leftovers (prop hand, physics TNT, chips) and bow/crossbow work in game. Next candidates: Stage 3 mobs, Stage 4 polish.
+- 2026-10-04 Release path (user: "easy install, no random exe", no Mojang redistribution): the ASI now builds all
+  Minecraft assets itself on first launch (mcassets.cpp): local MC 1.21.11 (official/Prism/PolyMC/CurseForge/
+  Modrinth, jar SHA1 ba2df812...) else Mojang's servers (pinned content-addressed client jar + asset index 29 +
+  objects, SHA1-checked, WinHTTP, background thread). Sounds stay .ogg (stb_vorbis in miniaudio). The DLC ships
+  Mojang-free: generic meshes (one universal 16x16 extrusion trimmed by the cutout shader) + marker placeholder
+  textures; gtmpack records each texture's offset in the decompressed ytd (dlc_tex.txt) and puts gtm_tex.ytd last.
+  dlcpatch.cpp (from DllMain, before DLC mount) writes textures.bin into the ytd, re-deflates, regrows the entry and
+  trims the file. Offline test (gta/tests/setup_test.cpp, fake game dir): download 0.6 s, whole setup ~3.5 s,
+  CodeWalker reads the patched ytd, block sheets/items correct. Release = .oiv (OpenIV Package Installer: files +
+  dlclist xml edit) + manual zip (tools/package.py), built by GitHub Actions (msys2 UCRT64 gcc, CodeWalker @485d56b)
+  with build-provenance attestation. Online guard (NETWORK_IS_SESSION_STARTED/GAME_IN_PROGRESS). um publish check:
+  source 65 files PASS, .oiv PASS. Flaky early segfault seen 4x in the -O2 test exe (before log open), not
+  reproducible afterwards (11 clean runs) - watch for it.

@@ -1,0 +1,88 @@
+# Builds GrandTheftMinecraft from source on every push; on a v* tag, publishes the .oiv and the manual zip as a GitHub
+# Release with build-provenance attestations (gh attestation verify <file> -R cyteon/GrandTheftMinecraft).
+# Nothing from Minecraft or GTA is used or shipped: the block pack is built with blank placeholder textures.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  CODEWALKER_COMMIT: 485d56b
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          path-type: inherit
+          install: mingw-w64-ucrt-x86_64-gcc
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install numpy pillow
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Fetch build-time sources (native DB, CodeWalker)
+        shell: bash
+        run: |
+          mkdir -p third_party
+          curl -sSfL https://raw.githubusercontent.com/alloc8or/gta5-nativedb-data/master/natives.json -o third_party/natives.json
+          git clone https://github.com/dexyfex/CodeWalker third_party/CodeWalker
+          git -C third_party/CodeWalker checkout $CODEWALKER_COMMIT
+
+      - name: Build the ASI
+        shell: msys2 {0}
+        run: CXX=g++ CC=gcc PY=python ./build.sh
+
+      - name: Build the block pack
+        shell: bash
+        run: |
+          python tools/make_dlc_src.py
+          dotnet build -c Release tools/gtmpack
+          tools/gtmpack/bin/Release/net8.0-windows/gtmpack.exe build - build/dlc_src build/dlc/gtm/dlc.rpf
+
+      - name: Package
+        shell: bash
+        run: python tools/package.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GrandTheftMinecraft
+          path: |
+            dist/*.oiv
+            dist/*.zip
+
+      - name: Attest build provenance
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.oiv
+            dist/*.zip
+            build/GrandTheftMinecraft.asi
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.oiv
+            dist/*.zip
+          generate_release_notes: true

@@ -1,9 +1,9 @@
-claude-refrence/
-third_party/
-build/
-dist/
 *.o
-mc_source/
+build/
+claude-refrence/
+dist/
 gta/src/natives_gen.h
+mc_source/
+third_party/
 tools/gtmpack/bin/
 tools/gtmpack/obj/

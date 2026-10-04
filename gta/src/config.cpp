@@ -21,6 +21,10 @@ static const char *DEFAULT_INI =
 	"Invincible=1\n"
 	"NoWanted=0\n"
 	"Volume=0.8\n"
+	"; Minecraft 1.21.11 is found automatically (official launcher, Prism, CurseForge, Modrinth) or fetched from\n"
+	"; Mojang's servers. To use a specific install: MinecraftJar=C:\\path\\1.21.11.jar, MinecraftAssets=its assets folder\n"
+	"MinecraftJar=\n"
+	"MinecraftAssets=\n"
 	"[Blocks]\n"
 	"RenderDistance=64\n"
 	"PolyBudget=30000\n"
@@ -66,6 +70,8 @@ void config_load()
 		else if (k == "GuiScale") g_cfg.guiScale = parse_int(s);
 		else if (k == "Invincible") g_cfg.invincible = parse_int(s) != 0;
 		else if (k == "NoWanted") g_cfg.noWanted = parse_int(s) != 0;
+		else if (k == "MinecraftJar") g_cfg.minecraftJar = v;
+		else if (k == "MinecraftAssets") g_cfg.minecraftAssets = v;
 		else if (k == "Volume") g_cfg.volume = (float)std::atof(s);
 		else if (k == "RenderDistance") g_cfg.renderDistance = (float)std::atof(s);
 		else if (k == "FullDetailDistance") g_cfg.fullDetailDistance = (float)std::atof(s);

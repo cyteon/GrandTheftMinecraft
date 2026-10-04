@@ -19,6 +19,8 @@ struct Config
 	bool gtaExplosionFx = false; // also show GTA's own explosion effect under the Minecraft particles
 	bool startEnabled = true;
 	float volume = 0.8f;
+	std::string minecraftJar;    // optional: a 1.21.11 client jar to use instead of searching / downloading
+	std::string minecraftAssets; // optional: that launcher's assets folder (indexes\, objects\)
 };
 
 extern Config g_cfg;
