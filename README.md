@@ -25,6 +25,9 @@ teleport you across Los Santos, arrows hit pedestrians.
   in walls and blocks.
 - **Play as Steve**: in third person you're Steve (or your own skin), animated by GTA's own walk, run and jump
   animations, looking where you look and holding your item.
+- **Mobs that fight GTA's people** (Spawn Eggs tab): zombies chase and hit pedestrians, skeletons shoot arrows,
+  creepers hiss and explode, and iron golems fight on your side against monsters, cops and gangs. They're real GTA
+  characters underneath (GTA does their walking and pathing, and cops shoot at them) wearing Minecraft bodies.
 - **Creative flight**: double-tap Space.
 - **Minecraft sounds** for blocks, explosions, bows and more, positioned in 3D.
 
@@ -113,6 +116,11 @@ drawing, using the same textures as colour grids.
 
 **Building.** X/Y use a global 1 m grid; Z is offset per "build" so blocks sit flush on GTA's ground at whatever
 height it has. Targeting combines an exact voxel ray through your blocks with a GTA line-of-sight probe.
+
+**Steve and mobs.** Each is an invisible GTA ped wearing Minecraft box parts from the block pack, built from
+Minecraft's own model layouts (`rigs.txt`). Every frame each part follows the matching GTA bone, so GTA's walk, run
+and ragdoll animations move Minecraft-style limbs. Mob behaviour (targets, attacks, the creeper fuse) is the mod's;
+moving around is GTA's.
 
 **Items.** Arrows and ender pearls are simulated with Minecraft's numbers (speed, gravity, drag per tick) and tested
 against GTA's world each frame; an arrow hitting a person or car becomes an invisible GTA bullet so GTA handles damage

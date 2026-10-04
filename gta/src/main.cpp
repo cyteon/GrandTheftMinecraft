@@ -9,6 +9,8 @@
 #include "gui.h"
 #include "hand.h"
 #include "steve.h"
+#include "mobs.h"
+#include "rig.h"
 #include "input.h"
 #include "interact.h"
 #include "items.h"
@@ -136,14 +138,14 @@ static std::string debug_text()
 	              "XYZ: %.2f / %.2f / %.2f\n"
 	              "Blocks: %d in %d builds, drawn %d, faces %d, polys %d / %d\n"
 	              "Collision props: %d / %d (%s %.2fx%.2fx%.2f)\n"
-	              "Pearls %d  arrows %d  TNT %d  particles %d\n"
+	              "Pearls %d  arrows %d  TNT %d  particles %d  mobs %d\n"
 	              "%s\n"
 	              "Screen %dx%d gui %d fov %.1f  stress %d",
 	              s_fps, g_mcMode ? "Minecraft" : "GTA", flight::active() ? " (flying)" : "",
 	              g.inVehicle ? " (vehicle)" : "", g.pedPos.x, g.pedPos.y, g.pedPos.z, (int)g_blocks.size(),
 	              (int)g_builds.size(), blockrender::blocksDrawn, blockrender::facesThisFrame,
 	              blockrender::polysThisFrame, g_cfg.polyBudget, collision::count(), g_cfg.maxCollisionProps,
-	              collision::model_name(), sz.x, sz.y, sz.z, fx::pearl_count(), fx::arrow_count(), fx::tnt_count(), fx::particle_count(),
+	              collision::model_name(), sz.x, sz.y, sz.z, fx::pearl_count(), fx::arrow_count(), fx::tnt_count(), fx::particle_count(), mobs::count(),
 	              interact::describe().c_str(), g.screenW, g.screenH, g.gui, g.camFov, s_stress);
 	return buf;
 }
@@ -170,6 +172,7 @@ static bool online_guard()
 		collision::clear();
 		hand::hide();
 		steve::hide();
+		mobs::clear();
 		flight::stop();
 	}
 	s_online = online;
@@ -191,6 +194,7 @@ static void tick()
 		collision::init();
 		if (collision::dlc())
 			fx::preload();
+		mobs::init();
 		s_worldReady = true;
 		if (g_mcMode)
 			SET_FOLLOW_PED_CAM_VIEW_MODE(4);
@@ -324,6 +328,8 @@ static void tick()
 		interact::g_target = interact::Target{};
 		flight::stop();
 	}
+	if (s_worldReady)
+		mobs::update();
 	fx::update();
 	stress_test();
 	if (s_worldReady)
@@ -352,6 +358,7 @@ static void init_all()
 		logf("no items.txt: setup hasn't finished");
 	gui::init();
 	fx::init();
+	rig::load();
 	world_load();
 	audio::init();
 	s_inited = true;

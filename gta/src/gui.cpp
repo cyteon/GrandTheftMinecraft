@@ -35,6 +35,7 @@ namespace gui
 		{"redstone", "Redstone Blocks", "tnt"},
 		{"combat", "Combat", "diamond_sword"},
 		{"tools", "Tools & Utilities", "flint_and_steel"},
+		{"spawn", "Spawn Eggs", "creeper_spawn_egg"},
 	};
 	static const int NTABS = sizeof(TABS) / sizeof(TABS[0]);
 	static int s_tab = 0;

@@ -132,47 +132,117 @@ def sprite_geo(size):
     return g
 
 
-def skin_box(g, x0, y0, z0, w, h, d, u, v, inflate=0.0):
-    """A Minecraft cuboid (sizes in skin pixels) with the standard skin UV layout at (u, v) on a 64x64 skin:
-    top (u+d, v), bottom (u+d+w, v), then the strip at v+d: right side, front, left side, back. The character
-    faces +Y; +X is its right. inflate grows the box (outer layer) without moving the UVs."""
-    x0, y0, z0 = x0 - inflate, y0 - inflate, z0 - inflate
-    x1, y1, z1 = x0 + w + 2 * inflate, y0 + d + 2 * inflate, z0 + h + 2 * inflate
-    P = lambda x, y, z: (x * PX, y * PX, z * PX)  # noqa: E731
+def mc_box(g, scale, box, uv, tex, inflate=0.0, mirror=False):
+    """A cuboid from a Minecraft entity model: box = (x, y, z, w, h, d) in Minecraft model space relative to the
+    part's pivot (y down, the model faces -z, -x is its right), uv = texture offset, tex = texture size. Converted to
+    GTA space (x = the character's right, y = forward, z = up). Standard Minecraft cube UV layout: top (u+d, v),
+    bottom (u+d+w, v), then the strip at v+d: right side, front, left side, back. mirror flips it like Minecraft's
+    mirrored limbs (left arms/legs that reuse the right ones' texture)."""
+    bx, by, bz, w, h, d = box
+    u, v = uv
+    tw, th = tex
+    x0, x1 = -(bx + w) - inflate, -bx + inflate  # Minecraft -x = right = our +x
+    y0, y1 = -(bz + d) - inflate, -bz + inflate  # Minecraft -z = front = our +y
+    z0, z1 = -(by + h) - inflate, -by + inflate  # Minecraft -y = up = our +z
+    P = lambda x, y, z: (x * scale, y * scale, z * scale)  # noqa: E731
     e = 0.01
 
-    def uv(a, b, cw, ch):
-        return ((a + e) / 64, (b + e) / 64), ((a + cw - e) / 64, (b + ch - e) / 64)
+    def region(a, b, cw, ch, flip=False):
+        u0, v0, u1, v1 = (a + e) / tw, (b + e) / th, (a + cw - e) / tw, (b + ch - e) / th
+        return ((u1, v0), (u0, v1)) if flip else ((u0, v0), (u1, v1))
 
-    # (top-left corner, right step, down step, normal, uv region)
+    right, left = region(u, v + d, d, h), region(u + d + w, v + d, d, h)
+    if mirror:  # mirrored limbs swap the side faces and flip every face horizontally
+        right, left = region(u + d + w, v + d, d, h, True), region(u, v + d, d, h, True)
+    front = region(u + d, v + d, w, h, mirror)
+    back = region(u + 2 * d + w, v + d, w, h, mirror)
+    top = region(u + d, v, w, d, mirror)
+    bottom = region(u + d + w, v, w, d, mirror)
     faces = [
-        ((x1, y1, z1), (-1, 0, 0), (0, 0, -1), (0, 1, 0), uv(u + d, v + d, w, h)),          # front
-        ((x0, y0, z1), (1, 0, 0), (0, 0, -1), (0, -1, 0), uv(u + 2 * d + w, v + d, w, h)),  # back
-        ((x1, y0, z1), (0, 1, 0), (0, 0, -1), (1, 0, 0), uv(u, v + d, d, h)),               # right side
-        ((x0, y1, z1), (0, -1, 0), (0, 0, -1), (-1, 0, 0), uv(u + d + w, v + d, d, h)),     # left side
-        ((x1, y0, z1), (-1, 0, 0), (0, 1, 0), (0, 0, 1), uv(u + d, v, w, d)),               # top
-        ((x1, y1, z0), (-1, 0, 0), (0, -1, 0), (0, 0, -1), uv(u + d + w, v, w, d)),         # bottom
+        ((x1, y1, z1), (-1, 0, 0), (0, 0, -1), (0, 1, 0), front),
+        ((x0, y0, z1), (1, 0, 0), (0, 0, -1), (0, -1, 0), back),
+        ((x1, y0, z1), (0, 1, 0), (0, 0, -1), (1, 0, 0), right),
+        ((x0, y1, z1), (0, -1, 0), (0, 0, -1), (-1, 0, 0), left),
+        ((x1, y0, z1), (-1, 0, 0), (0, 1, 0), (0, 0, 1), top),
+        ((x1, y1, z0), (-1, 0, 0), (0, -1, 0), (0, 0, -1), bottom),
     ]
     sizes = {(1, 0, 0): x1 - x0, (0, 1, 0): y1 - y0, (0, 0, 1): z1 - z0}
     for o, du, dv, n, (uv0, uv1) in faces:
         lu = sizes[tuple(abs(c) for c in du)]
         lv = sizes[tuple(abs(c) for c in dv)]
         p00 = P(*o)
-        p10 = P(o[0] + du[0] * lu, o[1] + du[1] * lu, o[2] + du[2] * lu)
-        p01 = P(o[0] + dv[0] * lv, o[1] + dv[1] * lv, o[2] + dv[2] * lv)
-        p11 = P(o[0] + (du[0] * lu + dv[0] * lv), o[1] + (du[1] * lu + dv[1] * lv), o[2] + (du[2] * lu + dv[2] * lv))
+        p10 = P(*(o[k] + du[k] * lu for k in range(3)))
+        p01 = P(*(o[k] + dv[k] * lv for k in range(3)))
+        p11 = P(*(o[k] + du[k] * lu + dv[k] * lv for k in range(3)))
         g.quad(p00, p10, p11, p01, n, uv0, uv1)
 
 
-# Steve's parts: (name, box x0, y0, z0, w, h, d relative to the pivot, base uv, outer-layer uv, inflate)
-STEVE = [
-    ("head", -4, -4, 0, 8, 8, 8, (0, 0), (32, 0), 0.5),
-    ("body", -4, -2, -12, 8, 12, 4, (16, 16), (16, 32), 0.25),
-    ("rarm", -1, -2, -10, 4, 12, 4, (40, 16), (40, 32), 0.25),
-    ("larm", -3, -2, -10, 4, 12, 4, (32, 48), (48, 48), 0.25),
-    ("rleg", -2, -2, -12, 4, 12, 4, (0, 16), (0, 32), 0.25),
-    ("lleg", -2, -2, -12, 4, 12, 4, (16, 48), (0, 48), 0.25),
-]
+# Entity rigs, copied from Minecraft's model classes. Each part: name, pivot (Minecraft model space: y = 24 is the
+# ground), how the mod poses it, the GTA bones it follows, and its boxes: (box, uv, inflate, mirror).
+#   kinds: body (upright, faces the ped's heading), head (looks at the target / camera), limb (follows bone b0->b1),
+#          fwdarm (held straight out in front, like a zombie's)
+HUMANOID_BONES = {"rarm": (40269, 57005), "larm": (45509, 18905), "rleg": (51826, 52301), "lleg": (58271, 14201)}
+
+
+def humanoid(arm_w, layers, uvs, arm_kind="limb"):
+    """Player / zombie / skeleton layout. uvs: head, body, rarm, larm, rleg, lleg (larm/lleg None = mirror right)."""
+    aw = arm_w
+    parts = [
+        ("head", (0, 0, 0), "head", (0, 0), [((-4, -8, -4, 8, 8, 8), uvs["head"])]),
+        ("body", (0, 0, 0), "body", (0, 0), [((-4, 0, -2, 8, 12, 4), uvs["body"])]),
+        ("rarm", (-5, 2, 0), arm_kind, HUMANOID_BONES["rarm"], [((-3 if aw == 4 else -1, -2, -aw / 2, aw, 12, aw), uvs["rarm"])]),
+        ("larm", (5, 2, 0), arm_kind, HUMANOID_BONES["larm"], [((-1, -2, -aw / 2, aw, 12, aw), uvs["larm"] or uvs["rarm"], uvs["larm"] is None)]),
+        ("rleg", (-1.9 if aw == 4 else -2, 12, 0), "limb", HUMANOID_BONES["rleg"], [((-aw / 2, 0, -aw / 2, aw, 12, aw), uvs["rleg"])]),
+        ("lleg", (1.9 if aw == 4 else 2, 12, 0), "limb", HUMANOID_BONES["lleg"], [((-aw / 2, 0, -aw / 2, aw, 12, aw), uvs["lleg"] or uvs["rleg"], uvs["lleg"] is None)]),
+    ]
+    out = []
+    for name, pivot, kind, bones, boxes in parts:
+        bl = []
+        for bx in boxes:
+            box, uv = bx[0], bx[1]
+            mirror = bx[2] if len(bx) > 2 else False
+            bl.append((box, uv, 0.0, mirror))
+            if name in layers:  # the outer layer (hat, jacket, sleeves, pants)
+                luv, infl = layers[name]
+                bl.append((box, luv, infl, mirror and luv == uv))
+        out.append((name, pivot, kind, bones, bl))
+    return out
+
+
+PLAYER_UV = {"head": (0, 0), "body": (16, 16), "rarm": (40, 16), "larm": (32, 48), "rleg": (0, 16), "lleg": (16, 48)}
+PLAYER_LAYERS = {"head": ((32, 0), 0.5), "body": ((16, 32), 0.25), "rarm": ((40, 32), 0.25),
+                 "larm": ((48, 48), 0.25), "rleg": ((0, 32), 0.25), "lleg": ((0, 48), 0.25)}
+OLD_UV = {"head": (0, 0), "body": (16, 16), "rarm": (40, 16), "larm": None, "rleg": (0, 16), "lleg": None}
+
+RIGS = {
+    # name: (texture recipe, texture size, scale m/px, parts)
+    "steve": ("skin", (64, 64), 0.9375 / 16, humanoid(4, PLAYER_LAYERS, PLAYER_UV)),
+    "zombie": ("entity entity/zombie/zombie.png", (64, 64), 1 / 16,
+               humanoid(4, PLAYER_LAYERS, PLAYER_UV, arm_kind="fwdarm")),
+    "skeleton": ("entity entity/skeleton/skeleton.png", (64, 32), 1 / 16,
+                 humanoid(2, {"head": ((32, 0), 0.5)}, OLD_UV)),
+    "creeper": ("entity entity/creeper/creeper.png", (64, 32), 1 / 16, [
+        ("head", (0, 6, 0), "head", (0, 0), [((-4, -8, -4, 8, 8, 8), (0, 0), 0.0, False)]),
+        ("body", (0, 6, 0), "body", (0, 0), [((-4, 0, -2, 8, 12, 4), (16, 16), 0.0, False)]),
+        # front legs follow the thighs, back legs the opposite thighs: a trot
+        ("rfleg", (-2, 18, -4), "limb", (51826, 52301), [((-2, 0, -2, 4, 6, 4), (0, 16), 0.0, False)]),
+        ("lfleg", (2, 18, -4), "limb", (58271, 14201), [((-2, 0, -2, 4, 6, 4), (0, 16), 0.0, False)]),
+        ("rhleg", (-2, 18, 4), "limb", (58271, 14201), [((-2, 0, -2, 4, 6, 4), (0, 16), 0.0, False)]),
+        ("lhleg", (2, 18, 4), "limb", (51826, 52301), [((-2, 0, -2, 4, 6, 4), (0, 16), 0.0, False)]),
+    ]),
+    "golem": ("entity entity/iron_golem/iron_golem.png", (128, 128), 1 / 16, [
+        ("head", (0, -7, -2), "head", (0, 0), [((-4, -12, -5.5, 8, 10, 8), (0, 0), 0.0, False),
+                                              ((-1, -5, -7.5, 2, 4, 2), (24, 0), 0.0, False)]),
+        ("body", (0, -7, 0), "body", (0, 0), [((-9, -2, -6, 18, 12, 11), (0, 40), 0.0, False),
+                                             ((-4.5, 10, -3, 9, 5, 6), (0, 70), 0.5, False)]),
+        # Minecraft pivots the arms at the body's centre line; pivot them at the shoulders (same shape at rest) so
+        # sideways swings from the GTA bones don't orbit the chest
+        ("rarm", (-11, -7, 0), "limb", (40269, 57005), [((-2, -2.5, -3, 4, 30, 6), (60, 21), 0.0, False)]),
+        ("larm", (11, -7, 0), "limb", (45509, 18905), [((-2, -2.5, -3, 4, 30, 6), (60, 58), 0.0, False)]),
+        ("rleg", (-4, 11, 0), "limb", (51826, 52301), [((-3.5, -3, -3, 6, 16, 5), (37, 0), 0.0, False)]),
+        ("lleg", (5, 11, 0), "limb", (58271, 14201), [((-3.5, -3, -3, 6, 16, 5), (60, 0), 0.0, True)]),
+    ]),
+}
 
 
 def arrow_geo():
@@ -248,13 +318,23 @@ def main():
         rows.append(f"gtm_i_{sp}_tp;gtm_i_{sp};cutout;1;-")
     (out / "gtm_sprite.geo").unlink()
     (out / "gtm_sprite_tp.geo").unlink()
-    texture("gtm_skin", 512, 512, "skin")
-    for name, x0, y0, z0, w, h, d, base, outer, infl in STEVE:
-        g = Geo()
-        skin_box(g, x0, y0, z0, w, h, d, *base)
-        skin_box(g, x0, y0, z0, w, h, d, *outer, inflate=infl)
-        g.write(out / f"gtm_steve_{name}.geo")
-        rows.append(f"gtm_steve_{name};gtm_skin;cutout;1;-")
+    # entity rigs (Steve, mobs): one model per part, origin at the part's pivot; rigs.txt tells the ASI how to pose them
+    rig_lines = ["# rig;name;scale (m per model pixel)",
+                 "# part;rig;model;kind;pivot x;pivot y;pivot z (GTA space, pixels above the ground);bone0;bone1"]
+    for rig, (recipe, (tw, th), scale, parts) in RIGS.items():
+        tex = "gtm_skin" if rig == "steve" else f"gtm_tex_{rig}"
+        texture(tex, tw * 8, th * 8, recipe)
+        rig_lines.append(f"rig;{rig};{scale:.6f}")
+        for name, (px, py, pz), kind, (b0, b1), boxes in parts:
+            g = Geo()
+            for box, uv, infl, mirror in boxes:
+                mc_box(g, scale, box, uv, (tw, th), infl, mirror)
+            model = f"gtm_{rig}_{name}"
+            g.write(out / f"{model}.geo")
+            rows.append(f"{model};{tex};cutout;1;-")
+            # Minecraft pivot -> GTA space above the ground
+            rig_lines.append(f"part;{rig};{model};{kind};{-px:g};{-pz:g};{24 - py:g};{b0};{b1}")
+    (out / "rigs.txt").write_text("\n".join(rig_lines) + "\n")
     texture("gtm_arrow_e", 256, 256, "arrow")
     arrow_geo().write(out / "gtm_arrow.geo")
     rows.append("gtm_arrow;gtm_arrow_e;cutout;1;-")

@@ -77,6 +77,10 @@ item;bow;Bow;combat;s;bow
 item;crossbow;Crossbow;combat;s;crossbow_standby
 item;flint_and_steel;Flint and Steel;tools;s;flint_and_steel
 item;ender_pearl;Ender Pearl;tools;p;ender_pearl
+item;zombie_spawn_egg;Zombie Spawn Egg;spawn;;zombie_spawn_egg
+item;skeleton_spawn_egg;Skeleton Spawn Egg;spawn;;skeleton_spawn_egg
+item;creeper_spawn_egg;Creeper Spawn Egg;spawn;;creeper_spawn_egg
+item;iron_golem_spawn_egg;Iron Golem Spawn Egg;spawn;;iron_golem_spawn_egg
 sprite;bow_pulling_0
 sprite;bow_pulling_1
 sprite;bow_pulling_2

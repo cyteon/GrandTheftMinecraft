@@ -43,13 +43,14 @@ namespace mcassets
 	static std::string s_status = "idle";
 	static std::atomic<bool> s_running{false}, s_finished{false}, s_failed{false};
 
-	static void set_status(const std::string &st)
+	static void set_status(const std::string &st, bool log = true)
 	{
 		{
 			std::lock_guard<std::mutex> l(s_mx);
 			s_status = st;
 		}
-		logf("setup: %s", st.c_str());
+		if (log)
+			logf("setup: %s", st.c_str());
 	}
 
 	std::string status()
@@ -583,7 +584,12 @@ namespace mcassets
 		{"mob/endermen/portal", 0}, {"fire/ignite", 0}, {"random/click", 0}, {"random/pop", 0}, {"damage/hit", 3},
 		{"random/orb", 0}, {"random/bowhit", 4}, {"entity/player/attack/strong", 1}, {"entity/player/attack/knockback", 1},
 		{"entity/player/attack/sweep", 1}, {"item/crossbow/loading_start", 0}, {"item/crossbow/loading_middle", 4},
-		{"item/crossbow/loading_end", 0}, {"item/crossbow/shoot", 3}};
+		{"item/crossbow/loading_end", 0}, {"item/crossbow/shoot", 3},
+		{"mob/zombie/say", 3}, {"mob/zombie/hurt", 2}, {"mob/zombie/death", 0},
+		{"mob/skeleton/say", 3}, {"mob/skeleton/hurt", 4}, {"mob/skeleton/death", 0},
+		{"mob/creeper/say", 4}, {"mob/creeper/death", 0},
+		{"mob/irongolem/hit", 4}, {"mob/irongolem/damage", 2}, {"mob/irongolem/death", 0},
+		{"mob/irongolem/throw", 0}};
 
 	static bool build_sounds(const Source &src)
 	{
@@ -620,7 +626,7 @@ namespace mcassets
 		int n = 0, got = 0;
 		for (auto &name : names)
 		{
-			set_status("Getting sounds " + std::to_string(++n) + "/" + std::to_string(names.size()) + "...");
+			set_status("Getting sounds " + std::to_string(++n) + "/" + std::to_string(names.size()) + "...", false);
 			std::string key = "\"minecraft/sounds/" + name + ".ogg\"";
 			size_t at = json.find(key);
 			size_t hp = at == std::string::npos ? at : json.find("\"hash\"", at);
@@ -762,6 +768,13 @@ namespace mcassets
 				if (!own && !tex("entity/player/wide/steve.png", sk))
 					sk.w = sk.h = 64, sk.px.assign(64 * 64 * 4, 255);
 				base = resize_nn(sk, w, h);
+			}
+			else if (r[0] == "entity" && r.size() > 1) // a mob's texture: entity/zombie/zombie.png ...
+			{
+				Img e;
+				if (!tex(r[1], e))
+					e.w = 64, e.h = 64, e.px.assign(64 * 64 * 4, 255);
+				base = resize_nn(e, w, h);
 			}
 			else if (r[0] == "arrow")
 			{

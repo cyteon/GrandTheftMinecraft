@@ -7,6 +7,7 @@
 #include "input.h"
 #include "items.h"
 #include "log.h"
+#include "mobs.h"
 #include <cstdio>
 
 namespace interact
@@ -275,6 +276,20 @@ namespace interact
 					START_SCRIPT_FIRE(t.gh.pos.x, t.gh.pos.y, t.gh.pos.z, 5, FALSE);
 				audio::play_at("fire/ignite", t.gh.pos, 1.0f, frand(0.8f, 1.2f));
 			}
+		}
+		else if (mobs::egg_type(h->name) >= 0)
+		{
+			// spawn eggs: the mob stands where you click, facing you
+			V3 at;
+			if (t.kind == Target::BLOCK)
+				at = cell_min(t.vh.cell) + V3(0.5f, 0.5f, 1.0f);
+			else if (t.kind == Target::GROUND || t.kind == Target::OBJECT)
+				at = t.gh.pos;
+			else
+				return;
+			float heading = std::atan2(-(g.pedPos.x - at.x), g.pedPos.y - at.y) * 180.0f / PI;
+			if (mobs::spawn((mobs::Type)mobs::egg_type(h->name), at, heading))
+				gui::swing();
 		}
 		else if (h->block)
 		{

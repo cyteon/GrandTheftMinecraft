@@ -18,7 +18,7 @@ for src in gta/src/*.cpp gta/vendor/miniz.c; do
 	obj="build/obj/${base%.*}.o"
 	OBJS+=("$obj")
 	# the big single-file libraries only rebuild when they changed
-	if [ "$obj" -nt "$src" ] && { [ "$base" = audio.cpp ] || [ "$base" = miniz.c ] || [ "$base" = mcassets.cpp ]; } && [ "$obj" -nt gta/src/common.h ]; then continue; fi
+	if [ "$obj" -nt "$src" ] && { [ "$base" = audio.cpp ] || [ "$base" = miniz.c ] || [ "$base" = mcassets.cpp ]; } && [ "$obj" -nt gta/src/common.h ] && [ "$obj" -nt gta/src/version.h ] && [ "$obj" -nt gta/src/config.h ]; then continue; fi
 	if [ "${src##*.}" = c ]; then
 		"$CC" -O2 -c "$src" -o "$obj" &
 	else

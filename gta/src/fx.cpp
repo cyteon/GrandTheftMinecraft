@@ -64,6 +64,7 @@ namespace fx
 		uint64_t stuckCell = 0; // block it's stuck in (0 = GTA world)
 		bool inBlock = false;
 		int stuckIn = 0;        // ped or vehicle it's stuck in (attached; follows them)
+		int owner = 0;          // who shot it (a skeleton); 0 = the player
 		int inside = 0;         // vehicle it went into through a window (probes ignore it; occupants are checked)
 		float insideLeft = 0;   // metres of flight left inside that vehicle
 	};
@@ -450,6 +451,28 @@ namespace fx
 			}
 	}
 
+	void flash_box(const V3 &c, const V3 ax[3], int alpha) { draw_box(c, ax, 255, 255, 255, (uint8_t)alpha); }
+
+	void poof(const V3 &p)
+	{
+		int grp = new_group(p);
+		for (int k = 0; k < 20; k++)
+		{
+			Sprite s;
+			s.p = p + V3(frand(-0.5f, 0.5f), frand(-0.5f, 0.5f), frand(-0.9f, 0.6f));
+			s.v = V3(frand(-1, 1), frand(-1, 1), frand(0.2f, 1.2f)) * 0.8f;
+			s.life = frand(0.5f, 1.0f);
+			s.size = frand(0.25f, 0.5f);
+			s.frames = s_generic;
+			s.nFrames = 8;
+			uint32_t v = (uint32_t)frand(200, 255);
+			s.rgb = (v << 16) | (v << 8) | v;
+			s.drag = 0.92f;
+			s.group = grp;
+			add(s);
+		}
+	}
+
 	static void update_tnt(float dt)
 	{
 		for (size_t i = 0; i < s_tnt.size();)
@@ -585,9 +608,10 @@ namespace fx
 		}
 	}
 
-	void shoot_arrow(const V3 &from, const V3 &dir, float speed, int damage, bool crit)
+	void shoot_arrow(const V3 &from, const V3 &dir, float speed, int damage, bool crit, int owner)
 	{
 		Arrow a;
+		a.owner = owner;
 		a.p = from + dir * 0.6f;
 		a.v = dir * speed;
 		a.dir = dir;
@@ -812,7 +836,9 @@ namespace fx
 					if (a.inside && !DOES_ENTITY_EXIST(a.inside))
 						a.inside = 0;
 					// through the shooter, their own car, and a car the arrow has already flown into
-					GtaHit gh = gta_probe_self(a.p, next, 1 | 2 | 4 | 8 | 16 | 256, a.inside);
+					GtaHit gh = gta_probe_self(a.p, next, 1 | 2 | 4 | 8 | 16 | 256, a.inside ? a.inside : a.owner);
+					if (gh.hit && a.owner && gh.entity == a.owner)
+						gh.hit = false;
 					if (gh.hit && collision::is_ours(gh.entity))
 						gh.hit = false; // block props: the voxel ray is exact
 					if (gh.hit && gh.entity == a.obj)
