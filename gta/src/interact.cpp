@@ -310,6 +310,33 @@ namespace interact
 		return hand::USE_NONE;
 	}
 
+	bool holding_ranged()
+	{
+		const Slot &sl = g_hotbar[g_sel];
+		if (sl.empty())
+			return false;
+		const std::string &n = item(sl.item).name;
+		return n == "bow" || n == "crossbow";
+	}
+
+	// Arrows leave from the player's head (not the camera, which is behind you in third person and in vehicles)
+	// towards whatever the crosshair is on.
+	static void aim(V3 &from, V3 &dir)
+	{
+		V3 target = g.camPos + g.camDir * 300.0f;
+		GtaHit h = gta_probe_self(g.camPos, target);
+		if (h.hit)
+			target = h.pos;
+		VoxelHit vh = voxel_raycast(g.camPos, g.camDir, 300.0f);
+		if (vh.hit && (!h.hit || vh.t < (h.pos - g.camPos).len()))
+			target = vh.pos;
+		bool fp = !g.inVehicle && GET_FOLLOW_PED_CAM_VIEW_MODE() == 4;
+		from = fp ? g.camPos : V3(GET_PED_BONE_COORDS(g.ped, 31086, 0, 0, 0)) + V3(0, 0, 0.1f);
+		dir = (target - from).norm();
+		if (dir.dot(g.camDir) < 0.2f) // target behind the head (very close walls): just use the camera's direction
+			dir = g.camDir;
+	}
+
 	// Bow: hold to draw, release to shoot (Minecraft's power curve). Crossbow: hold 1.25 s to load, release, then
 	// click to fire. Returns true if the held item is a bow/crossbow (so the generic right-click use is skipped).
 	static bool bows(bool allowInput)
@@ -333,7 +360,9 @@ namespace interact
 			{
 				gui::swing();
 				sl.loaded = false;
-				fx::shoot_arrow(g.camPos, g.camDir, 63.0f, 70, false); // 3.15 blocks/tick
+				V3 from, dir;
+				aim(from, dir);
+				fx::shoot_arrow(from, dir, 63.0f, 70, false); // 3.15 blocks/tick
 				audio::play_at("item/crossbow/shoot", g.camPos, 1.0f, frand(0.9f, 1.1f));
 				s_using = false;
 				s_nextUse = g.now + 300; // don't start loading again from the same click
@@ -381,10 +410,18 @@ namespace interact
 			if (crit)
 				dmg += rand() % (dmg / 2 + 2);
 			gui::swing();
-			fx::shoot_arrow(g.camPos, g.camDir, power * 60.0f, dmg * 10, crit);
+			V3 from, dir;
+			aim(from, dir);
+			fx::shoot_arrow(from, dir, power * 60.0f, dmg * 10, crit);
 			audio::play_at("random/bow", g.camPos, 1.0f, 1.0f / frand(1.2f, 1.6f) + power * 0.5f);
 		}
 		return true;
+	}
+
+	void update_vehicle()
+	{
+		g_target = Target{};
+		bows(true);
 	}
 
 	void update(bool allowInput)

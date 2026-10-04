@@ -16,6 +16,9 @@ struct GtaHit
 // entity set; callers use collision::is_ours() to tell them apart.
 GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags = 1 | 2 | 4 | 8 | 16 | 256);
 
+// Like gta_probe, but passes through the player's ped and the vehicle they're in (re-probing past them).
+GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags = 1 | 2 | 4 | 8 | 16 | 256);
+
 namespace collision
 {
 	void init(); // finds the DLC block models (gtm_*), else picks a stock crate for collision only

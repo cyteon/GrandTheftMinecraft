@@ -63,6 +63,7 @@ namespace fx
 		int damage = 0;
 		uint64_t stuckCell = 0; // block it's stuck in (0 = GTA world)
 		bool inBlock = false;
+		int stuckIn = 0;        // ped or vehicle it's stuck in (attached; follows them)
 	};
 
 	static std::vector<Sprite> s_sprites;
@@ -602,6 +603,72 @@ namespace fx
 		s_arrows.push_back(a);
 	}
 
+	// The bone frame measured from the game itself (no Euler conventions): its origin and where its local x, y, z
+	// axes point in the world.
+	static void bone_frame(int ped, int boneId, V3 &o, V3 &x, V3 &y, V3 &z)
+	{
+		o = GET_PED_BONE_COORDS(ped, boneId, 0, 0, 0);
+		x = (V3(GET_PED_BONE_COORDS(ped, boneId, 1, 0, 0)) - o).norm();
+		y = (V3(GET_PED_BONE_COORDS(ped, boneId, 0, 1, 0)) - o).norm();
+		z = (V3(GET_PED_BONE_COORDS(ped, boneId, 0, 0, 1)) - o).norm();
+	}
+
+	// Attach the arrow at a.p (pointing a.dir) to `ent` so it rides along: peds by their nearest bone, vehicles by
+	// their body. The local direction gives the same pitch/heading form SET_ENTITY_ROTATION uses.
+	static void stick_arrow(Arrow &a, int ent, bool ped)
+	{
+		if (!a.obj)
+			return;
+		int boneIndex = 0;
+		V3 o, x, y, z;
+		if (ped)
+		{
+			static const int BONES[] = {31086, 39317, 24818, 24817, 23553, 11816, 40269, 28252, 57005, 45509,
+			                            61163, 18905, 51826, 36864, 52301, 58271, 63931, 14201};
+			int best = BONES[0];
+			float bestD = 1e9f;
+			for (int id : BONES)
+			{
+				float d = (V3(GET_PED_BONE_COORDS(ent, id, 0, 0, 0)) - (a.p + a.dir * 0.3f)).len2();
+				if (d < bestD)
+					bestD = d, best = id;
+			}
+			boneIndex = GET_PED_BONE_INDEX(ent, best);
+			bone_frame(ent, best, o, x, y, z);
+		}
+		else
+		{
+			o = GET_ENTITY_COORDS(ent, FALSE);
+			x = (V3(GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(ent, 1, 0, 0)) - o).norm();
+			y = (V3(GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(ent, 0, 1, 0)) - o).norm();
+			z = (V3(GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(ent, 0, 0, 1)) - o).norm();
+		}
+		V3 rel = a.p - o;
+		V3 off(rel.dot(x), rel.dot(y), rel.dot(z));
+		V3 d(a.dir.dot(x), a.dir.dot(y), a.dir.dot(z));
+		float heading = std::atan2(-d.x, d.y) * 180.0f / PI;
+		float pitch = std::atan2(d.z, std::sqrt(d.x * d.x + d.y * d.y)) * 180.0f / PI;
+		FREEZE_ENTITY_POSITION(a.obj, FALSE);
+		ATTACH_ENTITY_TO_ENTITY(a.obj, ent, boneIndex, off.x, off.y, off.z, pitch, 0, heading, FALSE, FALSE, FALSE,
+		                        FALSE, 2, TRUE, 0);
+		a.stuckIn = ent;
+	}
+
+	void blood(const V3 &p, const V3 &dir)
+	{
+		for (int k = 0; k < 10 && s_debris.size() < 800; k++)
+		{
+			Debris d;
+			d.p = p;
+			d.v = dir * frand(-1.5f, 0.5f) + V3(frand(-1, 1), frand(-1, 1), frand(0.5f, 2.0f));
+			d.life = frand(0.3f, 0.7f);
+			d.size = frand(0.03f, 0.06f);
+			d.floorZ = p.z - 2.0f;
+			d.c = {(uint8_t)frand(110, 160), 8, 8, 255};
+			s_debris.push_back(d);
+		}
+	}
+
 	static void place_arrow(Arrow &a)
 	{
 		if (!a.obj)
@@ -615,7 +682,6 @@ namespace fx
 
 	static void update_arrows(float dt)
 	{
-		static const Hash WEAPON_PISTOL = 0x1B06D571;
 		int stuck = 0;
 		for (auto &a : s_arrows)
 			stuck += a.stuck;
@@ -627,7 +693,8 @@ namespace fx
 			if (a.stuck)
 			{
 				// Minecraft despawns stuck arrows after a minute; also drop them if their block went away
-				if (a.age > 60.0f || stuck > 48 || (a.inBlock && !g_blocks.count(a.stuckCell)))
+				if (a.age > 60.0f || stuck > 48 || (a.inBlock && !g_blocks.count(a.stuckCell)) ||
+				    (a.stuckIn && !DOES_ENTITY_EXIST(a.stuckIn)))
 				{
 					kill = true;
 					stuck--;
@@ -644,10 +711,10 @@ namespace fx
 				{
 					V3 dir = seg * (1.0f / len);
 					a.dir = dir;
-					GtaHit gh = gta_probe(a.p, next, g.ped, 1 | 2 | 4 | 8 | 16 | 256);
+					GtaHit gh = gta_probe_self(a.p, next); // through the shooter and their own car
 					if (gh.hit && collision::is_ours(gh.entity))
 						gh.hit = false; // block props: the voxel ray is exact
-					if (gh.hit && (gh.entity == a.obj || gh.entity == g.ped))
+					if (gh.hit && gh.entity == a.obj)
 						gh.hit = false;
 					VoxelHit vh = voxel_raycast(a.p, dir, len);
 					int type = gh.hit && gh.entity && DOES_ENTITY_EXIST(gh.entity) ? GET_ENTITY_TYPE(gh.entity) : 0;
@@ -660,16 +727,51 @@ namespace fx
 						a.age = 0;
 						audio::play_at("random/bowhit", vh.pos, 1.0f, frand(1.0f, 1.3f));
 					}
-					else if (gh.hit && (type == 1 || type == 2))
+					else if (gh.hit && type == 1)
 					{
-						// GTA does the damage, blood and reactions: an invisible bullet along the arrow's path
-						V3 from = gh.pos - dir * 0.4f, to = gh.pos + dir * 0.4f;
-						SHOOT_SINGLE_BULLET_BETWEEN_COORDS(from.x, from.y, from.z, to.x, to.y, to.z, a.damage, TRUE,
-						                                   WEAPON_PISTOL, g.ped, FALSE, TRUE, -1.0f);
-						if (type == 1)
+						// a person: damage, a wound where it hit, a knock, and the arrow stays in them
+						int ped = gh.entity;
+						a.p = gh.pos - dir * 0.2f; // tip in the body
+						a.stuck = true;
+						a.age = 0;
+						stick_arrow(a, ped, true);
+						int hp = GET_ENTITY_HEALTH(ped);
+						APPLY_DAMAGE_TO_PED(ped, a.damage, FALSE, 0, 0xA2719263 /* unarmed */);
+						int bone = 0;
+						if (a.obj && IS_ENTITY_ATTACHED(a.obj))
+						{
+							// the same bone the arrow is attached to gets the wound decal
+							float best = 1e9f;
+							for (int id : {31086, 24818, 11816, 40269, 45509, 51826, 58271, 36864, 63931})
+							{
+								float d = (V3(GET_PED_BONE_COORDS(ped, id, 0, 0, 0)) - gh.pos).len2();
+								if (d < best)
+									best = d, bone = GET_PED_BONE_INDEX(ped, id);
+							}
+						}
+						APPLY_PED_BLOOD(ped, bone, 0, 0, 0, "BulletSmall");
+						blood(gh.pos, dir);
+						if (hp - a.damage > 100) // still standing: Minecraft's knock-back
+						{
+							SET_PED_TO_RAGDOLL(ped, 400, 400, 0, FALSE, FALSE, FALSE);
+							V3 kb = V3(dir.x, dir.y, 0).norm() * 4.0f + V3(0, 0, 1.0f);
+							APPLY_FORCE_TO_ENTITY(ped, 1, kb.x, kb.y, kb.z, 0, 0, 0, 0, FALSE, TRUE, TRUE, FALSE, TRUE);
+						}
+						if (a.crit)
 							crit(gh.pos);
 						audio::play_at("random/bowhit", gh.pos, 1.0f, frand(1.0f, 1.3f));
-						kill = true;
+					}
+					else if (gh.hit && type == 2)
+					{
+						// a vehicle: no bullet hole, the arrow sticks in the bodywork and rides along
+						int veh = gh.entity;
+						a.p = gh.pos - dir * 0.25f;
+						a.stuck = true;
+						a.age = 0;
+						stick_arrow(a, veh, false);
+						float body = GET_VEHICLE_BODY_HEALTH(veh);
+						SET_VEHICLE_BODY_HEALTH(veh, std::max(0.0f, body - a.damage * 0.5f));
+						audio::play_at("random/bowhit", gh.pos, 1.0f, frand(1.0f, 1.3f));
 					}
 					else if (gh.hit)
 					{
@@ -701,7 +803,7 @@ namespace fx
 				s_arrows.pop_back();
 				continue;
 			}
-			if (a.obj)
+			if (a.obj && !a.stuckIn)
 				place_arrow(a);
 			else
 			{

@@ -28,6 +28,27 @@ GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags)
 	return h;
 }
 
+GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags)
+{
+	int veh = g.inVehicle ? PED::GET_VEHICLE_PED_IS_IN(g.ped, FALSE) : 0;
+	V3 from = a, dir = (b - a).norm();
+	float total = (b - a).len();
+	for (int i = 0; i < 4; i++)
+	{
+		GtaHit h = gta_probe(from, b, g.ped, flags);
+		if (!h.hit || (h.entity != g.ped && (!veh || h.entity != veh)))
+		{
+			if (h.hit)
+				h.t = (h.pos - a).len();
+			return h;
+		}
+		from = h.pos + dir * 0.05f; // inside our own car: step past the hit and look again
+		if ((from - a).len() >= total)
+			break;
+	}
+	return GtaHit{};
+}
+
 namespace collision
 {
 	// Stage 2: the DLC's textured gtm_<block> props (visible, lit, exact 1 m collision).
