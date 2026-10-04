@@ -108,6 +108,44 @@ MANUAL = """GrandTheftMinecraft {v} - manual install (the .oiv does all of this 
 """
 
 
+RELEASE_NOTES = """Minecraft creative mode inside GTA V story mode: the Minecraft HUD and creative inventory, 69 blocks that
+are real GTA objects (lit, shadowed, solid), TNT, ender pearls, flint and steel, sword, bow and crossbow.
+
+## Downloads
+
+| File | For |
+|---|---|
+| **GrandTheftMinecraft-{v}.oiv** | Recommended: install with OpenIV's Package Installer |
+| GrandTheftMinecraft-{v}-manual.zip | Manual install (instructions in `INSTALL.txt`) |
+
+## Requirements
+
+- GTA V **Legacy** (Steam / Rockstar / Epic), **story mode only**. GTA V Enhanced isn't supported.
+- [ScriptHookV](https://www.dev-c.com/gtav/scripthookv/) for your game version.
+- [OpenIV](https://openiv.com/) with **OpenIV.asi** installed: OpenIV > Tools > ASI Manager > OpenIV.asi > Install.
+- Internet on the first launch, unless Minecraft Java 1.21.11 is installed on the PC.
+
+## Install
+
+1. Install ScriptHookV and OpenIV.asi (above).
+2. Download **GrandTheftMinecraft-{v}.oiv**.
+3. In OpenIV: **Tools > Package Installer**, open the `.oiv` and install it **to the mods folder**.
+4. Start GTA V and load story mode. The first time, the top-left corner shows the setup for a few seconds while the
+   mod builds its textures and sounds from your Minecraft 1.21.11 (or Mojang's official servers).
+5. **Restart GTA once** when it says so. The textured blocks load from then on.
+
+Press **F6** to switch Minecraft mode on and off, **E** for the creative inventory. All controls and settings are in
+the [README](https://github.com/cyteon/GrandTheftMinecraft#controls).
+
+> No Minecraft files are included: the mod reads them from your own Minecraft or downloads them from Mojang on your
+> PC. Never use mods in GTA Online; the mod switches itself off if an online session starts.
+
+**Uninstall:** delete `GrandTheftMinecraft.asi`, the `GrandTheftMinecraft` folder and
+`mods\\update\\x64\\dlcpacks\\gtm` from the GTA folder, and remove the `dlcpacks:/gtm/` line from
+`mods\\update\\update.rpf\\common\\data\\dlclist.xml` in OpenIV.
+"""
+
+
 def main():
     for src in FILES:
         if not src.exists():
@@ -133,6 +171,7 @@ def main():
         z.write(ROOT / "README.md", "README.md")
         z.write(ROOT / "LICENSE", "LICENSE")
         z.write(ROOT / "NOTICE.md", "NOTICE.md")
+    (dist / "RELEASE_NOTES.md").write_text(RELEASE_NOTES.format(v=VERSION), encoding="utf-8")
     for f in (oiv, man):
         print(f"{f.name}: {f.stat().st_size // 1024} KB")
 

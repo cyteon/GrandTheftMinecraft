@@ -1,5 +1,6 @@
-# Builds GrandTheftMinecraft from source on every push; on a v* tag, publishes the .oiv and the manual zip as a GitHub
-# Release with build-provenance attestations (gh attestation verify <file> -R cyteon/GrandTheftMinecraft).
+# Builds GrandTheftMinecraft from source on every push (the zipped build is kept as a workflow artifact for testing);
+# on a v* tag, publishes a GitHub Release whose description is dist/RELEASE_NOTES.md (install steps) and whose
+# downloads are the .oiv and the manual zip, with build-provenance attestations (gh attestation verify <file> -R cyteon/GrandTheftMinecraft).
 # Nothing from Minecraft or GTA is used or shipped: the block pack is built with blank placeholder textures.
 name: build
 
@@ -82,6 +83,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: GrandTheftMinecraft ${{ github.ref_name }}
+          body_path: dist/RELEASE_NOTES.md
+          # two separate downloads: the OpenIV package and the manual-install zip
           files: |
             dist/*.oiv
             dist/*.zip
