@@ -19,6 +19,8 @@ struct Config
 	bool gtaExplosionFx = false; // also show GTA's own explosion effect under the Minecraft particles
 	bool startEnabled = true;
 	float volume = 0.8f;
+	bool playAsSteve = true;  // third person: show Steve instead of the GTA character
+	std::string skinFile;     // optional 64x64 Minecraft skin (classic/wide arms) instead of Steve's
 	std::string minecraftJar;    // optional: a 1.21.11 client jar to use instead of searching / downloading
 	std::string minecraftAssets; // optional: that launcher's assets folder (indexes\, objects\)
 };

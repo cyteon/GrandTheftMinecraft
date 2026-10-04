@@ -98,6 +98,7 @@ namespace gui
 	}
 
 	void swing() { s_swing = 0.0f; }
+	float swing_progress() { return s_swing; }
 
 	static void draw_item(const Slot &s, float x, float y, float sz, int level)
 	{

@@ -17,6 +17,9 @@ Models
   gtm_<block>_p    a 0.12 m break chip (a 4x4 texel window of the side texture), small box collision
   gtm_i_<sprite>   held item: a generic 16x16 extrusion; the cutout shader trims it to the sprite's shape
   gtm_arrow        flying/stuck arrow: crossed planes along +Y (GTA space)
+  gtm_i_<sprite>_tp  held item in third person (0.5 m)
+  gtm_steve_<part> Steve's head/body/arms/legs from a 64x64 skin (base + outer layer), origin at each part's
+                   pivot (neck, shoulders, hips); x = character's right, y = forward, z = up (GTA space)
 """
 import random
 import struct
@@ -26,6 +29,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 HAND_SIZE = 0.25  # hand models are this big; the ASI rescales distance so they look Minecraft-sized
+TP_SIZE = 0.5     # held items in third person
+PX = 0.9375 / 16  # Steve: one skin pixel in metres (Minecraft renders players at 15/16 scale: 1.875 m tall)
 CHIP = 0.12
 
 # unit-cube faces (GTA z-up): origin = top-left seen from outside, right axis, down axis, normal, sheet column
@@ -127,6 +132,49 @@ def sprite_geo(size):
     return g
 
 
+def skin_box(g, x0, y0, z0, w, h, d, u, v, inflate=0.0):
+    """A Minecraft cuboid (sizes in skin pixels) with the standard skin UV layout at (u, v) on a 64x64 skin:
+    top (u+d, v), bottom (u+d+w, v), then the strip at v+d: right side, front, left side, back. The character
+    faces +Y; +X is its right. inflate grows the box (outer layer) without moving the UVs."""
+    x0, y0, z0 = x0 - inflate, y0 - inflate, z0 - inflate
+    x1, y1, z1 = x0 + w + 2 * inflate, y0 + d + 2 * inflate, z0 + h + 2 * inflate
+    P = lambda x, y, z: (x * PX, y * PX, z * PX)  # noqa: E731
+    e = 0.01
+
+    def uv(a, b, cw, ch):
+        return ((a + e) / 64, (b + e) / 64), ((a + cw - e) / 64, (b + ch - e) / 64)
+
+    # (top-left corner, right step, down step, normal, uv region)
+    faces = [
+        ((x1, y1, z1), (-1, 0, 0), (0, 0, -1), (0, 1, 0), uv(u + d, v + d, w, h)),          # front
+        ((x0, y0, z1), (1, 0, 0), (0, 0, -1), (0, -1, 0), uv(u + 2 * d + w, v + d, w, h)),  # back
+        ((x1, y0, z1), (0, 1, 0), (0, 0, -1), (1, 0, 0), uv(u, v + d, d, h)),               # right side
+        ((x0, y1, z1), (0, -1, 0), (0, 0, -1), (-1, 0, 0), uv(u + d + w, v + d, d, h)),     # left side
+        ((x1, y0, z1), (-1, 0, 0), (0, 1, 0), (0, 0, 1), uv(u + d, v, w, d)),               # top
+        ((x1, y1, z0), (-1, 0, 0), (0, -1, 0), (0, 0, -1), uv(u + d + w, v, w, d)),         # bottom
+    ]
+    sizes = {(1, 0, 0): x1 - x0, (0, 1, 0): y1 - y0, (0, 0, 1): z1 - z0}
+    for o, du, dv, n, (uv0, uv1) in faces:
+        lu = sizes[tuple(abs(c) for c in du)]
+        lv = sizes[tuple(abs(c) for c in dv)]
+        p00 = P(*o)
+        p10 = P(o[0] + du[0] * lu, o[1] + du[1] * lu, o[2] + du[2] * lu)
+        p01 = P(o[0] + dv[0] * lv, o[1] + dv[1] * lv, o[2] + dv[2] * lv)
+        p11 = P(o[0] + (du[0] * lu + dv[0] * lv), o[1] + (du[1] * lu + dv[1] * lv), o[2] + (du[2] * lu + dv[2] * lv))
+        g.quad(p00, p10, p11, p01, n, uv0, uv1)
+
+
+# Steve's parts: (name, box x0, y0, z0, w, h, d relative to the pivot, base uv, outer-layer uv, inflate)
+STEVE = [
+    ("head", -4, -4, 0, 8, 8, 8, (0, 0), (32, 0), 0.5),
+    ("body", -4, -2, -12, 8, 12, 4, (16, 16), (16, 32), 0.25),
+    ("rarm", -1, -2, -10, 4, 12, 4, (40, 16), (40, 32), 0.25),
+    ("larm", -3, -2, -10, 4, 12, 4, (32, 48), (48, 48), 0.25),
+    ("rleg", -2, -2, -12, 4, 12, 4, (0, 16), (0, 32), 0.25),
+    ("lleg", -2, -2, -12, 4, 12, 4, (16, 48), (0, 48), 0.25),
+]
+
+
 def arrow_geo():
     """Minecraft-style arrow: two crossed 16x5 px planes, 0.7 m along +Y (z up), both sides."""
     g = Geo()
@@ -194,7 +242,19 @@ def main():
         texture(tex, 128, 128, f"sprite {sp}")
         (out / f"{tex}.geo").write_bytes((out / "gtm_sprite.geo").read_bytes())
         rows.append(f"{tex};{tex};cutout;1;-")
+    sprite_geo(TP_SIZE).write(out / "gtm_sprite_tp.geo")
+    for sp in dict.fromkeys(sprites):
+        (out / f"gtm_i_{sp}_tp.geo").write_bytes((out / "gtm_sprite_tp.geo").read_bytes())
+        rows.append(f"gtm_i_{sp}_tp;gtm_i_{sp};cutout;1;-")
     (out / "gtm_sprite.geo").unlink()
+    (out / "gtm_sprite_tp.geo").unlink()
+    texture("gtm_skin", 512, 512, "skin")
+    for name, x0, y0, z0, w, h, d, base, outer, infl in STEVE:
+        g = Geo()
+        skin_box(g, x0, y0, z0, w, h, d, *base)
+        skin_box(g, x0, y0, z0, w, h, d, *outer, inflate=infl)
+        g.write(out / f"gtm_steve_{name}.geo")
+        rows.append(f"gtm_steve_{name};gtm_skin;cutout;1;-")
     texture("gtm_arrow_e", 256, 256, "arrow")
     arrow_geo().write(out / "gtm_arrow.geo")
     rows.append("gtm_arrow;gtm_arrow_e;cutout;1;-")

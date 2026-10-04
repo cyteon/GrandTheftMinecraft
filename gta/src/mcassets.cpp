@@ -687,6 +687,8 @@ namespace mcassets
 		}
 	}
 
+	static std::string skin_tag();
+
 	static bool build_textures(const std::string &layoutPath)
 	{
 		set_status("Building block textures...");
@@ -739,6 +741,28 @@ namespace mcassets
 					spr.w = spr.h = 16, spr.px.assign(16 * 16 * 4, 0);
 				base = resize_nn(resize_nn(spr, 16, 16), w, h);
 			}
+			else if (r[0] == "skin")
+			{
+				Img sk;
+				bool own = false;
+				if (!g_cfg.skinFile.empty())
+				{
+					std::vector<uint8_t> d;
+					int c;
+					if (read_file(g_cfg.skinFile, d))
+						if (uint8_t *px = stbi_load_from_memory(d.data(), (int)d.size(), &sk.w, &sk.h, &c, 4))
+						{
+							sk.px.assign(px, px + (size_t)sk.w * sk.h * 4);
+							stbi_image_free(px);
+							own = sk.w == 64 && sk.h == 64;
+						}
+					if (!own)
+						logf("setup: SkinFile %s isn't a 64x64 PNG skin; using Steve", g_cfg.skinFile.c_str());
+				}
+				if (!own && !tex("entity/player/wide/steve.png", sk))
+					sk.w = sk.h = 64, sk.px.assign(64 * 64 * 4, 255);
+				base = resize_nn(sk, w, h);
+			}
 			else if (r[0] == "arrow")
 			{
 				Img a;
@@ -764,6 +788,8 @@ namespace mcassets
 		if (!write_file(tmp, bin.data(), bin.size()))
 			return false;
 		MoveFileExA(tmp.c_str(), (g_dataDir + "textures.bin").c_str(), MOVEFILE_REPLACE_EXISTING);
+		std::string tag = skin_tag() + "\n";
+		write_file(g_dataDir + "skin.txt", tag.data(), tag.size());
 		logf("setup: textures.bin with %d textures (%u KB)", count, (unsigned)(bin.size() / 1024));
 		return count > 0;
 	}
@@ -780,6 +806,25 @@ namespace mcassets
 	}
 
 	bool textures_pending() { return exists(g_dataDir + "textures.bin"); }
+
+	// which skin the block pack's textures were built with (SkinFile path + its modification time)
+	static std::string skin_tag()
+	{
+		if (g_cfg.skinFile.empty())
+			return "steve";
+		WIN32_FILE_ATTRIBUTE_DATA a{};
+		if (!GetFileAttributesExA(g_cfg.skinFile.c_str(), GetFileExInfoStandard, &a))
+			return "missing " + g_cfg.skinFile;
+		return g_cfg.skinFile + " " + std::to_string(a.ftLastWriteTime.dwLowDateTime);
+	}
+
+	static bool skin_changed()
+	{
+		std::ifstream in(g_dataDir + "skin.txt");
+		std::string tag;
+		std::getline(in, tag);
+		return tag != skin_tag();
+	}
 
 	static void run(bool needData, bool needTextures)
 	{
@@ -866,7 +911,8 @@ namespace mcassets
 		if (s_running)
 			return true;
 		bool needData = !data_ready();
-		bool needTextures = !dlcpatch::find_dlc_rpf().empty() && !dlcpatch::dlc_ready() && !textures_pending();
+		bool needTextures = !dlcpatch::find_dlc_rpf().empty() && !textures_pending() &&
+		                    (!dlcpatch::dlc_ready() || skin_changed());
 		if (!needData && !needTextures)
 			return false;
 		s_running = true;

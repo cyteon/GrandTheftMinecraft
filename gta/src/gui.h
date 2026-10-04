@@ -20,6 +20,7 @@ namespace gui
 	void select(int slot);
 	void set_selected_item(int item); // pick block: select it if it's in the hotbar, else put it in this slot
 	void swing();                     // hand swing animation (click)
+	float swing_progress();           // 0..1 while swinging, 1 = idle
 	void update_inventory();          // input for the open inventory (call before drawing)
 	void draw_hud(bool interactive);
 	void draw_inventory();

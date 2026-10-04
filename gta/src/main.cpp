@@ -8,6 +8,7 @@
 #include "fx.h"
 #include "gui.h"
 #include "hand.h"
+#include "steve.h"
 #include "input.h"
 #include "interact.h"
 #include "items.h"
@@ -168,6 +169,7 @@ static bool online_guard()
 		logf("GTA Online session detected: GrandTheftMinecraft disabled");
 		collision::clear();
 		hand::hide();
+		steve::hide();
 		flight::stop();
 	}
 	s_online = online;
@@ -236,15 +238,19 @@ static void tick()
 		INVALIDATE_IDLE_CAM();
 		disable_gta_controls();
 		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
-		// Minecraft has no body in first person: hide GTA's arms (door reaches, phone calls...)
+		// Minecraft has no body in first person (hide GTA's arms: door reaches, phone calls...); in third person the
+		// player is Steve, so the GTA ped hides there too whenever Steve can be shown
 		bool fp = GET_FOLLOW_PED_CAM_VIEW_MODE() == 4;
-		if (fp != s_pedHidden)
+		bool asSteve = !fp && g_cfg.playAsSteve && steve::available();
+		bool hidePed = fp || asSteve;
+		if (hidePed != s_pedHidden)
 		{
-			SET_ENTITY_VISIBLE(g.ped, !fp, FALSE);
-			s_pedHidden = fp;
+			SET_ENTITY_VISIBLE(g.ped, !hidePed, FALSE);
+			s_pedHidden = hidePed;
 		}
 		if (fp)
 			SET_ENTITY_LOCALLY_INVISIBLE(g.ped);
+		steve::update(asSteve);
 		if (input::pressed('E'))
 		{
 			g_invOpen = !g_invOpen;
@@ -257,10 +263,14 @@ static void tick()
 			gui::close_inventory_reset();
 		}
 	}
-	else if (s_pedHidden)
+	else
 	{
-		SET_ENTITY_VISIBLE(g.ped, TRUE, FALSE);
-		s_pedHidden = false;
+		steve::hide();
+		if (s_pedHidden)
+		{
+			SET_ENTITY_VISIBLE(g.ped, TRUE, FALSE);
+			s_pedHidden = false;
+		}
 	}
 	if (!onFoot && g_invOpen)
 	{
