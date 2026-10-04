@@ -16,19 +16,21 @@ GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags)
 	BOOL hit = FALSE;
 	Vector3 end{}, nrm{};
 	int ent = 0;
-	GET_SHAPE_TEST_RESULT(handle, &hit, &end, &nrm, &ent);
+	Hash mat = 0;
+	GET_SHAPE_TEST_RESULT_INCLUDING_MATERIAL(handle, &hit, &end, &nrm, &mat, &ent);
 	if (hit)
 	{
 		h.hit = true;
 		h.pos = end;
 		h.normal = V3(nrm).norm();
 		h.entity = ent;
+		h.material = mat;
 		h.t = (h.pos - a).len();
 	}
 	return h;
 }
 
-GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags)
+GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags, int alsoIgnore)
 {
 	int veh = g.inVehicle ? PED::GET_VEHICLE_PED_IS_IN(g.ped, FALSE) : 0;
 	V3 from = a, dir = (b - a).norm();
@@ -36,7 +38,7 @@ GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags)
 	for (int i = 0; i < 4; i++)
 	{
 		GtaHit h = gta_probe(from, b, g.ped, flags);
-		if (!h.hit || (h.entity != g.ped && (!veh || h.entity != veh)))
+		if (!h.hit || (h.entity != g.ped && (!veh || h.entity != veh) && (!alsoIgnore || h.entity != alsoIgnore)))
 		{
 			if (h.hit)
 				h.t = (h.pos - a).len();

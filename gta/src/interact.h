@@ -25,7 +25,6 @@ namespace interact
 	// what the hand shows: drawing a bow, loading or holding a loaded crossbow
 	int hand_use(float &progress); // hand::Use
 	void cancel_use();
-	void update_vehicle();  // in a vehicle: only the bow and crossbow
 	bool holding_ranged();  // bow or crossbow selected
 	std::string describe();
 }

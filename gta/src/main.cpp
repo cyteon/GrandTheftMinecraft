@@ -310,12 +310,13 @@ static void tick()
 	}
 	else if (g_mcMode && alive && playing && g.inVehicle && !g_invOpen)
 	{
-		// no GTA drive-by guns in Minecraft mode: right/left click are the bow and crossbow
+		// no GTA drive-by guns in Minecraft mode (and no bows in vehicles either)
 		static const int DRIVEBY[] = {68, 69, 70, 91, 92, 345, 346, 347, 24, 25, 257, 140, 141, 142};
 		for (int c : DRIVEBY)
 			DISABLE_CONTROL_ACTION(0, c, TRUE);
 		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
-		interact::update_vehicle();
+		interact::g_target = interact::Target{};
+		interact::cancel_use();
 		flight::stop();
 	}
 	else

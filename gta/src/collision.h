@@ -9,7 +9,8 @@ struct GtaHit
 	bool hit = false;
 	V3 pos, normal;
 	int entity = 0;
-	float t = 0; // distance from the start
+	float t = 0;       // distance from the start
+	Hash material = 0; // surface material (materials.dat name hash, e.g. CAR_GLASS_WEAK)
 };
 
 // Synchronous LOS probe (world, vehicles, peds, objects, foliage). Hits on our own block props are reported with
@@ -17,7 +18,7 @@ struct GtaHit
 GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags = 1 | 2 | 4 | 8 | 16 | 256);
 
 // Like gta_probe, but passes through the player's ped and the vehicle they're in (re-probing past them).
-GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags = 1 | 2 | 4 | 8 | 16 | 256);
+GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags = 1 | 2 | 4 | 8 | 16 | 256, int alsoIgnore = 0);
 
 namespace collision
 {

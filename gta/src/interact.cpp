@@ -418,12 +418,6 @@ namespace interact
 		return true;
 	}
 
-	void update_vehicle()
-	{
-		g_target = Target{};
-		bows(true);
-	}
-
 	void update(bool allowInput)
 	{
 		find_target();

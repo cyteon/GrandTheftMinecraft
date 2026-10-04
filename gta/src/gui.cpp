@@ -142,8 +142,8 @@ namespace gui
 			draw_hand();
 		else
 			hand::hide();
-		// crosshair (also in vehicles while holding a bow or crossbow)
-		if ((interactive || (g.inVehicle && interact::holding_ranged())) && !g_invOpen)
+		// crosshair
+		if (interactive && !g_invOpen)
 			draw(t_cross, std::floor(W / 2 - 7.5f * s), std::floor(H / 2 - 7.5f * s), 15 * s, 15 * s, 0xE6FFFFFF,
 			     L_HUD);
 		// hotbar

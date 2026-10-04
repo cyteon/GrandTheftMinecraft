@@ -64,6 +64,8 @@ namespace fx
 		uint64_t stuckCell = 0; // block it's stuck in (0 = GTA world)
 		bool inBlock = false;
 		int stuckIn = 0;        // ped or vehicle it's stuck in (attached; follows them)
+		int inside = 0;         // vehicle it went into through a window (probes ignore it; occupants are checked)
+		float insideLeft = 0;   // metres of flight left inside that vehicle
 	};
 
 	static std::vector<Sprite> s_sprites;
@@ -654,6 +656,71 @@ namespace fx
 		a.stuckIn = ent;
 	}
 
+	// ---- arrows vs vehicles ----
+	static Hash mh(const char *n) { return GET_HASH_KEY(n); }
+
+	static bool glass_passes(Hash m) // windows an arrow goes through (bulletproof / opaque ones stop it)
+	{
+		static Hash GL[5] = {};
+		if (!GL[0])
+		{
+			GL[0] = mh("CAR_GLASS_WEAK"), GL[1] = mh("CAR_GLASS_MEDIUM"), GL[2] = mh("CAR_GLASS_STRONG");
+			GL[3] = mh("GLASS_SHOOT_THROUGH"), GL[4] = mh("PERSPEX");
+		}
+		for (Hash h : GL)
+			if (m == h)
+				return true;
+		return false;
+	}
+
+	static float seg_dist2(const V3 &p, const V3 &a, const V3 &b, float &t)
+	{
+		V3 ab = b - a;
+		float l2 = ab.len2();
+		t = l2 > 1e-6f ? clampf((p - a).dot(ab) / l2, 0, 1) : 0;
+		return (a + ab * t - p).len2();
+	}
+
+	// the occupant of `veh` whose head or torso the segment a-b passes closest to (within reach), or 0
+	static int occupant_on_path(int veh, const V3 &a, const V3 &b, V3 &where)
+	{
+		int best = 0;
+		float bestT = 2;
+		int seats = GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(veh);
+		for (int seat = -1; seat < seats; seat++)
+		{
+			int ped = GET_PED_IN_VEHICLE_SEAT(veh, seat, FALSE);
+			if (!ped || ped == g.ped || !DOES_ENTITY_EXIST(ped))
+				continue;
+			static const int B[] = {31086, 39317, 24818, 24817, 11816, 40269, 45509};
+			static const float R[] = {0.16f, 0.16f, 0.24f, 0.24f, 0.22f, 0.12f, 0.12f};
+			for (int i = 0; i < 7; i++)
+			{
+				V3 bp = GET_PED_BONE_COORDS(ped, B[i], 0, 0, 0);
+				float t;
+				if (seg_dist2(bp, a, b, t) < R[i] * R[i] && t < bestT)
+					bestT = t, best = ped, where = a + (b - a) * t;
+			}
+		}
+		return best;
+	}
+
+	static int nearest_vehicle_bone(int veh, const V3 &p, const char *const *names, int n, float maxD)
+	{
+		int best = -1;
+		float bestD = maxD * maxD;
+		for (int i = 0; i < n; i++)
+		{
+			int bi = GET_ENTITY_BONE_INDEX_BY_NAME(veh, names[i]);
+			if (bi < 0)
+				continue;
+			float d = (V3(GET_WORLD_POSITION_OF_ENTITY_BONE(veh, bi)) - p).len2();
+			if (d < bestD)
+				bestD = d, best = i;
+		}
+		return best;
+	}
+
 	void blood(const V3 &p, const V3 &dir)
 	{
 		for (int k = 0; k < 10 && s_debris.size() < 800; k++)
@@ -711,13 +778,31 @@ namespace fx
 				{
 					V3 dir = seg * (1.0f / len);
 					a.dir = dir;
-					GtaHit gh = gta_probe_self(a.p, next); // through the shooter and their own car
+					if (a.inside && !DOES_ENTITY_EXIST(a.inside))
+						a.inside = 0;
+					// through the shooter, their own car, and a car the arrow has already flown into
+					GtaHit gh = gta_probe_self(a.p, next, 1 | 2 | 4 | 8 | 16 | 256, a.inside);
 					if (gh.hit && collision::is_ours(gh.entity))
 						gh.hit = false; // block props: the voxel ray is exact
 					if (gh.hit && gh.entity == a.obj)
 						gh.hit = false;
 					VoxelHit vh = voxel_raycast(a.p, dir, len);
 					int type = gh.hit && gh.entity && DOES_ENTITY_EXIST(gh.entity) ? GET_ENTITY_TYPE(gh.entity) : 0;
+					// people sitting in the vehicle the arrow entered (or riders / open cars it's about to hit)
+					int victim = 0;
+					V3 victimAt;
+					if (a.inside && DOES_ENTITY_EXIST(a.inside))
+						victim = occupant_on_path(a.inside, a.p, next, victimAt);
+					if (!victim && gh.hit && type == 2 && !glass_passes(gh.material)) // riders, open cars
+						victim = occupant_on_path(gh.entity, a.p, gh.pos + dir * 0.3f, victimAt);
+					if (victim && (!vh.hit || (victimAt - a.p).len() < vh.t))
+					{
+						gh.hit = true;
+						gh.entity = victim;
+						gh.pos = victimAt;
+						gh.t = (victimAt - a.p).len();
+						type = 1;
+					}
 					if (vh.hit && (!gh.hit || vh.t <= gh.t))
 					{
 						a.p = vh.pos - dir * 0.25f; // tip buried in the block
@@ -726,6 +811,22 @@ namespace fx
 						a.stuckCell = cell_key(vh.cell);
 						a.age = 0;
 						audio::play_at("random/bowhit", vh.pos, 1.0f, frand(1.0f, 1.3f));
+					}
+					// glass: smash car windows and fly on into the car; shop windows just let it through
+					else if (gh.hit && glass_passes(gh.material))
+					{
+						if (type == 2)
+						{
+							static const char *WIN[] = {"window_lf", "window_rf", "window_lr", "window_rr",
+							                            "window_lm", "window_rm", "windscreen", "windscreen_r"};
+							int w = nearest_vehicle_bone(gh.entity, gh.pos, WIN, 8, 2.5f);
+							if (w >= 0)
+								SMASH_VEHICLE_WINDOW(gh.entity, w);
+							a.inside = gh.entity;
+							a.insideLeft = 4.0f;
+						}
+						audio::play_at("random/glass", gh.pos, 0.6f, frand(1.2f, 1.5f));
+						a.p = gh.pos + dir * 0.05f; // just past the glass: next frame checks who's behind it
 					}
 					else if (gh.hit && type == 1)
 					{
@@ -763,8 +864,12 @@ namespace fx
 					}
 					else if (gh.hit && type == 2)
 					{
-						// a vehicle: no bullet hole, the arrow sticks in the bodywork and rides along
+						// a vehicle: no bullet hole, the arrow sticks in the bodywork (or a tyre, which bursts) and rides along
 						int veh = gh.entity;
+						static const char *WHEEL[] = {"wheel_lf", "wheel_rf", "wheel_lm1", "wheel_rm1", "wheel_lr", "wheel_rr"};
+						int wh = nearest_vehicle_bone(veh, gh.pos, WHEEL, 6, 0.45f);
+						if (wh >= 0)
+							SET_VEHICLE_TYRE_BURST(veh, wh, FALSE, 1000.0f);
 						a.p = gh.pos - dir * 0.25f;
 						a.stuck = true;
 						a.age = 0;
@@ -782,6 +887,8 @@ namespace fx
 					}
 					else
 						a.p = next;
+					if (a.inside && !a.stuck && (a.insideLeft -= len) <= 0)
+						a.inside = 0; // out the other side
 				}
 				if (a.age > 10.0f)
 					kill = true;
