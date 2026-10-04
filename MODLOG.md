@@ -64,3 +64,10 @@ copies the world/config into `_gtm_backup\`.
   grids), GTA's first-person arm shows (door-reach IK), held items too big/off-screen, inventory cursor invisible
   (SHV drawTexture draws over GTA's cursor). Fixes: 16x16 near detail with row-run merging, budget 20000,
   SET_ENTITY_LOCALLY_INVISIBLE in first person, own cursor sprite, smaller hand items.
+- 2026-10-04 test 2: full-res textures correct, but **DRAW_POLY is depth-tested against GTA's world, not against other
+  DRAW_POLYs** (no depth write): far blocks drew over near ones. Fix: painter's order (plan detail near-first for the
+  budget, emit far to near). GTA's arm still appears (phone calls) → SET_ENTITY_VISIBLE(ped,false) while in first
+  person. Held item is now 3D (hand.cpp: Minecraft's ItemInHandRenderer + firstperson_righthand transforms, x/y scaled
+  by tan(fov/2)/tan(35deg)); offline harness gta/tests/hand_test.cpp fakes SHV and records DRAW_POLY,
+  render_tris.py rasterizes it. Python on Windows: always open source files with encoding='utf-8' (a cp1252 write
+  failure truncated blockrender.cpp once; restored from git).

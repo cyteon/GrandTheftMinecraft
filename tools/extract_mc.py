@@ -237,8 +237,10 @@ def blocks_and_items(jar, out):
         iso_icon(t, shade(s, 0.8), shade(s, 0.6)).save(d / f"{name}.png")
         lines.append(";".join([name, disp, "block", tab, flags, sound, hexface(t), hexface(s), hexface(b)]))
     for name, disp, tab, flags in ITEMS:
-        up(jar.img(f"item/{name}.png")).save(d / f"{name}.png")
-        lines.append(";".join([name, disp, "item", tab, flags, "", "", "", ""]))
+        spr = jar.img(f"item/{name}.png")
+        up(spr).save(d / f"{name}.png")
+        # the sprite's pixels go in the "top" slot: the 3D hand extrudes them
+        lines.append(";".join([name, disp, "item", tab, flags, "", hexface(spr), "", ""]))
     # primed TNT flashes white; the runtime lerps, it only needs the TNT colours above
     (out / "items.txt").write_text("\n".join(lines) + "\n")
     return len(BLOCKS), len(ITEMS)

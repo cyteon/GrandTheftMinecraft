@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "hand.h"
 #include "common.h"
 #include "input.h"
 #include "items.h"
@@ -124,23 +125,7 @@ namespace gui
 		s_swing = std::min(1.0f, s_swing + g.dt / 0.3f);
 		if (it < 0)
 			return;
-		float H = (float)g.screenH, W = (float)g.screenW;
-		bool block = item(it).block;
-		// Minecraft's right-hand pose: blocks big and low, flat items smaller and fully on screen
-		float sz = block ? H * 0.40f : H * 0.34f;
-		float x = W - sz * (block ? 1.10f : 1.35f);
-		float y = H - sz * (block ? 0.85f : 1.05f);
-		y += (1.0f - s_equip) * sz * 0.6f;
-		float rot = block ? 0.0f : 0.0f;
-		if (s_swing < 1.0f)
-		{
-			float t = s_swing;
-			float a = std::sin(std::sqrt(t) * PI), b = std::sin(t * PI);
-			x -= a * sz * 0.35f;
-			y -= b * sz * 0.25f;
-			rot = -b * 0.06f;
-		}
-		draw(item(it).icon, x, y, sz, sz, 0xFFFFFFFF, L_HAND, rot);
+		hand::draw(it, s_swing, s_equip);
 	}
 
 	void draw_hud(bool interactive)

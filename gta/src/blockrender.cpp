@@ -96,6 +96,7 @@ namespace blockrender
 		uint64_t key;
 	};
 	static std::vector<Cand> s_cands;
+	static std::vector<std::pair<uint64_t, int>> s_plan; // key, detail
 
 	void draw_blocks()
 	{
@@ -125,23 +126,36 @@ namespace blockrender
 			s_cands.push_back({d, kv.first});
 		}
 		std::sort(s_cands.begin(), s_cands.end(), [](const Cand &a, const Cand &b) { return a.d < b.d; });
-		int budget = g_cfg.polyBudget;
+		// pick each block's detail nearest-first (the budget goes to what's close)...
+		int budget = g_cfg.polyBudget, planned = 0;
+		s_plan.clear();
 		std::vector<std::pair<int, V3>> lights;
 		for (auto &cd : s_cands)
 		{
-			Cell c = key_cell(cd.key);
 			const Block &bk = g_blocks[cd.key];
-			const Item &it = item(bk.item);
-			V3 mn = cell_min(c);
-			int n = detail_for(cd.d);
 			int faces = 0;
 			for (int f = 0; f < 6; f++)
 				if (bk.exposed & (1 << f))
 					faces++;
-			while (n > 1 && polysThisFrame + faces * 2 * n * n > budget)
+			faces = std::min(faces, 3); // at most three faces of a cube face the camera
+			int n = detail_for(cd.d);
+			while (n > 1 && planned + faces * 2 * n * n > budget)
 				n >>= 1;
-			if (polysThisFrame + 2 > budget)
+			if (planned + faces * 2 > budget)
 				break;
+			planned += faces * 2 * n * n;
+			s_plan.push_back({cd.key, n});
+			if (item(bk.item).light && lights.size() < 24)
+				lights.push_back({0, cell_center(key_cell(cd.key))});
+		}
+		// ...then draw far to near: DRAW_POLY is depth-tested against GTA's world but not against other polys,
+		// so the painter's order is what makes near blocks cover far ones
+		for (auto p = s_plan.rbegin(); p != s_plan.rend(); ++p)
+		{
+			Cell c = key_cell(p->first);
+			const Block &bk = g_blocks[p->first];
+			const Item &it = item(bk.item);
+			V3 mn = cell_min(c);
 			for (int f = 0; f < 6; f++)
 			{
 				if (!(bk.exposed & (1 << f)))
@@ -151,11 +165,9 @@ namespace blockrender
 				V3 pc = mn + V3(0.5f, 0.5f, 0.5f) + pn * 0.5f;
 				if ((g.camPos - pc).dot(pn) <= 0)
 					continue;
-				draw_face(mn, 1.0f, f, it, n, 0);
+				draw_face(mn, 1.0f, f, it, p->second, 0);
 			}
 			blocksDrawn++;
-			if (it.light && lights.size() < 24)
-				lights.push_back({0, mn + V3(0.5f, 0.5f, 0.5f)});
 		}
 		for (auto &l : lights)
 			GRAPHICS::DRAW_LIGHT_WITH_RANGE(l.second.x, l.second.y, l.second.z, 255, 214, 150, 9.0f, 2.5f);

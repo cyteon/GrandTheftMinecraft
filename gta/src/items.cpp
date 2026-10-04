@@ -92,7 +92,7 @@ bool items_load()
 		it.cutout = fl.find('c') != std::string::npos;
 		it.maxStack = fl.find('s') != std::string::npos ? 1 : fl.find('p') != std::string::npos ? 16 : 64;
 		it.sound = f[5];
-		if (it.block && f.size() >= 9)
+		if (f.size() >= 9)
 			for (int face = 0; face < 3; face++)
 				build_lods(it, face, f[6 + face]);
 		it.icon = r2d::tex("items/" + it.name + ".png");

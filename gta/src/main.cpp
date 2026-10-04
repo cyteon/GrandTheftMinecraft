@@ -25,6 +25,7 @@ static bool s_calib = false;
 static int s_stress = 0; // F11: DRAW_POLY stress test (triangles per frame), cycles 0 → 2k → 5k → 10k → 20k → 0
 static bool s_worldReady = false;
 static float s_fps = 60.0f;
+static bool s_pedHidden = false;
 
 static void notify(const char *text)
 {
@@ -199,8 +200,14 @@ static void tick()
 		INVALIDATE_IDLE_CAM();
 		disable_gta_controls();
 		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
-		// Minecraft has no body in first person: hide GTA's arms (they reach for doors etc.)
-		if (GET_FOLLOW_PED_CAM_VIEW_MODE() == 4)
+		// Minecraft has no body in first person: hide GTA's arms (door reaches, phone calls...)
+		bool fp = GET_FOLLOW_PED_CAM_VIEW_MODE() == 4;
+		if (fp != s_pedHidden)
+		{
+			SET_ENTITY_VISIBLE(g.ped, !fp, FALSE);
+			s_pedHidden = fp;
+		}
+		if (fp)
 			SET_ENTITY_LOCALLY_INVISIBLE(g.ped);
 		if (input::pressed('E'))
 		{
@@ -214,7 +221,12 @@ static void tick()
 			gui::close_inventory_reset();
 		}
 	}
-	else if (g_invOpen)
+	else if (s_pedHidden)
+	{
+		SET_ENTITY_VISIBLE(g.ped, TRUE, FALSE);
+		s_pedHidden = false;
+	}
+	if (!onFoot && g_invOpen)
 	{
 		g_invOpen = false;
 		gui::close_inventory_reset();
