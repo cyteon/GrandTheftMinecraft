@@ -13,10 +13,14 @@ namespace fx
 	void sweep(const V3 &p, const V3 &dir);
 	void crit(const V3 &p);
 	void throw_pearl(const V3 &from, const V3 &dir);
+	// speed in m/s, damage in GTA health points; crit = fully drawn bow (crit particle trail)
+	void shoot_arrow(const V3 &from, const V3 &dir, float speed, int damage, bool crit);
+	void preload(); // request the DLC's TNT / chip / arrow models (Stage 2)
 	void prime_tnt(const Cell &c, float fuseSeconds = 4.0f);
 	void explode(const V3 &p, float power, bool fire = false);
 
 	int pearl_count();
 	int tnt_count();
 	int particle_count();
+	int arrow_count();
 }

@@ -6,6 +6,7 @@ struct Slot
 {
 	int item = -1;
 	int count = 0;
+	bool loaded = false; // crossbow: an arrow is loaded
 	bool empty() const { return item < 0 || count <= 0; }
 };
 

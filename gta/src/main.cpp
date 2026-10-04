@@ -7,6 +7,7 @@
 #include "flight.h"
 #include "fx.h"
 #include "gui.h"
+#include "hand.h"
 #include "input.h"
 #include "interact.h"
 #include "items.h"
@@ -130,14 +131,14 @@ static std::string debug_text()
 	              "XYZ: %.2f / %.2f / %.2f\n"
 	              "Blocks: %d in %d builds, drawn %d, faces %d, polys %d / %d\n"
 	              "Collision props: %d / %d (%s %.2fx%.2fx%.2f)\n"
-	              "Pearls %d  TNT %d  particles %d\n"
+	              "Pearls %d  arrows %d  TNT %d  particles %d\n"
 	              "%s\n"
 	              "Screen %dx%d gui %d fov %.1f  stress %d",
 	              s_fps, g_mcMode ? "Minecraft" : "GTA", flight::active() ? " (flying)" : "",
 	              g.inVehicle ? " (vehicle)" : "", g.pedPos.x, g.pedPos.y, g.pedPos.z, (int)g_blocks.size(),
 	              (int)g_builds.size(), blockrender::blocksDrawn, blockrender::facesThisFrame,
 	              blockrender::polysThisFrame, g_cfg.polyBudget, collision::count(), g_cfg.maxCollisionProps,
-	              collision::model_name(), sz.x, sz.y, sz.z, fx::pearl_count(), fx::tnt_count(), fx::particle_count(),
+	              collision::model_name(), sz.x, sz.y, sz.z, fx::pearl_count(), fx::arrow_count(), fx::tnt_count(), fx::particle_count(),
 	              interact::describe().c_str(), g.screenW, g.screenH, g.gui, g.camFov, s_stress);
 	return buf;
 }
@@ -153,6 +154,8 @@ static void tick()
 	if (!s_worldReady && playing && DOES_ENTITY_EXIST(g.ped))
 	{
 		collision::init();
+		if (collision::dlc())
+			fx::preload();
 		s_worldReady = true;
 		if (g_mcMode)
 			SET_FOLLOW_PED_CAM_VIEW_MODE(4);
@@ -273,6 +276,8 @@ static void tick()
 		collision::update();
 	audio::update();
 
+	if (!(g_mcMode && playing))
+		hand::hide();
 	if (g_mcMode && playing)
 	{
 		gui::draw_hud(onFoot);

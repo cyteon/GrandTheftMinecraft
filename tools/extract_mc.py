@@ -80,10 +80,13 @@ for c in COLORS:
     BLOCKS.append((f"{c}_concrete", f"{nice} Concrete", "colored", "stone", "", f"{c}_concrete", None, None))
 
 # name, display name, tab, flags (s = stack of 1, p = stack of 16)
+# name, display name, tab, flags (s = stack of 1, p = stack of 16), sprite (item/<sprite>.png)
 ITEMS = [
-    ("diamond_sword", "Diamond Sword", "combat", "s"),
-    ("flint_and_steel", "Flint and Steel", "tools", "s"),
-    ("ender_pearl", "Ender Pearl", "tools", "p"),
+    ("diamond_sword", "Diamond Sword", "combat", "s", "diamond_sword"),
+    ("bow", "Bow", "combat", "s", "bow"),
+    ("crossbow", "Crossbow", "combat", "s", "crossbow_standby"),
+    ("flint_and_steel", "Flint and Steel", "tools", "s", "flint_and_steel"),
+    ("ender_pearl", "Ender Pearl", "tools", "p", "ender_pearl"),
 ]
 
 GUI = {
@@ -105,7 +108,9 @@ PARTICLES = ([f"explosion_{i}" for i in range(16)] + [f"big_smoke_{i}" for i in 
 SOUNDS = {
     "dig/stone": 4, "dig/grass": 4, "dig/wood": 4, "dig/gravel": 4, "dig/sand": 4, "dig/cloth": 4, "dig/snow": 4,
     "random/glass": 3, "random/explode": 4, "random/fuse": 0, "random/bow": 0, "mob/endermen/portal": 0,
-    "fire/ignite": 0, "random/click": 0, "random/pop": 0, "damage/hit": 3, "random/orb": 0,
+    "fire/ignite": 0, "random/click": 0, "random/pop": 0, "damage/hit": 3, "random/orb": 0, "random/bowhit": 4,
+    "item/crossbow/loading_start": 0, "item/crossbow/loading_middle": 4, "item/crossbow/loading_end": 0,
+    "item/crossbow/shoot": 3,
     "entity/player/attack/strong": 1, "entity/player/attack/knockback": 1, "entity/player/attack/sweep": 1,
 }
 
@@ -236,8 +241,8 @@ def blocks_and_items(jar, out):
             t, s, b = (tint(x, FOLIAGE_TINT) for x in (t, s, b))
         iso_icon(t, shade(s, 0.8), shade(s, 0.6)).save(d / f"{name}.png")
         lines.append(";".join([name, disp, "block", tab, flags, sound, hexface(t), hexface(s), hexface(b)]))
-    for name, disp, tab, flags in ITEMS:
-        spr = jar.img(f"item/{name}.png")
+    for name, disp, tab, flags, sprite in ITEMS:
+        spr = jar.img(f"item/{sprite}.png")
         up(spr).save(d / f"{name}.png")
         # the sprite's pixels go in the "top" slot: the 3D hand extrudes them
         lines.append(";".join([name, disp, "item", tab, flags, "", hexface(spr), "", ""]))

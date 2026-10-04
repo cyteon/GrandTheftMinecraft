@@ -47,6 +47,22 @@ namespace fx
 		V3 mn;
 		int item;
 		float fuse, total;
+		int obj; // Stage 2: a real physics TNT block (0 = polygon cube)
+	};
+	struct Chip
+	{
+		int obj;
+		float life;
+	};
+	struct Arrow
+	{
+		V3 p, v, dir;
+		float age = 0;
+		int obj = 0;
+		bool stuck = false, crit = false;
+		int damage = 0;
+		uint64_t stuckCell = 0; // block it's stuck in (0 = GTA world)
+		bool inBlock = false;
 	};
 
 	static std::vector<Sprite> s_sprites;
@@ -54,13 +70,61 @@ namespace fx
 	static std::vector<Debris> s_debris;
 	static std::vector<Pearl> s_pearls;
 	static std::vector<Tnt> s_tnt;
+	static std::vector<Chip> s_chips;
+	static std::vector<Arrow> s_arrows;
+
+	// ---- Stage 2 props ----
+	static Hash model_if_loaded(const std::string &name)
+	{
+		Hash h = GET_HASH_KEY(name.c_str());
+		if (!IS_MODEL_VALID(h))
+			return 0;
+		if (!HAS_MODEL_LOADED(h))
+		{
+			REQUEST_MODEL(h);
+			return 0;
+		}
+		return h;
+	}
+
+	static void delete_obj(int &obj)
+	{
+		if (obj && DOES_ENTITY_EXIST(obj))
+		{
+			SET_ENTITY_AS_MISSION_ENTITY(obj, TRUE, TRUE);
+			DELETE_OBJECT(&obj);
+		}
+		obj = 0;
+	}
+
+	static int spawn_physics(Hash model, const V3 &p, const V3 &vel)
+	{
+		int obj = CREATE_OBJECT(model, p.x, p.y, p.z, FALSE, TRUE, TRUE);
+		if (!obj)
+			return 0;
+		SET_ENTITY_DYNAMIC(obj, TRUE);
+		ACTIVATE_PHYSICS(obj);
+		SET_ENTITY_VELOCITY(obj, vel.x, vel.y, vel.z);
+		return obj;
+	}
+
+	void preload()
+	{
+		for (auto &it : g_items)
+			if (it.block)
+				model_if_loaded("gtm_" + it.name + "_p");
+		model_if_loaded("gtm_tnt");
+		model_if_loaded("gtm_arrow");
+	}
+
+	int arrow_count() { return (int)s_arrows.size(); }
 	static int s_explosion[16], s_smoke[12], s_generic[8], s_sweep[8], s_flame[1], s_crit[1];
 	static int s_pearlTex = -1;
 	static int s_tntItem = -1;
 
 	int pearl_count() { return (int)s_pearls.size(); }
 	int tnt_count() { return (int)s_tnt.size(); }
-	int particle_count() { return (int)(s_sprites.size() + s_debris.size()); }
+	int particle_count() { return (int)(s_sprites.size() + s_debris.size() + s_chips.size()); }
 
 	void init()
 	{
@@ -101,6 +165,22 @@ namespace fx
 	{
 		const Item &i = item(it);
 		V3 mn = cell_min(c);
+		// Stage 2: little physics chips of the block that bounce off the ground
+		if (Hash chip = model_if_loaded("gtm_" + i.name + "_p"))
+		{
+			for (int k = 0; k < 6 && s_chips.size() < 60; k++)
+			{
+				V3 p = mn + V3(frand(0.2f, 0.8f), frand(0.2f, 0.8f), frand(0.2f, 0.8f));
+				V3 v = (p - (mn + V3(0.5f, 0.5f, 0.5f))) * 5.0f + V3(0, 0, frand(1.5f, 3.5f));
+				int obj = spawn_physics(chip, p, v);
+				if (!obj)
+					continue;
+				SET_ENTITY_ROTATION(obj, frand(0, 360), frand(0, 360), frand(0, 360), 2, TRUE);
+				SET_ENTITY_NO_COLLISION_ENTITY(obj, g.ped, FALSE);
+				s_chips.push_back({obj, frand(0.6f, 1.3f)});
+			}
+			return;
+		}
 		const auto &grid = i.lod[2][F_SIDE];
 		if (grid.empty())
 			return;
@@ -185,7 +265,14 @@ namespace fx
 	{
 		V3 mn = cell_min(c);
 		remove_block(c);
-		s_tnt.push_back({mn, s_tntItem >= 0 ? s_tntItem : 0, fuse, fuse});
+		int obj = 0;
+		// Stage 2: a real TNT block with physics; Minecraft gives primed TNT a little hop
+		if (Hash h = model_if_loaded("gtm_tnt"))
+		{
+			float a = frand(0, 2 * PI);
+			obj = spawn_physics(h, mn + V3(0.5f, 0.5f, 0.5f), V3(std::cos(a) * 0.4f, std::sin(a) * 0.4f, 4.0f));
+		}
+		s_tnt.push_back({mn, s_tntItem >= 0 ? s_tntItem : 0, fuse, fuse, obj});
 		audio::play_at("random/fuse", mn + V3(0.5f, 0.5f, 0.5f), 1.0f, 1.0f, 24);
 	}
 
@@ -342,18 +429,54 @@ namespace fx
 		}
 	}
 
+	// a box (centre, three half-axes) drawn with DRAW_POLY: the white flash over a physics TNT block
+	static void draw_box(const V3 &c, const V3 ax[3], uint8_t r, uint8_t g_, uint8_t b, uint8_t a)
+	{
+		for (int k = 0; k < 3; k++)
+			for (int sgn = -1; sgn <= 1; sgn += 2)
+			{
+				V3 n = ax[k] * (float)sgn, fc = c + n;
+				if ((g.camPos - fc).dot(n) <= 0)
+					continue;
+				const V3 &u = ax[(k + 1) % 3], &v = ax[(k + 2) % 3];
+				V3 p0 = fc - u - v, p1 = fc + u - v, p2 = fc + u + v, p3 = fc - u + v;
+				DRAW_POLY(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, r, g_, b, a);
+				DRAW_POLY(p0.x, p0.y, p0.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z, r, g_, b, a);
+			}
+	}
+
 	static void update_tnt(float dt)
 	{
 		for (size_t i = 0; i < s_tnt.size();)
 		{
 			Tnt &t = s_tnt[i];
 			t.fuse -= dt;
+			V3 centre = t.mn + V3(0.5f, 0.5f, 0.5f);
+			if (t.obj && DOES_ENTITY_EXIST(t.obj))
+				centre = GET_ENTITY_COORDS(t.obj, TRUE);
 			if (t.fuse <= 0)
 			{
-				V3 c = t.mn + V3(0.5f, 0.5f, 0.5f);
+				int obj = t.obj;
 				s_tnt[i] = s_tnt.back();
 				s_tnt.pop_back();
-				explode(c, 4.0f);
+				delete_obj(obj);
+				explode(centre, 4.0f);
+				continue;
+			}
+			if (t.obj)
+			{
+				// Minecraft: white flash every 5 ticks, swells in the last 10 ticks
+				int ticks = (int)(t.fuse * 20.0f);
+				float grow = t.fuse < 0.5f ? std::pow(1.0f - t.fuse / 0.5f, 4.0f) * 0.3f : 0.0f;
+				if ((ticks / 5) % 2 == 0 || grow > 0)
+				{
+					Vector3 a{}, b{}, up{}, pos{};
+					GET_ENTITY_MATRIX(t.obj, &a, &b, &up, &pos);
+					float h = 0.51f + grow * 0.5f;
+					V3 ax[3] = {V3(a).norm() * h, V3(b).norm() * h, V3(up).norm() * h};
+					draw_box(centre, ax, 255, 255, 255, (ticks / 5) % 2 == 0 ? 190 : 60);
+				}
+				i++;
 				continue;
 			}
 			// Minecraft: white flash every 5 ticks, swells in the last 10 ticks
@@ -457,9 +580,157 @@ namespace fx
 		}
 	}
 
+	void shoot_arrow(const V3 &from, const V3 &dir, float speed, int damage, bool crit)
+	{
+		Arrow a;
+		a.p = from + dir * 0.6f;
+		a.v = dir * speed;
+		a.dir = dir;
+		a.damage = damage;
+		a.crit = crit;
+		if (Hash h = model_if_loaded("gtm_arrow"))
+		{
+			a.obj = CREATE_OBJECT_NO_OFFSET(h, a.p.x, a.p.y, a.p.z, FALSE, TRUE, FALSE, 0);
+			if (a.obj)
+			{
+				FREEZE_ENTITY_POSITION(a.obj, TRUE);
+				SET_ENTITY_COLLISION(a.obj, FALSE, FALSE);
+			}
+		}
+		s_arrows.push_back(a);
+	}
+
+	static void place_arrow(Arrow &a)
+	{
+		if (!a.obj)
+			return;
+		V3 d = a.dir;
+		float heading = std::atan2(-d.x, d.y) * 180.0f / PI;
+		float pitch = std::atan2(d.z, std::sqrt(d.x * d.x + d.y * d.y)) * 180.0f / PI;
+		SET_ENTITY_COORDS_NO_OFFSET(a.obj, a.p.x, a.p.y, a.p.z, FALSE, FALSE, FALSE);
+		SET_ENTITY_ROTATION(a.obj, pitch, 0, heading, 2, TRUE);
+	}
+
+	static void update_arrows(float dt)
+	{
+		static const Hash WEAPON_PISTOL = 0x1B06D571;
+		int stuck = 0;
+		for (auto &a : s_arrows)
+			stuck += a.stuck;
+		for (size_t i = 0; i < s_arrows.size();)
+		{
+			Arrow &a = s_arrows[i];
+			a.age += dt;
+			bool kill = false;
+			if (a.stuck)
+			{
+				// Minecraft despawns stuck arrows after a minute; also drop them if their block went away
+				if (a.age > 60.0f || stuck > 48 || (a.inBlock && !g_blocks.count(a.stuckCell)))
+				{
+					kill = true;
+					stuck--;
+				}
+			}
+			else
+			{
+				V3 next = a.p + a.v * dt;
+				a.v.z -= 20.0f * dt; // 0.05 blocks/tick^2
+				a.v *= std::pow(0.99f, dt * 20.0f);
+				V3 seg = next - a.p;
+				float len = seg.len();
+				if (len > 1e-4f)
+				{
+					V3 dir = seg * (1.0f / len);
+					a.dir = dir;
+					GtaHit gh = gta_probe(a.p, next, g.ped, 1 | 2 | 4 | 8 | 16 | 256);
+					if (gh.hit && collision::is_ours(gh.entity))
+						gh.hit = false; // block props: the voxel ray is exact
+					if (gh.hit && (gh.entity == a.obj || gh.entity == g.ped))
+						gh.hit = false;
+					VoxelHit vh = voxel_raycast(a.p, dir, len);
+					int type = gh.hit && gh.entity && DOES_ENTITY_EXIST(gh.entity) ? GET_ENTITY_TYPE(gh.entity) : 0;
+					if (vh.hit && (!gh.hit || vh.t <= gh.t))
+					{
+						a.p = vh.pos - dir * 0.25f; // tip buried in the block
+						a.stuck = true;
+						a.inBlock = true;
+						a.stuckCell = cell_key(vh.cell);
+						a.age = 0;
+						audio::play_at("random/bowhit", vh.pos, 1.0f, frand(1.0f, 1.3f));
+					}
+					else if (gh.hit && (type == 1 || type == 2))
+					{
+						// GTA does the damage, blood and reactions: an invisible bullet along the arrow's path
+						V3 from = gh.pos - dir * 0.4f, to = gh.pos + dir * 0.4f;
+						SHOOT_SINGLE_BULLET_BETWEEN_COORDS(from.x, from.y, from.z, to.x, to.y, to.z, a.damage, TRUE,
+						                                   WEAPON_PISTOL, g.ped, FALSE, TRUE, -1.0f);
+						if (type == 1)
+							crit(gh.pos);
+						audio::play_at("random/bowhit", gh.pos, 1.0f, frand(1.0f, 1.3f));
+						kill = true;
+					}
+					else if (gh.hit)
+					{
+						a.p = gh.pos - dir * 0.25f;
+						a.stuck = true;
+						a.age = 0;
+						audio::play_at("random/bowhit", gh.pos, 1.0f, frand(1.0f, 1.3f));
+					}
+					else
+						a.p = next;
+				}
+				if (a.age > 10.0f)
+					kill = true;
+				if (!kill && a.crit && !a.stuck && s_sprites.size() < 500)
+				{
+					Sprite sp;
+					sp.p = a.p;
+					sp.life = 0.4f;
+					sp.size = 0.12f;
+					sp.frames = s_crit;
+					sp.nFrames = 1;
+					add(sp);
+				}
+			}
+			if (kill)
+			{
+				delete_obj(a.obj);
+				s_arrows[i] = s_arrows.back();
+				s_arrows.pop_back();
+				continue;
+			}
+			if (a.obj)
+				place_arrow(a);
+			else
+			{
+				V3 tail = a.p - a.dir * 0.7f;
+				DRAW_LINE(a.p.x, a.p.y, a.p.z, tail.x, tail.y, tail.z, 120, 90, 60, 255);
+			}
+			i++;
+		}
+	}
+
+	static void update_chips(float dt)
+	{
+		for (size_t i = 0; i < s_chips.size();)
+		{
+			s_chips[i].life -= dt;
+			if (s_chips[i].life <= 0)
+			{
+				delete_obj(s_chips[i].obj);
+				s_chips[i] = s_chips.back();
+				s_chips.pop_back();
+				continue;
+			}
+			i++;
+		}
+	}
+
 	void update()
 	{
 		float dt = std::min(g.dt, 0.1f);
+		update_arrows(dt);
+		update_chips(dt);
 		update_tnt(dt);
 		update_debris(dt);
 		update_pearls(dt);

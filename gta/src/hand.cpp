@@ -2,6 +2,7 @@
 #include "common.h"
 #include "items.h"
 #include <algorithm>
+#include <string>
 #include <cstring>
 #include <vector>
 
@@ -172,10 +173,121 @@ namespace hand
 		}
 	}
 
-	void draw(int itemId, float swing, float equip)
+	std::string sprite_for(int itemId, Use use, float progress)
+	{
+		const Item &it = item(itemId);
+		if (it.name == "bow" && use == USE_BOW) // Minecraft's "pull" thresholds (pull = seconds drawn)
+			return progress >= 0.9f ? "bow_pulling_2" : progress >= 0.65f ? "bow_pulling_1" : "bow_pulling_0";
+		if (it.name == "crossbow")
+		{
+			if (use == USE_CROSSBOW_LOADED)
+				return "crossbow_arrow";
+			if (use == USE_CROSSBOW_LOAD)
+				return progress >= 1.0f ? "crossbow_pulling_2" : progress >= 0.58f ? "crossbow_pulling_1" : "crossbow_pulling_0";
+			return "crossbow_standby";
+		}
+		return it.name;
+	}
+
+	// ---- the real prop (Stage 2) ----
+	static int s_obj = 0;
+	static Hash s_objModel = 0;
+
+	void hide()
+	{
+		if (s_obj && DOES_ENTITY_EXIST(s_obj))
+		{
+			SET_ENTITY_AS_MISSION_ENTITY(s_obj, TRUE, TRUE);
+			DELETE_OBJECT(&s_obj);
+		}
+		s_obj = 0;
+		s_objModel = 0;
+	}
+
+	static void quat_from(const float m[3][3], float &x, float &y, float &z, float &w)
+	{
+		float tr = m[0][0] + m[1][1] + m[2][2];
+		if (tr > 0)
+		{
+			float s = std::sqrt(tr + 1.0f) * 2;
+			w = 0.25f * s, x = (m[2][1] - m[1][2]) / s, y = (m[0][2] - m[2][0]) / s, z = (m[1][0] - m[0][1]) / s;
+		}
+		else if (m[0][0] > m[1][1] && m[0][0] > m[2][2])
+		{
+			float s = std::sqrt(1.0f + m[0][0] - m[1][1] - m[2][2]) * 2;
+			w = (m[2][1] - m[1][2]) / s, x = 0.25f * s, y = (m[0][1] + m[1][0]) / s, z = (m[0][2] + m[2][0]) / s;
+		}
+		else if (m[1][1] > m[2][2])
+		{
+			float s = std::sqrt(1.0f + m[1][1] - m[0][0] - m[2][2]) * 2;
+			w = (m[0][2] - m[2][0]) / s, x = (m[0][1] + m[1][0]) / s, y = 0.25f * s, z = (m[1][2] + m[2][1]) / s;
+		}
+		else
+		{
+			float s = std::sqrt(1.0f + m[2][2] - m[0][0] - m[1][1]) * 2;
+			w = (m[1][0] - m[0][1]) / s, x = (m[0][2] + m[2][0]) / s, y = (m[1][2] + m[2][1]) / s, z = 0.25f * s;
+		}
+	}
+
+	static const float HAND_SIZE = 0.25f; // size of the _h / gtm_i_ models (tools/make_dlc_src.py)
+
+	// true if the prop was placed (else the caller draws polygons)
+	static bool draw_prop(const Item &it, const std::string &sprite, const Mat &Mc, const V3 &cam, const V3 &R,
+	                      const V3 &U, const V3 &F)
+	{
+		std::string name = it.block ? "gtm_" + it.name + "_h" : "gtm_i_" + sprite;
+		Hash model = GET_HASH_KEY(name.c_str());
+		if (!IS_MODEL_VALID(model))
+			return false;
+		if (!HAS_MODEL_LOADED(model))
+		{
+			REQUEST_MODEL(model);
+			return false;
+		}
+		// Mc maps the centred unit model into view space with a uniform scale s; our model is HAND_SIZE big, so
+		// scale the whole placement about the eye by HAND_SIZE / s: same picture, no entity scaling needed
+		V3 c0(Mc.m[0][0], Mc.m[1][0], Mc.m[2][0]);
+		float s = c0.len();
+		if (s < 1e-5f)
+			return false;
+		float lambda = HAND_SIZE / s;
+		V3 t = Mc.t * lambda;
+		V3 pos = cam + R * t.x + U * t.y - F * t.z;
+		// world rotation = [R U -F] * (Mc / s)
+		const V3 B[3] = {R, U, F * -1.0f};
+		float W[3][3];
+		for (int col = 0; col < 3; col++)
+		{
+			V3 vcol(Mc.m[0][col] / s, Mc.m[1][col] / s, Mc.m[2][col] / s);
+			V3 wcol = B[0] * vcol.x + B[1] * vcol.y + B[2] * vcol.z;
+			W[0][col] = wcol.x, W[1][col] = wcol.y, W[2][col] = wcol.z;
+		}
+		if (s_obj && (s_objModel != model || !DOES_ENTITY_EXIST(s_obj)))
+			hide();
+		if (!s_obj)
+		{
+			s_obj = CREATE_OBJECT_NO_OFFSET(model, pos.x, pos.y, pos.z, FALSE, TRUE, FALSE, 0);
+			if (!s_obj)
+				return false;
+			s_objModel = model;
+			FREEZE_ENTITY_POSITION(s_obj, TRUE);
+			SET_ENTITY_COLLISION(s_obj, FALSE, FALSE);
+			SET_ENTITY_CAN_BE_DAMAGED(s_obj, FALSE);
+		}
+		float qx, qy, qz, qw;
+		quat_from(W, qx, qy, qz, qw);
+		SET_ENTITY_COORDS_NO_OFFSET(s_obj, pos.x, pos.y, pos.z, FALSE, FALSE, FALSE);
+		SET_ENTITY_QUATERNION(s_obj, qx, qy, qz, qw);
+		return true;
+	}
+
+	void draw(int itemId, float swing, float equip, Use use, float progress)
 	{
 		if (itemId < 0)
+		{
+			hide();
 			return;
+		}
 		const Item &it = item(itemId);
 		// the camera being prepared this frame (the final-rendered one lags a frame and makes the hand swim)
 		V3 cam = GET_GAMEPLAY_CAM_COORD();
@@ -189,29 +301,74 @@ namespace hand
 
 		Mat M;
 		float sq = std::sqrt(swing);
-		// ItemInHandRenderer.renderArmWithItem: swing offset, arm transform, attack transform
-		M.translate(-0.4f * std::sin(sq * PI) * k, 0.2f * std::sin(sq * PI * 2) * k, -0.2f * std::sin(swing * PI));
-		M.translate(0.56f * k, (-0.52f - (1.0f - equip) * 0.6f) * k, -0.72f);
-		float f = std::sin(swing * swing * PI), f1 = std::sin(sq * PI);
-		M.rot(1, 45.0f + f * -20.0f);
-		M.rot(2, f1 * -20.0f);
-		M.rot(0, f1 * -80.0f);
-		M.rot(1, -45.0f);
-		M.scale(k);
+		if (use == USE_BOW || use == USE_CROSSBOW_LOAD)
+		{
+			// ItemInHandRenderer: drawing a bow / loading a crossbow (right hand)
+			bool bow = use == USE_BOW;
+			M.translate(0.56f * k, (-0.52f - (1.0f - equip) * 0.6f) * k, -0.72f);
+			if (bow)
+				M.translate(-0.2785682f * k, 0.18344387f * k, 0.15731531f);
+			else
+				M.translate(-0.4785682f * k, -0.094387f * k, 0.05731531f);
+			M.rot(0, bow ? -13.935f : -11.935f);
+			M.rot(1, bow ? 35.3f : 65.3f);
+			M.rot(2, -9.785f);
+			float f;
+			if (bow)
+			{
+				f = progress; // seconds drawn
+				f = (f * f + f * 2.0f) / 3.0f;
+			}
+			else
+				f = progress;
+			f = std::min(f, 1.0f);
+			if (f > 0.1f) // the trembling pull
+				M.translate(0, std::sin((progress * 20.0f - 0.1f) * 1.3f) * (f - 0.1f) * 0.004f * k, 0);
+			M.translate(0, 0, f * 0.04f);
+			M.rot(1, -45.0f);
+			M.scale(k);
+		}
+		else
+		{
+			// ItemInHandRenderer.renderArmWithItem: swing offset, arm transform, attack transform
+			M.translate(-0.4f * std::sin(sq * PI) * k, 0.2f * std::sin(sq * PI * 2) * k, -0.2f * std::sin(swing * PI));
+			M.translate(0.56f * k, (-0.52f - (1.0f - equip) * 0.6f) * k, -0.72f);
+			if (use == USE_CROSSBOW_LOADED)
+			{
+				M.translate(-0.641864f * k, 0, 0);
+				M.rot(1, 10.0f);
+			}
+			float f = std::sin(swing * swing * PI), f1 = std::sin(sq * PI);
+			M.rot(1, 45.0f + f * -20.0f);
+			M.rot(2, f1 * -20.0f);
+			M.rot(0, f1 * -80.0f);
+			M.rot(1, -45.0f);
+			M.scale(k);
+		}
 		// the model's firstperson_righthand display transform
 		if (it.block)
 		{
 			M.rot(1, 45.0f);
 			M.scale(0.40f);
 		}
+		else if (it.name == "crossbow")
+		{
+			M.translate(1.13f / 16, 3.2f / 16, 1.13f / 16);
+			M.rot(0, -90.0f);
+			M.rot(1, 0.0f);
+			M.rot(2, -55.0f);
+			M.scale(0.68f);
+		}
 		else
 		{
 			M.translate(1.13f / 16, 3.2f / 16, 1.13f / 16);
-			M.rot(0, 0.0f);
 			M.rot(1, -90.0f);
 			M.rot(2, 25.0f);
 			M.scale(0.68f);
 		}
+		if (draw_prop(it, sprite_for(itemId, use, progress), M, cam, R, U, F))
+			return;
+		hide();
 		M.translate(-0.5f, -0.5f, -0.5f);
 
 		s_quads.clear();
@@ -219,7 +376,7 @@ namespace hand
 			build_block(M, it);
 		else
 			build_sprite(M, it);
-		// DRAW_POLY doesn't depth-test against itself: painter's order, far → near
+		// DRAW_POLY doesn't depth-test against itself: painter's order, far to near
 		std::sort(s_quads.begin(), s_quads.end(), [](const Quad &a, const Quad &b) { return a.depth > b.depth; });
 		for (const Quad &q : s_quads)
 		{

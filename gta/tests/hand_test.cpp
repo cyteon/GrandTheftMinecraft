@@ -11,6 +11,7 @@
 Frame g;
 bool g_mcMode = true, g_debug = false;
 namespace r2d { int tex(const std::string &) { return -1; } }
+namespace shv { void (*scriptWait)(DWORD) = [](DWORD) {}; }
 
 static uint64_t s_hash;
 static std::vector<uint64_t> s_args;
@@ -35,6 +36,8 @@ int main(int argc, char **argv)
 	g_dataDir = "build/GrandTheftMinecraft/";
 	g.daylight = 1;
 	items_load();
+	// hand_test <item> <swing> <equip> [use 0-3] [progress]
 	hand::draw(item_find(argc > 1 ? argv[1] : "diamond_sword"), argc > 2 ? (float)atof(argv[2]) : 1.0f,
-	           argc > 3 ? (float)atof(argv[3]) : 1.0f);
+	           argc > 3 ? (float)atof(argv[3]) : 1.0f, (hand::Use)(argc > 4 ? atoi(argv[4]) : 0),
+	           argc > 5 ? (float)atof(argv[5]) : 0.0f);
 }

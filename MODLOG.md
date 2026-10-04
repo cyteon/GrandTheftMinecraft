@@ -88,3 +88,12 @@ copies the world/config into `_gtm_backup\`.
 - 2026-10-04 test: 102 blocks -> poly budget ran out, far blocks dropped at ~20-25 m / flickered. Fix: reserve 1x1 for every visible block, then upgrade nearest-first using real per-face triangle counts (Item::tris; full-res side face median 390 tris). OpenIV.asi still not installed by user (ASI Manager step pending).
 - 2026-10-04 test: OpenIV.asi installed via ASI Manager -> DLC loads (F9 'gtm_* (DLC)'), props visible but NO collision for player/cars. Root Box bound + empty physicsDictionary. Vanilla ydr props with embedded collision (prop_ld_crate_01) use a Composite bound (Box children, CompositeFlags1/2) and physicsDictionary = their ytyp/rpf name ('lev_des'), flags 537001984. DLC rebuilt that way; awaiting test.
 - 2026-10-04: Stage 2 confirmed by user: shadows work, bullets hit blocks (composite bound + physicsDictionary fix worked).
+- 2026-10-04 Stage 2 leftovers + bows: tools/make_dlc_src.py generates all DLC geometry (.geo) + textures; gtmpack
+  now builds generic drawables (220: gtm_<block>, _h hand 0.25 m in Minecraft item space, _p 0.12 m chips with
+  collision, gtm_i_<sprite> extruded hand items incl. bow/crossbow pull states, gtm_arrow) sharing one gtm_tex.ytd
+  (archetype textureDictionary). Winding asserted in the generator. Hand = one frozen non-colliding prop placed per
+  frame with SET_ENTITY_QUATERNION; Minecraft's view-space transform scaled about the eye by HAND_SIZE/s so no entity
+  scaling is needed. Primed TNT = dynamic gtm_tnt with a white DRAW_POLY flash box from GET_ENTITY_MATRIX. Arrows:
+  script-simulated (60 m/s * power, 20 m/s^2, drag 0.99/tick), peds/vehicles hit via SHOOT_SINGLE_BULLET_BETWEEN_COORDS
+  (pistol, owner = player), stick in world/blocks 60 s. Bow/crossbow poses from ItemInHandRenderer; crossbow model
+  display rotation [-90,0,-55].

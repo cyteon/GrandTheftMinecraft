@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "hand.h"
+#include "interact.h"
 #include "common.h"
 #include "input.h"
 #include "items.h"
@@ -124,8 +125,13 @@ namespace gui
 		s_equip = std::min(1.0f, s_equip + g.dt * 6.0f);
 		s_swing = std::min(1.0f, s_swing + g.dt / 0.3f);
 		if (it < 0)
+		{
+			hand::hide();
 			return;
-		hand::draw(it, s_swing, s_equip);
+		}
+		float progress = 0;
+		int use = interact::hand_use(progress);
+		hand::draw(it, s_swing, s_equip, (hand::Use)use, progress);
 	}
 
 	void draw_hud(bool interactive)
@@ -133,6 +139,8 @@ namespace gui
 		float s = (float)g.gui, W = (float)g.screenW, H = (float)g.screenH;
 		if (interactive && !g_invOpen && GET_FOLLOW_PED_CAM_VIEW_MODE() == 4)
 			draw_hand();
+		else
+			hand::hide();
 		// crosshair
 		if (interactive && !g_invOpen)
 			draw(t_cross, std::floor(W / 2 - 7.5f * s), std::floor(H / 2 - 7.5f * s), 15 * s, 15 * s, 0xE6FFFFFF,

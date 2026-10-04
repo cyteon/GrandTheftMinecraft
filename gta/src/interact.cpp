@@ -3,6 +3,7 @@
 #include "blockrender.h"
 #include "fx.h"
 #include "gui.h"
+#include "hand.h"
 #include "input.h"
 #include "items.h"
 #include "log.h"
@@ -12,6 +13,10 @@ namespace interact
 {
 	Target g_target;
 	static uint32_t s_nextBreak = 0, s_nextUse = 0, s_nextPearl = 0;
+	static bool s_using = false;      // right button held on a bow / crossbow
+	static uint32_t s_useStart = 0;
+	static int s_useSlot = -1;
+	static int s_loadSounds = 0;      // crossbow loading sounds played (start, middle)
 	static const Hash WEAPON_UNARMED = 0xA2719263;
 
 	static void find_target()
@@ -278,6 +283,110 @@ namespace interact
 		}
 	}
 
+	void cancel_use() { s_using = false; }
+
+	int hand_use(float &progress)
+	{
+		const Slot &sl = g_hotbar[g_sel];
+		progress = 0;
+		if (sl.empty())
+			return hand::USE_NONE;
+		const std::string &n = item(sl.item).name;
+		if (n == "crossbow" && sl.loaded)
+			return hand::USE_CROSSBOW_LOADED;
+		if (!s_using || s_useSlot != g_sel)
+			return hand::USE_NONE;
+		float held = (g.now - s_useStart) / 1000.0f;
+		if (n == "bow")
+		{
+			progress = held;
+			return hand::USE_BOW;
+		}
+		if (n == "crossbow")
+		{
+			progress = std::min(1.0f, held / 1.25f);
+			return hand::USE_CROSSBOW_LOAD;
+		}
+		return hand::USE_NONE;
+	}
+
+	// Bow: hold to draw, release to shoot (Minecraft's power curve). Crossbow: hold 1.25 s to load, release, then
+	// click to fire. Returns true if the held item is a bow/crossbow (so the generic right-click use is skipped).
+	static bool bows(bool allowInput)
+	{
+		Slot &sl = g_hotbar[g_sel];
+		const Item *h = sl.empty() ? nullptr : &item(sl.item);
+		bool bow = h && h->name == "bow", xbow = h && h->name == "crossbow";
+		if (!bow && !xbow)
+		{
+			s_using = false;
+			return false;
+		}
+		if (s_using && s_useSlot != g_sel)
+			s_using = false;
+		bool held = allowInput && input::mouse_held(VK_RBUTTON);
+		bool pressed = allowInput && input::mouse_pressed(VK_RBUTTON);
+		float t = (g.now - s_useStart) / 1000.0f;
+		if (xbow && sl.loaded)
+		{
+			if (pressed)
+			{
+				gui::swing();
+				sl.loaded = false;
+				fx::shoot_arrow(g.camPos, g.camDir, 63.0f, 70, false); // 3.15 blocks/tick
+				audio::play_at("item/crossbow/shoot", g.camPos, 1.0f, frand(0.9f, 1.1f));
+				s_using = false;
+				s_nextUse = g.now + 300; // don't start loading again from the same click
+			}
+			return true;
+		}
+		if (!s_using)
+		{
+			if (pressed && g.now >= s_nextUse)
+			{
+				s_using = true;
+				s_useStart = g.now;
+				s_useSlot = g_sel;
+				s_loadSounds = 0;
+			}
+			return true;
+		}
+		if (xbow)
+		{
+			float p = t / 1.25f;
+			if (s_loadSounds == 0 && p >= 0.2f)
+				audio::play_at("item/crossbow/loading_start", g.camPos, 0.5f), s_loadSounds = 1;
+			if (s_loadSounds == 1 && p >= 0.5f)
+				audio::play_at("item/crossbow/loading_middle", g.camPos, 0.5f), s_loadSounds = 2;
+			if (s_loadSounds == 2 && p >= 1.0f)
+				audio::play_at("item/crossbow/loading_end", g.camPos, 0.5f), s_loadSounds = 3;
+			if (!held)
+			{
+				if (p >= 1.0f)
+					sl.loaded = true;
+				s_using = false;
+			}
+			return true;
+		}
+		// bow
+		if (!held)
+		{
+			s_using = false;
+			float f = std::min(t, 1.0f);
+			float power = std::min(1.0f, (f * f + f * 2.0f) / 3.0f);
+			if (power < 0.1f)
+				return true;
+			int dmg = (int)std::ceil(power * 3.0f * 2.0f); // Minecraft: ceil(speed * base damage 2)
+			bool crit = power >= 1.0f;
+			if (crit)
+				dmg += rand() % (dmg / 2 + 2);
+			gui::swing();
+			fx::shoot_arrow(g.camPos, g.camDir, power * 60.0f, dmg * 10, crit);
+			audio::play_at("random/bow", g.camPos, 1.0f, 1.0f / frand(1.2f, 1.6f) + power * 0.5f);
+		}
+		return true;
+	}
+
 	void update(bool allowInput)
 	{
 		find_target();
@@ -291,7 +400,8 @@ namespace interact
 			s_nextBreak = g.now + 250;
 			attack();
 		}
-		if (input::mouse_pressed(VK_RBUTTON) || (input::mouse_held(VK_RBUTTON) && g.now >= s_nextUse))
+		bool bowHeld = bows(true);
+		if (!bowHeld && (input::mouse_pressed(VK_RBUTTON) || (input::mouse_held(VK_RBUTTON) && g.now >= s_nextUse)))
 		{
 			s_nextUse = g.now + 200;
 			use();

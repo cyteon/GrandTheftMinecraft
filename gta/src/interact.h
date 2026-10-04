@@ -22,5 +22,8 @@ namespace interact
 	};
 	extern Target g_target;
 	void update(bool allowInput);
+	// what the hand shows: drawing a bow, loading or holding a loaded crossbow
+	int hand_use(float &progress); // hand::Use
+	void cancel_use();
 	std::string describe();
 }

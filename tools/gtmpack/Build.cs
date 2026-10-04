@@ -16,50 +16,122 @@ static class Build
     static readonly CultureInfo C = CultureInfo.InvariantCulture;
     static string F(float v) => v.ToString("0.######", C);
 
-    record BlockDef(string Name, string Shader, int Material);
+    const string TexDict = "gtm_tex";
 
-    // Faces of the unit cube: origin (top-left seen from outside), right and down axes, normal, sheet column.
-    // Sheet columns: 0 top, 1 side, 2 bottom (each 128 px of the 512 px sheet).
-    static readonly (float[] o, float[] u, float[] v, float[] n, int col)[] Faces =
-    {
-        (new float[] { 0, 1, 1 }, new float[] { 1, 0, 0 }, new float[] { 0, -1, 0 }, new float[] { 0, 0, 1 }, 0),
-        (new float[] { 0, 0, 0 }, new float[] { 1, 0, 0 }, new float[] { 0, 1, 0 }, new float[] { 0, 0, -1 }, 2),
-        (new float[] { 1, 1, 1 }, new float[] { -1, 0, 0 }, new float[] { 0, 0, -1 }, new float[] { 0, 1, 0 }, 1),
-        (new float[] { 0, 0, 1 }, new float[] { 1, 0, 0 }, new float[] { 0, 0, -1 }, new float[] { 0, -1, 0 }, 1),
-        (new float[] { 1, 0, 1 }, new float[] { 0, 1, 0 }, new float[] { 0, 0, -1 }, new float[] { 1, 0, 0 }, 1),
-        (new float[] { 0, 1, 1 }, new float[] { 0, -1, 0 }, new float[] { 0, 0, -1 }, new float[] { -1, 0, 0 }, 1),
-    };
+    // models.txt row: model;texture;shader;material;collision half-extents ("-" = none)
+    record ModelDef(string Name, string Texture, string Shader, int Material, float[] Half);
 
-    static string DrawableXml(BlockDef b)
+    class Geo
     {
-        string model = "gtm_" + b.Name;
-        int bucket = b.Shader == "alpha" ? 1 : b.Shader == "cutout" ? 3 : 0;
-        var vb = new StringBuilder();
-        var ib = new StringBuilder();
-        int vi = 0;
-        const float iu = 0.5f / 512, iv = 0.5f / 128; // half-texel inset: no bleeding between sheet columns
-        foreach (var f in Faces)
+        public List<float[]> V = new();
+        public List<int> I = new();
+        public float[] Min = { 1e9f, 1e9f, 1e9f }, Max = { -1e9f, -1e9f, -1e9f };
+        public static Geo Load(string path)
         {
-            float u0 = f.col * 0.25f + iu, u1 = (f.col + 1) * 0.25f - iu, v0 = iv, v1 = 1 - iv;
-            var corners = new (float a, float b, float uu, float vv)[] { (0, 0, u0, v0), (1, 0, u1, v0), (1, 1, u1, v1), (0, 1, u0, v1) };
-            foreach (var c in corners)
+            var g = new Geo();
+            foreach (var line in File.ReadAllLines(path))
             {
-                float x = f.o[0] + f.u[0] * c.a + f.v[0] * c.b - 0.5f;
-                float y = f.o[1] + f.u[1] * c.a + f.v[1] * c.b - 0.5f;
-                float z = f.o[2] + f.u[2] * c.a + f.v[2] * c.b - 0.5f;
-                vb.Append($"       {F(x)} {F(y)} {F(z)}   {F(f.n[0])} {F(f.n[1])} {F(f.n[2])}   255 255 255 255   {F(c.uu)} {F(c.vv)}\n");
+                var p = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (p.Length == 0) continue;
+                if (p[0] == "v")
+                {
+                    var v = p.Skip(1).Select(x => float.Parse(x, C)).ToArray();
+                    g.V.Add(v);
+                    for (int k = 0; k < 3; k++) { g.Min[k] = Math.Min(g.Min[k], v[k]); g.Max[k] = Math.Max(g.Max[k], v[k]); }
+                }
+                else if (p[0] == "i")
+                    g.I.AddRange(p.Skip(1).Select(int.Parse));
             }
-            // GTA's front faces wind counter-clockwise seen from outside: TL, BL, BR / BR, TR, TL
-            ib.Append($"{vi} {vi + 3} {vi + 2} {vi + 2} {vi + 1} {vi} ");
-            vi += 4;
+            return g;
         }
+        public float Radius => (float)Math.Sqrt(Enumerable.Range(0, 3).Sum(k => Math.Pow(Math.Max(Math.Abs(Min[k]), Math.Abs(Max[k])), 2)));
+    }
+
+    static (int w, int h, int mips) DdsInfo(string path)
+    {
+        using var br = new BinaryReader(File.OpenRead(path));
+        br.ReadBytes(12);
+        int h = br.ReadInt32(), w = br.ReadInt32();
+        br.ReadBytes(8);
+        int mips = br.ReadInt32();
+        return (w, h, Math.Max(1, mips));
+    }
+
+    static string BoundsXml(ModelDef m)
+    {
+        if (m.Half == null) return "";
+        string hx = F(m.Half[0]), hy = F(m.Half[1]), hz = F(m.Half[2]);
+        float r = (float)Math.Sqrt(m.Half.Sum(h => h * h));
+        float vol = 8 * m.Half[0] * m.Half[1] * m.Half[2];
+        float ix = (4 * (m.Half[1] * m.Half[1] + m.Half[2] * m.Half[2])) / 12, iy = (4 * (m.Half[0] * m.Half[0] + m.Half[2] * m.Half[2])) / 12, iz = (4 * (m.Half[0] * m.Half[0] + m.Half[1] * m.Half[1])) / 12;
+        float margin = Math.Min(0.04f, m.Half.Min() * 0.5f);
+        string common(string mat) => $@"
+  <BoxCenter x=""0"" y=""0"" z=""0"" />
+  <SphereCenter x=""0"" y=""0"" z=""0"" />
+  <SphereRadius value=""{F(r)}"" />";
+        return $@" <Bounds type=""Composite"">
+  <BoxMin x=""-{hx}"" y=""-{hy}"" z=""-{hz}"" />
+  <BoxMax x=""{hx}"" y=""{hy}"" z=""{hz}"" />{common("0")}
+  <Margin value=""0"" />
+  <Volume value=""{F(vol)}"" />
+  <Inertia x=""{F(ix)}"" y=""{F(iy)}"" z=""{F(iz)}"" />
+  <MaterialIndex value=""0"" />
+  <MaterialColourIndex value=""0"" />
+  <ProceduralID value=""0"" />
+  <RoomID value=""0"" />
+  <PedDensity value=""0"" />
+  <UnkFlags value=""0"" />
+  <PolyFlags value=""0"" />
+  <UnkType value=""1"" />
+  <Children>
+   <Item type=""Box"">
+    <BoxMin x=""-{hx}"" y=""-{hy}"" z=""-{hz}"" />
+    <BoxMax x=""{hx}"" y=""{hy}"" z=""{hz}"" />
+    <BoxCenter x=""0"" y=""0"" z=""0"" />
+    <SphereCenter x=""0"" y=""0"" z=""0"" />
+    <SphereRadius value=""{F(r)}"" />
+    <Margin value=""{F(margin)}"" />
+    <Volume value=""{F(vol)}"" />
+    <Inertia x=""{F(ix)}"" y=""{F(iy)}"" z=""{F(iz)}"" />
+    <MaterialIndex value=""{m.Material}"" />
+    <MaterialColourIndex value=""0"" />
+    <ProceduralID value=""0"" />
+    <RoomID value=""0"" />
+    <PedDensity value=""0"" />
+    <UnkFlags value=""0"" />
+    <PolyFlags value=""0"" />
+    <UnkType value=""1"" />
+    <CompositeTransform>
+     1 0 0 0
+     0 1 0 0
+     0 0 1 0
+     0 0 0 1
+    </CompositeTransform>
+    <CompositeFlags1>MAP_WEAPON, MAP_DYNAMIC, MAP_ANIMAL, MAP_COVER, MAP_VEHICLE</CompositeFlags1>
+    <CompositeFlags2>VEHICLE_NOT_BVH, VEHICLE_BVH, PED, RAGDOLL, ANIMAL, ANIMAL_RAGDOLL, OBJECT, PLANT, PROJECTILE, EXPLOSION, FORKLIFT_FORKS, TEST_WEAPON, TEST_CAMERA, TEST_AI, TEST_SCRIPT, TEST_VEHICLE_WHEEL, GLASS</CompositeFlags2>
+   </Item>
+  </Children>
+ </Bounds>
+";
+    }
+
+    static string DrawableXml(ModelDef m, Geo g)
+    {
+        int bucket = m.Shader == "alpha" ? 1 : m.Shader == "cutout" ? 3 : 0;
+        var vb = new StringBuilder();
+        foreach (var v in g.V)
+            vb.Append($"       {F(v[0])} {F(v[1])} {F(v[2])}   {F(v[3])} {F(v[4])} {F(v[5])}   255 255 255 255   {F(v[6])} {F(v[7])}\n");
+        var ib = new StringBuilder();
+        for (int k = 0; k < g.I.Count; k++)
+            ib.Append(g.I[k]).Append(k % 24 == 23 ? "\n       " : " ");
+        string mn = $@"x=""{F(g.Min[0])}"" y=""{F(g.Min[1])}"" z=""{F(g.Min[2])}""", mx = $@"x=""{F(g.Max[0])}"" y=""{F(g.Max[1])}"" z=""{F(g.Max[2])}""";
         return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <Drawable>
- <Name>{model}</Name>
+ <Name>{m.Name}</Name>
  <BoundingSphereCenter x=""0"" y=""0"" z=""0"" />
- <BoundingSphereRadius value=""0.866026"" />
- <BoundingBoxMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
- <BoundingBoxMax x=""0.5"" y=""0.5"" z=""0.5"" />
+ <BoundingSphereRadius value=""{F(g.Radius)}"" />
+ <BoundingBoxMin {mn} />
+ <BoundingBoxMax {mx} />
  <LodDistHigh value=""9998"" />
  <LodDistMed value=""9998"" />
  <LodDistLow value=""9998"" />
@@ -69,28 +141,14 @@ static class Build
  <FlagsLow value=""0"" />
  <FlagsVlow value=""0"" />
  <ShaderGroup>
-  <TextureDictionary>
-   <Item>
-    <Name>{model}</Name>
-    <Unk32 value=""128"" />
-    <Usage>DEFAULT</Usage>
-    <UsageFlags>UNK24</UsageFlags>
-    <ExtraFlags value=""0"" />
-    <Width value=""512"" />
-    <Height value=""128"" />
-    <MipLevels value=""10"" />
-    <Format>D3DFMT_A8R8G8B8</Format>
-    <FileName>{model}.dds</FileName>
-   </Item>
-  </TextureDictionary>
   <Shaders>
    <Item>
-    <Name>{b.Shader}</Name>
-    <FileName>{b.Shader}.sps</FileName>
+    <Name>{m.Shader}</Name>
+    <FileName>{m.Shader}.sps</FileName>
     <RenderBucket value=""{bucket}"" />
     <Parameters>
      <Item name=""DiffuseSampler"" type=""Texture"">
-      <Name>{model}</Name>
+      <Name>{m.Texture}</Name>
      </Item>
      <Item name=""matMaterialColorScale"" type=""Vector"" x=""1"" y=""0"" z=""0"" w=""1"" />
      <Item name=""HardAlphaBlend"" type=""Vector"" x=""1"" y=""0"" z=""0"" w=""0"" />
@@ -105,7 +163,7 @@ static class Build
   <Unknown58 value=""3624623659"" />
   <Bones>
    <Item>
-    <Name>{model}</Name>
+    <Name>{m.Name}</Name>
     <Tag value=""0"" />
     <Index value=""0"" />
     <ParentIndex value=""-1"" />
@@ -128,8 +186,8 @@ static class Build
    <Geometries>
     <Item>
      <ShaderIndex value=""0"" />
-     <BoundingBoxMin x=""-0.5"" y=""-0.5"" z=""-0.5"" w=""-0.5"" />
-     <BoundingBoxMax x=""0.5"" y=""0.5"" z=""0.5"" w=""0.5"" />
+     <BoundingBoxMin {mn} w=""0"" />
+     <BoundingBoxMax {mx} w=""0"" />
      <VertexBuffer>
       <Flags value=""0"" />
       <Layout type=""GTAV1"">
@@ -150,79 +208,57 @@ static class Build
    </Geometries>
   </Item>
  </DrawableModelsHigh>
- <Bounds type=""Composite"">
-  <BoxMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
-  <BoxMax x=""0.5"" y=""0.5"" z=""0.5"" />
-  <BoxCenter x=""0"" y=""0"" z=""0"" />
-  <SphereCenter x=""0"" y=""0"" z=""0"" />
-  <SphereRadius value=""0.866026"" />
-  <Margin value=""0"" />
-  <Volume value=""1"" />
-  <Inertia x=""0.166667"" y=""0.166667"" z=""0.166667"" />
-  <MaterialIndex value=""0"" />
-  <MaterialColourIndex value=""0"" />
-  <ProceduralID value=""0"" />
-  <RoomID value=""0"" />
-  <PedDensity value=""0"" />
-  <UnkFlags value=""0"" />
-  <PolyFlags value=""0"" />
-  <UnkType value=""1"" />
-  <Children>
-   <Item type=""Box"">
-    <BoxMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
-    <BoxMax x=""0.5"" y=""0.5"" z=""0.5"" />
-    <BoxCenter x=""0"" y=""0"" z=""0"" />
-    <SphereCenter x=""0"" y=""0"" z=""0"" />
-    <SphereRadius value=""0.866026"" />
-    <Margin value=""0.04"" />
-    <Volume value=""1"" />
-    <Inertia x=""0.166667"" y=""0.166667"" z=""0.166667"" />
-    <MaterialIndex value=""{b.Material}"" />
-    <MaterialColourIndex value=""0"" />
-    <ProceduralID value=""0"" />
-    <RoomID value=""0"" />
-    <PedDensity value=""0"" />
-    <UnkFlags value=""0"" />
-    <PolyFlags value=""0"" />
-    <UnkType value=""1"" />
-    <CompositeTransform>
-     1 0 0 0
-     0 1 0 0
-     0 0 1 0
-     0 0 0 1
-    </CompositeTransform>
-    <CompositeFlags1>MAP_WEAPON, MAP_DYNAMIC, MAP_ANIMAL, MAP_COVER, MAP_VEHICLE</CompositeFlags1>
-    <CompositeFlags2>VEHICLE_NOT_BVH, VEHICLE_BVH, PED, RAGDOLL, ANIMAL, ANIMAL_RAGDOLL, OBJECT, PLANT, PROJECTILE, EXPLOSION, FORKLIFT_FORKS, TEST_WEAPON, TEST_CAMERA, TEST_AI, TEST_SCRIPT, TEST_VEHICLE_WHEEL, GLASS</CompositeFlags2>
-   </Item>
-  </Children>
- </Bounds>
- <Lights />
+{BoundsXml(m)} <Lights />
 </Drawable>";
     }
 
-    static string YtypXml(IEnumerable<BlockDef> blocks)
+    static string YtdXml(string srcDir, IEnumerable<string> textures)
+    {
+        var sb = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TextureDictionary>\n");
+        foreach (var t in textures)
+        {
+            var (w, h, mips) = DdsInfo(Path.Combine(srcDir, t + ".dds"));
+            sb.Append($@" <Item>
+  <Name>{t}</Name>
+  <Unk32 value=""128"" />
+  <Usage>DEFAULT</Usage>
+  <UsageFlags>UNK24</UsageFlags>
+  <ExtraFlags value=""0"" />
+  <Width value=""{w}"" />
+  <Height value=""{h}"" />
+  <MipLevels value=""{mips}"" />
+  <Format>D3DFMT_A8R8G8B8</Format>
+  <FileName>{t}.dds</FileName>
+ </Item>
+");
+        }
+        sb.Append("</TextureDictionary>\n");
+        return sb.ToString();
+    }
+
+    static string YtypXml(IEnumerable<(ModelDef m, Geo g)> models)
     {
         var sb = new StringBuilder();
         sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<CMapTypes>\n <extensions />\n <archetypes>\n");
-        foreach (var b in blocks)
+        foreach (var (m, g) in models)
         {
-            string model = "gtm_" + b.Name;
+            string phys = m.Half != null ? $"<physicsDictionary>{PropsRpf}</physicsDictionary>" : "<physicsDictionary />";
             sb.Append($@"  <Item type=""CBaseArchetypeDef"">
    <lodDist value=""300"" />
    <flags value=""537001984"" />
    <specialAttribute value=""0"" />
-   <bbMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
-   <bbMax x=""0.5"" y=""0.5"" z=""0.5"" />
+   <bbMin x=""{F(g.Min[0])}"" y=""{F(g.Min[1])}"" z=""{F(g.Min[2])}"" />
+   <bbMax x=""{F(g.Max[0])}"" y=""{F(g.Max[1])}"" z=""{F(g.Max[2])}"" />
    <bsCentre x=""0"" y=""0"" z=""0"" />
-   <bsRadius value=""0.866026"" />
+   <bsRadius value=""{F(g.Radius)}"" />
    <hdTextureDist value=""100"" />
-   <name>{model}</name>
-   <textureDictionary />
+   <name>{m.Name}</name>
+   <textureDictionary>{TexDict}</textureDictionary>
    <clipDictionary />
    <drawableDictionary />
-   <physicsDictionary>{PropsRpf}</physicsDictionary>
+   {phys}
    <assetType>ASSET_TYPE_DRAWABLE</assetType>
-   <assetName>{model}</assetName>
+   <assetName>{m.Name}</assetName>
    <extensions />
   </Item>
 ");
@@ -294,27 +330,33 @@ static class Build
     public static int Run(string gameDir, string srcDir, string outRpf)
     {
         GTA5Keys.LoadFromPath(gameDir);
-        var blocks = File.ReadAllLines(Path.Combine(srcDir, "blocks.txt"))
+        var models = File.ReadAllLines(Path.Combine(srcDir, "models.txt"))
             .Where(l => l.Contains(';'))
             .Select(l => l.Split(';'))
-            .Select(p => new BlockDef(p[0], p[1], int.Parse(p[2])))
+            .Select(p => new ModelDef(p[0], p[1], p[2], int.Parse(p[3]), p[4] == "-" ? null : p[4].Split(',').Select(x => float.Parse(x, C)).ToArray()))
+            .Select(m => (m, g: Geo.Load(Path.Combine(srcDir, m.Name + ".geo"))))
             .ToList();
 
         var files = new List<(string name, byte[] data)>();
-        foreach (var b in blocks)
+        foreach (var (m, g) in models)
         {
-            string xml = DrawableXml(b);
             var doc = new XmlDocument();
-            doc.LoadXml(xml);
+            doc.LoadXml(DrawableXml(m, g));
             byte[] ydr = XmlMeta.GetData(doc, MetaFormat.Ydr, srcDir);
-            if (ydr == null || ydr.Length < 16) throw new Exception($"ydr build failed for {b.Name}");
-            files.Add(($"gtm_{b.Name}.ydr", ydr));
+            if (ydr == null || ydr.Length < 16) throw new Exception($"ydr build failed for {m.Name}");
+            files.Add(($"{m.Name}.ydr", ydr));
         }
+        var textures = models.Select(x => x.m.Texture).Distinct().ToList();
+        var ytdDoc = new XmlDocument();
+        ytdDoc.LoadXml(YtdXml(srcDir, textures));
+        byte[] ytd = XmlMeta.GetData(ytdDoc, MetaFormat.Ytd, srcDir);
+        if (ytd == null || ytd.Length < 16) throw new Exception("ytd build failed");
+        files.Add(($"{TexDict}.ytd", ytd));
         var ytypDoc = new XmlDocument();
-        ytypDoc.LoadXml(YtypXml(blocks));
+        ytypDoc.LoadXml(YtypXml(models));
         byte[] ytyp = XmlMeta.GetData(ytypDoc, MetaFormat.RSC, srcDir);
         files.Add(($"{PropsRpf}.ytyp", ytyp));
-        Console.WriteLine($"built {blocks.Count} drawables + {PropsRpf}.ytyp ({ytyp.Length} bytes)");
+        Console.WriteLine($"built {models.Count} drawables, {TexDict}.ytd ({textures.Count} textures, {ytd.Length / 1024} KB), {PropsRpf}.ytyp");
 
         string dir = Path.GetDirectoryName(Path.GetFullPath(outRpf));
         Directory.CreateDirectory(dir);
@@ -346,7 +388,7 @@ static class Build
             foreach (var ce in e.AllEntries)
                 Console.WriteLine($"  {ce.Path}");
         Directory.CreateDirectory(outDir);
-        foreach (var name in new[] { "gtm_grass_block.ydr", PropsRpf + ".ytyp", "content.xml" })
+        foreach (var name in new[] { "gtm_grass_block.ydr", "gtm_i_bow.ydr", TexDict + ".ytd", PropsRpf + ".ytyp", "content.xml" })
         {
             var fe = all.FirstOrDefault(x => x.NameLower == name);
             if (fe == null) { Console.Error.WriteLine($"missing {name}"); return 1; }
