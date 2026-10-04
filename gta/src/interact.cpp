@@ -80,6 +80,120 @@ namespace interact
 		}
 	}
 
+
+	// ---- making room: cars and people standing where a block goes get pushed out instead of being launched by
+	// the collision prop that appears inside them ----
+	struct Obb
+	{
+		V3 c, ax[3];
+		float h[3];
+	};
+
+	static bool entity_obb(int e, Obb &o)
+	{
+		Vector3 a{}, b{}, up{}, pos{}, mn{}, mx{};
+		GET_ENTITY_MATRIX(e, &a, &b, &up, &pos);
+		GET_MODEL_DIMENSIONS(GET_ENTITY_MODEL(e), &mn, &mx);
+		V3 fwd = GET_ENTITY_FORWARD_VECTOR(e);
+		V3 A(a), B(b);
+		// the DB's out-parameter order is disputed: take whichever axis matches the entity's forward as Y
+		V3 right = std::fabs(A.dot(fwd)) > std::fabs(B.dot(fwd)) ? B : A;
+		V3 forward = std::fabs(A.dot(fwd)) > std::fabs(B.dot(fwd)) ? A : B;
+		o.ax[0] = right.norm(), o.ax[1] = forward.norm(), o.ax[2] = V3(up).norm();
+		V3 lc((mn.x + mx.x) * 0.5f, (mn.y + mx.y) * 0.5f, (mn.z + mx.z) * 0.5f);
+		o.c = V3(pos) + o.ax[0] * lc.x + o.ax[1] * lc.y + o.ax[2] * lc.z;
+		o.h[0] = (mx.x - mn.x) * 0.5f, o.h[1] = (mx.y - mn.y) * 0.5f, o.h[2] = (mx.z - mn.z) * 0.5f;
+		return o.h[0] > 0.01f && o.h[1] > 0.01f;
+	}
+
+	// separating-axis test of a box against an axis-aligned cell (shrunk a little so touching isn't overlapping)
+	static bool obb_hits_cell(const Obb &o, const V3 &mn)
+	{
+		const float m = 0.02f;
+		V3 cc = mn + V3(0.5f, 0.5f, 0.5f), d = o.c - cc;
+		const V3 W[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+		auto sep = [&](const V3 &axis) {
+			float ro = 0, rc = (0.5f - m) * (std::fabs(axis.x) + std::fabs(axis.y) + std::fabs(axis.z));
+			for (int i = 0; i < 3; i++)
+				ro += o.h[i] * std::fabs(o.ax[i].dot(axis));
+			return std::fabs(d.dot(axis)) > ro + rc;
+		};
+		for (int i = 0; i < 3; i++)
+			if (sep(W[i]) || sep(o.ax[i]))
+				return false;
+		return true;
+	}
+
+	static bool obb_hits_blocks(const Obb &o)
+	{
+		float r = std::sqrt(o.h[0] * o.h[0] + o.h[1] * o.h[1] + o.h[2] * o.h[2]);
+		for (int b = 0; b < (int)g_builds.size(); b++)
+		{
+			const Build &bd = g_builds[b];
+			if (bd.count <= 0)
+				continue;
+			int x0 = (int)std::floor(o.c.x - r), x1 = (int)std::floor(o.c.x + r);
+			int y0 = (int)std::floor(o.c.y - r), y1 = (int)std::floor(o.c.y + r);
+			int z0 = (int)std::floor(o.c.z - r - bd.zOff), z1 = (int)std::floor(o.c.z + r - bd.zOff);
+			for (int x = x0; x <= x1; x++)
+				for (int y = y0; y <= y1; y++)
+					for (int z = z0; z <= z1; z++)
+						if (g_blocks.count(cell_key({b, x, y, z})) && obb_hits_cell(o, cell_min({b, x, y, z})))
+							return true;
+		}
+		return false;
+	}
+
+	// Push every car and ped overlapping the new block's cell (already placed) to the nearest free spot.
+	static void make_room(const Cell &c)
+	{
+		V3 mn = cell_min(c), cc = mn + V3(0.5f, 0.5f, 0.5f);
+		static int ents[512];
+		for (int pass = 0; pass < 2; pass++)
+		{
+			int n = pass == 0 ? shv::worldGetAllVehicles(ents, 512) : shv::worldGetAllPeds(ents, 512);
+			for (int i = 0; i < n; i++)
+			{
+				int e = ents[i];
+				if (e == g.ped || !DOES_ENTITY_EXIST(e))
+					continue;
+				V3 ep = GET_ENTITY_COORDS(e, TRUE);
+				if ((ep - cc).len2() > 12 * 12)
+					continue;
+				Obb o;
+				if (!entity_obb(e, o) || !obb_hits_cell(o, mn))
+					continue;
+				// try directions (away from the block first, then around it), shortest free move wins
+				V3 away = V3(o.c.x - cc.x, o.c.y - cc.y, 0);
+				float base = away.len2() > 1e-4f ? std::atan2(away.y, away.x) : 0.0f;
+				bool moved = false;
+				for (float dist = 0.25f; dist <= 6.0f && !moved; dist += 0.25f)
+					for (int k = 0; k < 8 && !moved; k++)
+					{
+						float ang = base + (k % 2 ? 1 : -1) * ((k + 1) / 2) * (PI / 4);
+						V3 off(std::cos(ang) * dist, std::sin(ang) * dist, 0);
+						Obb t = o;
+						t.c += off;
+						if (obb_hits_blocks(t))
+							continue;
+						// don't shove it into a wall either
+						if (gta_probe(o.c, t.c + off.norm() * 0.5f, e, 1 | 16).hit)
+							continue;
+						V3 np = ep + off;
+						SET_ENTITY_COORDS_NO_OFFSET(e, np.x, np.y, np.z, FALSE, FALSE, FALSE);
+						if (pass == 0)
+							SET_VEHICLE_ON_GROUND_PROPERLY(e, 5.0f);
+						moved = true;
+					}
+				if (!moved) // boxed in: lift it on top of the block instead
+				{
+					float lift = (mn.z + 1.0f) - (o.c.z - o.h[2]) + 0.05f;
+					SET_ENTITY_COORDS_NO_OFFSET(e, ep.x, ep.y, ep.z + lift, FALSE, FALSE, FALSE);
+				}
+			}
+		}
+	}
+
 	static bool overlaps_player(const V3 &mn)
 	{
 		V3 p = g.pedPos;
@@ -113,6 +227,7 @@ namespace interact
 			return false;
 		if (!place_block(c, itemId))
 			return false;
+		make_room(c);
 		audio::block_sound(item(itemId).sound, cell_center(c), false);
 		return true;
 	}

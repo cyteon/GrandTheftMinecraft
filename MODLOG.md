@@ -72,3 +72,4 @@ copies the world/config into `_gtm_backup\`.
   render_tris.py rasterizes it. Python on Windows: always open source files with encoding='utf-8' (a cp1252 write
   failure truncated blockrender.cpp once; restored from git).
 - 2026-10-04 test 3: painter's order fixed overlap. User: low-res LOD kicks in too close → full 16x16 out to FullDetailDistance=24 m (halving per doubling), budget 30000. Sword sweep sprite removed on request.
+- 2026-10-04: placing a block inside a car launched it out of sight (frozen prop depenetration). Fix: make_room() in interact.cpp pushes overlapping vehicles/peds (OBB from GET_ENTITY_MATRIX + model dims, SAT vs cells) to the nearest free spot up to 6 m, else lifts them on top.
