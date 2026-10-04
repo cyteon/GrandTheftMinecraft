@@ -199,6 +199,9 @@ static void tick()
 		INVALIDATE_IDLE_CAM();
 		disable_gta_controls();
 		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
+		// Minecraft has no body in first person: hide GTA's arms (they reach for doors etc.)
+		if (GET_FOLLOW_PED_CAM_VIEW_MODE() == 4)
+			SET_ENTITY_LOCALLY_INVISIBLE(g.ped);
 		if (input::pressed('E'))
 		{
 			g_invOpen = !g_invOpen;

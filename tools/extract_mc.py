@@ -202,6 +202,19 @@ def gui(jar, out):
         up(jar.img(rel)).save(d / f"{name}.png")
     up(jar.img("gui/container/creative_inventory/tab_items.png").crop((0, 0, 195, 136))).save(d / "tab_items.png")
     Image.new("RGBA", (4, 4), (255, 255, 255, 255)).save(d / "white.png")
+    # mouse cursor (own pixel art, not from Minecraft): GTA's cursor is hidden under our overlay
+    arrow = ["X...........", "XX..........", "XWX.........", "XWWX........", "XWWWX.......", "XWWWWX......",
+             "XWWWWWX.....", "XWWWWWWX....", "XWWWWWWWX...", "XWWWWWWWWX..", "XWWWWWWWWWX.", "XWWWWWWXXXXX",
+             "XWWWXWWX....", "XWWXXWWX....", "XWX..XWWX...", "XX...XWWX...", "X.....XWWX..", "......XWWX..",
+             ".......XX..."]
+    cur = np.zeros((19, 12, 4), np.uint8)
+    for y, row in enumerate(arrow):
+        for x, ch in enumerate(row):
+            if ch == "X":
+                cur[y, x] = (0, 0, 0, 255)
+            elif ch == "W":
+                cur[y, x] = (255, 255, 255, 255)
+    up(Image.fromarray(cur, "RGBA")).save(d / "cursor.png")
     chk = np.zeros((64, 64, 4), np.uint8)
     for y in range(64):
         for x in range(64):

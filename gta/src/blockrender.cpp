@@ -2,6 +2,7 @@
 #include "config.h"
 #include "items.h"
 #include <algorithm>
+#include <cstring>
 #include <vector>
 
 namespace blockrender
@@ -41,22 +42,37 @@ namespace blockrender
 		// nudge outward a hair so faces don't z-fight with the collision prop or GTA ground
 		V3 nrm((float)FACE_N[f][0], (float)FACE_N[f][1], (float)FACE_N[f][2]);
 		o += nrm * 0.002f;
+		auto shaded = [&](const Rgba &c, int &r, int &gg, int &b, int &al) {
+			float fr = c.r * shade, fg = c.g * shade, fb = c.b * shade;
+			if (flash > 0)
+				fr += (255 - fr) * flash, fg += (255 - fg) * flash, fb += (255 - fb) * flash;
+			r = (int)fr, gg = (int)fg, b = (int)fb;
+			al = (it.alpha || it.cutout) ? (c.a < 255 && it.cutout ? 255 : c.a) : 255;
+		};
 		for (int j = 0; j < n; j++)
-			for (int i = 0; i < n; i++)
+		{
+			// merge runs of identical texels in a row into one quad
+			int i = 0;
+			while (i < n)
 			{
 				const Rgba &c = grid[j * n + i];
-				if (c.a < 16)
-					continue;
-				float r = c.r * shade, gg = c.g * shade, b = c.b * shade;
-				if (flash > 0)
-					r += (255 - r) * flash, gg += (255 - gg) * flash, b += (255 - b) * flash;
-				int al = (it.alpha || it.cutout) ? (c.a < 255 && it.cutout ? 255 : c.a) : 255;
-				V3 p00 = o + du * (float)i + dv * (float)j;
-				V3 p10 = p00 + du, p01 = p00 + dv, p11 = p10 + dv;
-				tri(p00, p10, p11, (int)r, (int)gg, (int)b, al);
-				tri(p00, p11, p01, (int)r, (int)gg, (int)b, al);
-				polysThisFrame += 2;
+				int e = i + 1;
+				while (e < n && std::memcmp(&grid[j * n + e], &c, sizeof(Rgba)) == 0)
+					e++;
+				if (c.a >= 16)
+				{
+					int r, gg, b, al;
+					shaded(c, r, gg, b, al);
+					V3 p00 = o + du * (float)i + dv * (float)j;
+					V3 p10 = o + du * (float)e + dv * (float)j;
+					V3 p01 = p00 + dv, p11 = p10 + dv;
+					tri(p00, p10, p11, r, gg, b, al);
+					tri(p00, p11, p01, r, gg, b, al);
+					polysThisFrame += 2;
+				}
+				i = e;
 			}
+		}
 		facesThisFrame++;
 	}
 
@@ -64,10 +80,12 @@ namespace blockrender
 	{
 		int n = g_cfg.polyDetailNear;
 		if (d > 6)
+			n = std::min(n, 8);
+		if (d > 14)
 			n = std::min(n, 4);
-		if (d > 16)
+		if (d > 28)
 			n = std::min(n, 2);
-		if (d > 32)
+		if (d > 48)
 			n = 1;
 		return n;
 	}

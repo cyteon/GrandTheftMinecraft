@@ -58,3 +58,9 @@ interact with GTA (blocks with collision, TNT, ender pearls, and mobs that fight
 `GrandTheftMinecraft\` (data, `gtm.log`, `world.txt`, `config.ini`). `install.ps1 -Remove` deletes exactly those and
 copies the world/config into `_gtm_backup\`.
 - 2026-10-04: installed stage 1 into GTA Modding (user approved). User launches PlayGTAV.exe from that folder and tests themselves.
+- 2026-10-04 test 1 (user): HUD/hotbar size and crispness correct (drawTexture maths sizeX=w/W, sizeY=h/W, factor
+  W/H is RIGHT). TNT works, cars collide with blocks (invisible frozen prop_box_wood01a 0.965x0.965x0.795 collides).
+  Stunt block stt_prop_stunt_bblock_sml1 is 3.6x8.4x0.4, not a cube. Problems: blocks look "cursed" (4x4 colour
+  grids), GTA's first-person arm shows (door-reach IK), held items too big/off-screen, inventory cursor invisible
+  (SHV drawTexture draws over GTA's cursor). Fixes: 16x16 near detail with row-run merging, budget 20000,
+  SET_ENTITY_LOCALLY_INVISIBLE in first person, own cursor sprite, smaller hand items.

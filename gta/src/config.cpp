@@ -23,9 +23,9 @@ static const char *DEFAULT_INI =
 	"Volume=0.8\n"
 	"[Blocks]\n"
 	"RenderDistance=64\n"
-	"PolyBudget=6000\n"
-	"; texture detail of the nearest blocks: 1, 2, 4, 8 or 16 (16 = full Minecraft resolution, slowest)\n"
-	"PolyDetailNear=4\n"
+	"PolyBudget=20000\n"
+	"; texture detail of the nearest blocks: 1, 2, 4, 8 or 16 (16 = full Minecraft resolution, default)\n"
+	"PolyDetailNear=16\n"
 	"MaxCollisionProps=350\n"
 	"CollisionRadius=40\n"
 	"GtaExplosionFx=0\n";

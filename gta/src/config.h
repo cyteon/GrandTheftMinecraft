@@ -9,8 +9,8 @@ struct Config
 	int maxCollisionProps = 350;
 	float collisionRadius = 40.0f;
 	float renderDistance = 64.0f;
-	int polyBudget = 6000;
-	int polyDetailNear = 4; // face grid NxN for the nearest blocks (1, 2, 4, 8 or 16)
+	int polyBudget = 20000;
+	int polyDetailNear = 16; // face grid NxN for the nearest blocks (1, 2, 4, 8 or 16)
 	bool invincible = true;
 	bool noWanted = false;
 	bool gtaExplosionFx = false; // also show GTA's own explosion effect under the Minecraft particles

@@ -15,7 +15,7 @@ namespace gui
 {
 	using namespace r2d;
 
-	static int t_hotbar, t_sel, t_cross, t_tabItems, t_scroller, t_scrollerOff;
+	static int t_cursor, t_hotbar, t_sel, t_cross, t_tabItems, t_scroller, t_scrollerOff;
 	static int t_tabSel[8], t_tabUn[8];
 	static std::string s_nameText;
 	static uint32_t s_nameUntil = 0;
@@ -48,6 +48,7 @@ namespace gui
 
 	void init()
 	{
+		t_cursor = tex("gui/cursor.png");
 		t_hotbar = tex("gui/hotbar.png");
 		t_sel = tex("gui/hotbar_selection.png");
 		t_cross = tex("gui/crosshair.png");
@@ -125,9 +126,10 @@ namespace gui
 			return;
 		float H = (float)g.screenH, W = (float)g.screenW;
 		bool block = item(it).block;
-		float sz = block ? H * 0.42f : H * 0.55f;
-		float x = W - sz * (block ? 1.05f : 0.95f);
-		float y = H - sz * (block ? 0.82f : 0.78f);
+		// Minecraft's right-hand pose: blocks big and low, flat items smaller and fully on screen
+		float sz = block ? H * 0.40f : H * 0.34f;
+		float x = W - sz * (block ? 1.10f : 1.35f);
+		float y = H - sz * (block ? 0.85f : 1.05f);
 		y += (1.0f - s_equip) * sz * 0.6f;
 		float rot = block ? 0.0f : 0.0f;
 		if (s_swing < 1.0f)
@@ -144,7 +146,7 @@ namespace gui
 	void draw_hud(bool interactive)
 	{
 		float s = (float)g.gui, W = (float)g.screenW, H = (float)g.screenH;
-		if (interactive && !g_invOpen)
+		if (interactive && !g_invOpen && GET_FOLLOW_PED_CAM_VIEW_MODE() == 4)
 			draw_hand();
 		// crosshair
 		if (interactive && !g_invOpen)
@@ -353,6 +355,9 @@ namespace gui
 		}
 		if (!s_carried.empty())
 			draw_item(s_carried, s_mx - 8 * s, s_my - 8 * s, 16 * s, L_TOOLTIP_TEXT + 3);
+		// our overlay covers GTA's own cursor, so draw one (12x19 px art, 2x at 1080p)
+		float cs = std::max(1.0f, s * 0.5f);
+		draw(t_cursor, s_mx, s_my, 12 * cs, 19 * cs, 0xFFFFFFFF, L_TOOLTIP_TEXT + 6);
 	}
 
 	void close_inventory_reset() { s_carried = Slot{}; }
