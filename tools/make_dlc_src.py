@@ -217,8 +217,9 @@ OLD_UV = {"head": (0, 0), "body": (16, 16), "rarm": (40, 16), "larm": None, "rle
 RIGS = {
     # name: (texture recipe, texture size, scale m/px, parts)
     "steve": ("skin", (64, 64), 0.9375 / 16, humanoid(4, PLAYER_LAYERS, PLAYER_UV)),
+    # zombie.png is 64x64 but only uses the old 64x32 layout: left limbs mirror the right ones, no outer layers
     "zombie": ("entity entity/zombie/zombie.png", (64, 64), 1 / 16,
-               humanoid(4, PLAYER_LAYERS, PLAYER_UV, arm_kind="fwdarm")),
+               humanoid(4, {"head": ((32, 0), 0.5)}, OLD_UV, arm_kind="fwdarm")),
     "skeleton": ("entity entity/skeleton/skeleton.png", (64, 32), 1 / 16,
                  humanoid(2, {"head": ((32, 0), 0.5)}, OLD_UV)),
     "creeper": ("entity entity/creeper/creeper.png", (64, 32), 1 / 16, [
