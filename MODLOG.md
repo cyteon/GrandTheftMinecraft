@@ -5,7 +5,8 @@ interact with GTA (blocks with collision, TNT, ender pearls, and mobs that fight
 
 ## Facts
 - Game: GTA V **Legacy**, Steam appid 271590, game build **1.0.3889.0**.
-- Modding copy: `/media/gamedisk/SteamLibrary/steamapps/common/GTA Modding/`. This is a separate copy from
+- Modding copy: `/media/gamedisk/SteamLibrary/steamapps/common/GTA Modding/` on Linux,
+  **`D:\SteamLibrary\steamapps\common\GTA Modding`** on Windows (gamedisk = D:). This is a separate copy from
   Steam's `Grand Theft Auto V`, launched by the user through a **non-Steam shortcut** under Proton.
 - Runs under **Proton** (prefix version 11.0-100; wine-mono, no real .NET Framework). This is why the mod is
   a native C++ ASI and not ScriptHookVDotNet.
@@ -21,7 +22,7 @@ interact with GTA (blocks with collision, TNT, ender pearls, and mobs that fight
   generates the wrappers.
 
 ## Route
-- C++ ScriptHookV ASI, cross-compiled on Linux with mingw-w64.
+- C++ ScriptHookV ASI, built with mingw-w64 (Linux: cross; Windows: `scoop install mingw`, GCC 16.2). `./build.sh`.
   - ScriptHookV exports are MSVC-mangled, so the ASI binds them at runtime with GetProcAddress
     (`gta/src/shv.cpp`). No import lib is needed.
 - Minecraft UI: SHV `createTexture`/`drawTexture` with PNGs pre-scaled with nearest-neighbour (crisp pixels).
@@ -45,3 +46,14 @@ interact with GTA (blocks with collision, TNT, ender pearls, and mobs that fight
 
 ## Log
 - 2026-10-04: recon. Chose a C++ ASI (Proton) and OpenIV for stage 2 (user OK'd it).
+- 2026-10-04 (Windows session): toolchain = scoop mingw + ffmpeg, pip Pillow/numpy (no MSVC installed; VS 2022
+  folder is empty). `tools/gen_natives.py` run: 6701 natives, compiles clean. `tools/extract_mc.py` written and run:
+  69 blocks, 3 items, 46 particles, 48 sounds into `build/GrandTheftMinecraft/` (iso icons verified on a contact
+  sheet). Stage 1 code written (modules: log, config, input, render2d, items, world, blockrender, collision, fx,
+  interact, flight, gui, audio, main). `install.ps1` (+ `-Remove`, manifest-based) written. Not yet run in game.
+  In-game test keys: F6 mode, F9 debug overlay, F10 drawTexture calibration, F11 DRAW_POLY stress (0/2k/5k/10k/20k).
+
+## Uninstall (what install.ps1 adds to the game folder)
+`ScriptHookV.dll`, `dinput8.dll`, `args.txt` (only if it created them), `GrandTheftMinecraft.asi`,
+`GrandTheftMinecraft\` (data, `gtm.log`, `world.txt`, `config.ini`). `install.ps1 -Remove` deletes exactly those and
+copies the world/config into `_gtm_backup\`.

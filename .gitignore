@@ -4,3 +4,4 @@ build/
 dist/
 *.o
 mc_source/
+gta/src/natives_gen.h
