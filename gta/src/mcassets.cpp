@@ -824,6 +824,16 @@ namespace mcassets
 			return;
 		}
 		s_zipOpen = true;
+		// the block pack first: GTA opens it a few seconds after the process starts, and if the textures are in by
+		// then no restart is needed (dlcpatch refuses to touch it once GTA has it open)
+		if (needTextures)
+		{
+			std::string layout = g_dataDir + "dlc_tex.txt";
+			if (!build_textures(layout))
+				logf("setup: block textures not built; blocks stay as Stage 1 polygons");
+			else if (dlcpatch::apply_pending())
+				logf("setup: block pack textured before GTA loaded it - no restart needed");
+		}
 		if (needData)
 		{
 			ok &= build_gui();
@@ -831,12 +841,6 @@ namespace mcassets
 			ok &= build_items();
 			ok &= build_particles();
 			build_sounds(src); // optional: the mod works silently without them
-		}
-		if (needTextures)
-		{
-			std::string layout = g_dataDir + "dlc_tex.txt";
-			if (!build_textures(layout))
-				logf("setup: block textures not built; blocks stay as Stage 1 polygons");
 		}
 		mz_zip_reader_end(&s_zip);
 		s_zipOpen = false;

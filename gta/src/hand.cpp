@@ -1,5 +1,6 @@
 #include "hand.h"
 #include "common.h"
+#include "collision.h"
 #include "items.h"
 #include <algorithm>
 #include <string>
@@ -235,6 +236,8 @@ namespace hand
 	static bool draw_prop(const Item &it, const std::string &sprite, const Mat &Mc, const V3 &cam, const V3 &R,
 	                      const V3 &U, const V3 &F)
 	{
+		if (!collision::dlc()) // block pack missing or its textures not filled yet
+			return false;
 		std::string name = it.block ? "gtm_" + it.name + "_h" : "gtm_i_" + sprite;
 		Hash model = GET_HASH_KEY(name.c_str());
 		if (!IS_MODEL_VALID(model))

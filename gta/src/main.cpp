@@ -400,6 +400,9 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID)
 		// before GTA mounts DLC packs: fill the block pack with the textures setup built last session
 		if (dlcpatch::apply_pending())
 			logf("block pack textured");
+		// first launch: start building right away (a thread; it only runs once DllMain returns) so the block pack
+		// can be filled before GTA loads it, a few seconds from now
+		mcassets::start_if_needed();
 		if (!shv::load())
 		{
 			logf("ScriptHookV binding failed; not starting");

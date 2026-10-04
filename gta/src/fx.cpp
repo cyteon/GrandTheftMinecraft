@@ -76,6 +76,8 @@ namespace fx
 	// ---- Stage 2 props ----
 	static Hash model_if_loaded(const std::string &name)
 	{
+		if (!collision::dlc()) // block pack missing or its textures not filled yet
+			return 0;
 		Hash h = GET_HASH_KEY(name.c_str());
 		if (!IS_MODEL_VALID(h))
 			return 0;
