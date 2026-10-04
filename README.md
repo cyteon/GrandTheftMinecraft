@@ -23,6 +23,8 @@ teleport you across Los Santos, arrows hit pedestrians.
 - **Diamond sword**: ragdolls people and knocks cars around.
 - **Bow and crossbow**: draw / load like Minecraft; arrows fly with Minecraft's arc, hit people and cars, and stick
   in walls and blocks.
+- **Play as Steve**: in third person you're Steve (or your own skin), animated by GTA's own walk, run and jump
+  animations, looking where you look and holding your item.
 - **Creative flight**: double-tap Space.
 - **Minecraft sounds** for blocks, explosions, bows and more, positioned in 3D.
 
@@ -81,6 +83,8 @@ In a vehicle the hotbar stays but GTA's driving controls are untouched.
 | `GuiScale` | 0 | 0 = automatic like Minecraft (4 at 1080p), or 1-6 |
 | `Invincible`, `NoWanted` | 1, 0 | Creative-style god mode; no wanted level |
 | `Volume` | 0.8 | Minecraft sound volume |
+| `PlayAsSteve` | 1 | Third person shows Steve instead of the GTA character (on foot) |
+| `SkinFile` | empty | Path to your own 64x64 Minecraft skin PNG (classic arms); applied at the next launch |
 | `PropRadius`, `MaxBlockProps` | 150, 900 | Blocks within this distance become real GTA objects (nearest first, capped: GTA gets unstable past ~1500 script objects); farther ones use the fallback renderer |
 | `RenderDistance`, `FullDetailDistance`, `PolyBudget` | 64, 24, 30000 | The fallback renderer's distance, detail and triangle budget |
 | `MinecraftJar`, `MinecraftAssets` | empty | Use a specific Minecraft 1.21.11 jar / assets folder instead of searching |
