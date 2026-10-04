@@ -693,7 +693,7 @@ namespace fx
 			if (!ped || ped == g.ped || !DOES_ENTITY_EXIST(ped))
 				continue;
 			static const int B[] = {31086, 39317, 24818, 24817, 11816, 40269, 45509};
-			static const float R[] = {0.16f, 0.16f, 0.24f, 0.24f, 0.22f, 0.12f, 0.12f};
+			static const float R[] = {0.22f, 0.20f, 0.32f, 0.32f, 0.30f, 0.16f, 0.16f};
 			for (int i = 0; i < 7; i++)
 			{
 				V3 bp = GET_PED_BONE_COORDS(ped, B[i], 0, 0, 0);
@@ -726,22 +726,29 @@ namespace fx
 
 	// which window (SMASH_VEHICLE_WINDOW index) a hit on a vehicle went into, or -1: GTA's line probes report the
 	// car body's material for windows, so go by how close the hit is to a window bone
+	// Which window (SMASH_VEHICLE_WINDOW index) a hit on a vehicle went into, or -1. GTA's line probes report the
+	// body's material for windows, so decide in the car's own coordinates: anything above the window line (the
+	// lowest window bone, less a margin) is glass, and it belongs to the horizontally nearest window.
 	static int window_at(int veh, const V3 &p)
 	{
+		V3 lp = GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(veh, p.x, p.y, p.z);
+		float belt = 1e9f;
 		int best = -1;
-		float bestD = 1e9f;
+		float bestD = 1.6f * 1.6f;
 		for (int i = 0; i < 8; i++)
 		{
 			int bi = GET_ENTITY_BONE_INDEX_BY_NAME(veh, WINDOWS[i]);
 			if (bi < 0)
 				continue;
 			V3 w = GET_WORLD_POSITION_OF_ENTITY_BONE(veh, bi);
-			float reach = i >= 6 ? 1.1f : 0.7f; // windscreens are wide
-			float d = (w - p).len();
-			// at window height: a hit on the door just below a side window is bodywork
-			if (d < reach && p.z > w.z - 0.25f && d < bestD)
+			V3 wl = GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(veh, w.x, w.y, w.z);
+			belt = std::min(belt, wl.z);
+			float d = (wl.x - lp.x) * (wl.x - lp.x) + (wl.y - lp.y) * (wl.y - lp.y);
+			if (d < bestD)
 				bestD = d, best = i;
 		}
+		if (best < 0 || lp.z < belt - 0.15f)
+			return -1; // no windows, or below the window line: bodywork
 		return best;
 	}
 
