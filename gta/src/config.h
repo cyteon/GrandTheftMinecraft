@@ -8,6 +8,8 @@ struct Config
 	int guiScale = 0;     // 0 = auto, like Minecraft
 	int maxCollisionProps = 350;
 	float collisionRadius = 40.0f;
+	int maxBlockProps = 900; // DLC props (visible blocks); the rest fall back to polygons
+	float propRadius = 150.0f;
 	float renderDistance = 64.0f;
 	int polyBudget = 30000;
 	float fullDetailDistance = 24.0f; // metres of full-resolution block textures

@@ -14,13 +14,16 @@
 #>
 param(
 	[string]$GameDir = "D:\SteamLibrary\steamapps\common\GTA Modding",
-	[switch]$Remove
+	[switch]$Remove,
+	[switch]$NoDlc  # skip Stage 2 (OpenIV.asi + the textured block DLC); blocks then use Stage 1 polygons
 )
 $ErrorActionPreference = "Stop"
 $Repo = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Data = Join-Path $GameDir "GrandTheftMinecraft"
 $Manifest = Join-Path $Data "install-manifest.txt"
 $Backup = Join-Path $GameDir "_gtm_backup"
+$Pack = Join-Path $Repo "tools\gtmpack\bin\Release\net8.0-windows\gtmpack.exe"
+$ModsUpdate = Join-Path $GameDir "mods\update\update.rpf"
 
 if (-not (Test-Path (Join-Path $GameDir "GTA5.exe"))) { throw "GTA5.exe not found in $GameDir (pass -GameDir)" }
 if ((Split-Path -Leaf $GameDir) -eq "Grand Theft Auto V") {
@@ -36,7 +39,11 @@ if ($Remove) {
 		$f = Join-Path $Data $keep
 		if (Test-Path $f) { Copy-Item $f (Join-Path $Backup $keep) -Force }
 	}
-	foreach ($rel in Get-Content $Manifest) {
+	$listed = Get-Content $Manifest
+	if ((Test-Path $ModsUpdate) -and -not ($listed -contains "mods\update\update.rpf") -and (Test-Path $Pack)) {
+		& $Pack dlclist $GameDir --remove
+	}
+	foreach ($rel in $listed) {
 		$p = Join-Path $GameDir $rel
 		if (Test-Path $p) { Remove-Item $p -Force -Recurse; Write-Host "removed $rel" }
 	}
@@ -93,5 +100,27 @@ Get-ChildItem $BuiltData -Recurse -File | ForEach-Object {
 	Copy-Item $_.FullName $dst -Force
 }
 Write-Host "installed GrandTheftMinecraft\ data folder"
+
+# ---- Stage 2: textured block props as an add-on DLC, loaded through OpenIV's mods folder ----
+if (-not $NoDlc) {
+	$Dlc = Join-Path $Repo "build\dlc\gtm\dlc.rpf"
+	if (-not (Test-Path $Dlc)) { throw "Build the DLC first: tools\gtmpack build (see README)" }
+	$OivAsi = Join-Path $env:LOCALAPPDATA "New Technology Studio\Apps\OpenIV\Games\Five\x64\OpenIV.asi"
+	$dstAsi = Join-Path $GameDir "OpenIV.asi"
+	if (-not (Test-Path $dstAsi)) {
+		if (-not (Test-Path $OivAsi)) { throw "OpenIV.asi not found ($OivAsi). Install OpenIV, or use -NoDlc." }
+		Copy-Item $OivAsi $dstAsi
+		Track "OpenIV.asi"
+		Write-Host "installed OpenIV.asi (from your OpenIV install)"
+	}
+	$dlcDir = Join-Path $GameDir "mods\update\x64\dlcpacks\gtm"
+	New-Item -ItemType Directory -Force $dlcDir | Out-Null
+	Copy-Item $Dlc (Join-Path $dlcDir "dlc.rpf") -Force
+	Track "mods\update\x64\dlcpacks\gtm"
+	Write-Host "installed mods\update\x64\dlcpacks\gtm\dlc.rpf"
+	if (-not (Test-Path $ModsUpdate)) { Track "mods\update\update.rpf" }
+	& $Pack dlclist $GameDir
+	if ($LASTEXITCODE -ne 0) { throw "registering the DLC in mods\update\update.rpf failed" }
+}
 $added | Set-Content -Path $Manifest -Encoding UTF8
 Write-Host "Done. Launch GTA from this folder (PlayGTAV.exe), Story Mode only. F6 toggles Minecraft mode."

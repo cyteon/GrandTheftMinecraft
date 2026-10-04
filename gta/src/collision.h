@@ -1,4 +1,5 @@
-// Block collision for GTA: invisible, frozen stock props at block cells near the player (nearest first, capped,
+// Block props. Stage 2: the DLC's textured 1 m cubes (visible, lit, they collide). Fallback: invisible,
+// frozen stock props at block cells near the player (nearest first, capped,
 // because GTA crashes around ~1500 script objects). Also the GTA line-of-sight probe used everywhere.
 #pragma once
 #include "common.h"
@@ -17,7 +18,9 @@ GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags = 1 | 2 |
 
 namespace collision
 {
-	void init(); // picks the stock prop closest to a 1 m cube (logged)
+	void init(); // finds the DLC block models (gtm_*), else picks a stock crate for collision only
+	bool dlc();  // real textured block props available
+	bool has_prop(uint64_t cellKey); // a visible DLC prop currently stands for this block
 	void update();
 	void clear(); // delete all props
 	bool is_ours(int entity);

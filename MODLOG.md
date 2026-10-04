@@ -73,3 +73,13 @@ copies the world/config into `_gtm_backup\`.
   failure truncated blockrender.cpp once; restored from git).
 - 2026-10-04 test 3: painter's order fixed overlap. User: low-res LOD kicks in too close → full 16x16 out to FullDetailDistance=24 m (halving per doubling), budget 30000. Sword sweep sprite removed on request.
 - 2026-10-04: placing a block inside a car launched it out of sight (frozen prop depenetration). Fix: make_room() in interact.cpp pushes overlapping vehicles/peds (OBB from GET_ENTITY_MATRIX + model dims, SAT vs cells) to the nearest free spot up to 6 m, else lifts them on top.
+- 2026-10-04 Stage 2 build: OpenIV installed for the user (OpenIV.asi at %LOCALAPPDATA%\New Technology Studio\Apps\
+  OpenIV\Games\Five\x64). tools/gtmpack (net8, CodeWalker.Core @485d56b, netstandard2.0) builds 69 gtm_<block>.ydr
+  (24-vert 1 m cube, centred, default/cutout/alpha shader, embedded 512x128 A8R8G8B8 DDS [top|side|bottom], Box bound
+  margin 0.04) + gtm_blocks.ytyp (flags 32, lodDist 300) into dlc.rpf, layout copied from mpbusiness2
+  (RPF_FILE props/gtm_blocks.rpf + DLC_ITYP_REQUEST props/gtm_blocks.ityp, GROUP_STARTUP changeset). Templates found by
+  exporting vanilla prop_cs_cardbox_01.ydr (plain box, default.sps, verts CCW from outside). CodeWalker can't write NG
+  without generating encrypt tables (slow) -> archives are OPEN (OpenIV.asi loads them). dlclist entry added to a
+  mods\update\update.rpf copy (SetEncryptionType OPEN). Gotchas: user's global NuGet config has a dead local source
+  (project nuget.config with <clear/>); prop_box_wood01a is a .yft not .ydr. Runtime: collision.cpp spawns visible
+  gtm_* props for exposed blocks within PropRadius 150 (cap 900, camera-nearest); polygons only for the rest.

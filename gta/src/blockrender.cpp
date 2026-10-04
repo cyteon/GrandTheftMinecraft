@@ -1,4 +1,5 @@
 #include "blockrender.h"
+#include "collision.h"
 #include "config.h"
 #include "items.h"
 #include <algorithm>
@@ -129,6 +130,10 @@ namespace blockrender
 		for (auto &cd : s_cands)
 		{
 			const Block &bk = g_blocks[cd.key];
+			if (item(bk.item).light && lights.size() < 24)
+				lights.push_back({0, cell_center(key_cell(cd.key))});
+			if (collision::has_prop(cd.key))
+				continue; // a real textured prop stands here (Stage 2)
 			int faces = 0;
 			for (int f = 0; f < 6; f++)
 				if (bk.exposed & (1 << f))
@@ -141,8 +146,6 @@ namespace blockrender
 				break;
 			planned += faces * 2 * n * n;
 			s_plan.push_back({cd.key, n});
-			if (item(bk.item).light && lights.size() < 24)
-				lights.push_back({0, cell_center(key_cell(cd.key))});
 		}
 		// ...then draw far to near: DRAW_POLY is depth-tested against GTA's world but not against other polys,
 		// so the painter's order is what makes near blocks cover far ones

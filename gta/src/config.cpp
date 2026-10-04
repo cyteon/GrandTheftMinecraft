@@ -28,6 +28,11 @@ static const char *DEFAULT_INI =
 	"FullDetailDistance=24\n"
 	"; texture detail of the nearest blocks: 1, 2, 4, 8 or 16 (16 = full Minecraft resolution, default)\n"
 	"PolyDetailNear=16\n"
+	"; Stage 2 (DLC installed): blocks within PropRadius become real textured props, nearest first, at most\n"
+	"; MaxBlockProps (GTA gets unstable past ~1500 script objects). Farther blocks use the polygon renderer.\n"
+	"MaxBlockProps=900\n"
+	"PropRadius=150\n"
+	"; without the DLC: invisible collision crates\n"
 	"MaxCollisionProps=350\n"
 	"CollisionRadius=40\n"
 	"GtaExplosionFx=0\n";
@@ -66,6 +71,8 @@ void config_load()
 		else if (k == "FullDetailDistance") g_cfg.fullDetailDistance = (float)std::atof(s);
 		else if (k == "PolyBudget") g_cfg.polyBudget = parse_int(s);
 		else if (k == "PolyDetailNear") g_cfg.polyDetailNear = parse_int(s);
+		else if (k == "MaxBlockProps") g_cfg.maxBlockProps = parse_int(s);
+		else if (k == "PropRadius") g_cfg.propRadius = (float)std::atof(s);
 		else if (k == "MaxCollisionProps") g_cfg.maxCollisionProps = parse_int(s);
 		else if (k == "CollisionRadius") g_cfg.collisionRadius = (float)std::atof(s);
 		else if (k == "GtaExplosionFx") g_cfg.gtaExplosionFx = parse_int(s) != 0;

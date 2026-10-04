@@ -246,6 +246,56 @@ def blocks_and_items(jar, out):
     return len(BLOCKS), len(ITEMS)
 
 
+def write_dds(path, im):
+    """Uncompressed A8R8G8B8 DDS with a full box-filtered mip chain (what CodeWalker imports for the DLC)."""
+    import struct
+    w, h = im.size
+    mips = [np.asarray(im.convert("RGBA")).astype(np.float32)]
+    while mips[-1].shape[0] > 1 or mips[-1].shape[1] > 1:
+        a = mips[-1]
+        hh, ww = max(1, a.shape[0] // 2), max(1, a.shape[1] // 2)
+        a = a[:hh * 2 if a.shape[0] > 1 else 1, :ww * 2 if a.shape[1] > 1 else 1]
+        if a.shape[0] > 1:
+            a = (a[0::2] + a[1::2]) / 2
+        if a.shape[1] > 1:
+            a = (a[:, 0::2] + a[:, 1::2]) / 2
+        mips.append(a)
+    flags = 0x1 | 0x2 | 0x4 | 0x8 | 0x1000 | 0x20000
+    hdr = struct.pack("<4sIIIIIII44x", b"DDS ", 124, flags, h, w, w * 4, 0, len(mips))
+    hdr += struct.pack("<II4sIIIII", 32, 0x41, bytes(4), 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000)
+    hdr += struct.pack("<IIII4x", 0x1000 | 0x400000 | 0x8, 0, 0, 0)
+    body = b"".join(m.clip(0, 255).astype(np.uint8)[..., [2, 1, 0, 3]].tobytes() for m in mips)
+    path.write_bytes(hdr + body)
+
+
+def dlc_sources(jar, out):
+    """Per block: a 512x128 sheet [top | side | bottom | -] of 16x16 faces upscaled x8 (nearest), as DDS."""
+    d = out
+    d.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for name, disp, tab, sound, flags, top, side, bottom in BLOCKS:
+        side = side or top
+        bottom = bottom or top
+        t, s, b = jar.block(top), jar.block(side), jar.block(bottom)
+        if "r" in flags:
+            t = tint(t, GRASS_TINT)
+        if "f" in flags:
+            t, s, b = (tint(x, FOLIAGE_TINT) for x in (t, s, b))
+        sheet = Image.new("RGBA", (64, 16), (0, 0, 0, 0))
+        for i, face in enumerate((t, s, b)):
+            sheet.paste(face.resize((16, 16), Image.NEAREST), (i * 16, 0))
+        if "a" not in flags and "c" not in flags:  # opaque blocks: no stray alpha
+            arr = np.asarray(sheet).copy()
+            arr[:, :48, 3] = 255
+            sheet = Image.fromarray(arr, "RGBA")
+        write_dds(d / f"gtm_{name}.dds", sheet.resize((512, 128), Image.NEAREST))
+        shader = "alpha" if "a" in flags else "cutout" if "c" in flags else "default"
+        material = {"wood": 70, "cloth": 104, "glass": 69}.get(sound, 1)
+        lines.append(f"{name};{shader};{material}")
+    (d / "blocks.txt").write_text("\n".join(lines) + "\n")
+    return len(lines)
+
+
 def particles(jar, out):
     d = out / "particles"
     d.mkdir(parents=True, exist_ok=True)
@@ -286,6 +336,7 @@ def main():
     ap.add_argument("--assets", default=str(ROOT / "mc_source" / "assets"))
     ap.add_argument("--index", default="29")
     ap.add_argument("--out", default=str(ROOT / "build" / "GrandTheftMinecraft"))
+    ap.add_argument("--dlc-src", default=str(ROOT / "build" / "dlc_src"), help="block textures for tools/gtmpack")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -295,6 +346,8 @@ def main():
     nb, ni = blocks_and_items(jar, out)
     particles(jar, out)
     ns = sounds(Path(a.assets), a.index, out)
+    nd = dlc_sources(jar, Path(a.dlc_src))
+    print(f"wrote {a.dlc_src}: {nd} block textures for the DLC")
     print(f"wrote {out}: {nb} blocks, {ni} items, {len(PARTICLES)} particles, {ns} sounds")
 
 

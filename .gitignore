@@ -5,3 +5,5 @@ dist/
 *.o
 mc_source/
 gta/src/natives_gen.h
+tools/gtmpack/bin/
+tools/gtmpack/obj/
