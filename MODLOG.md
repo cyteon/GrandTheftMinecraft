@@ -83,3 +83,4 @@ copies the world/config into `_gtm_backup\`.
   mods\update\update.rpf copy (SetEncryptionType OPEN). Gotchas: user's global NuGet config has a dead local source
   (project nuget.config with <clear/>); prop_box_wood01a is a .yft not .ydr. Runtime: collision.cpp spawns visible
   gtm_* props for exposed blocks within PropRadius 150 (cap 900, camera-nearest); polygons only for the rest.
+- 2026-10-04: Stage 2 installed (user approved): OpenIV.asi, mods\update\update.rpf (1920 MB copy, dlcpacks:/gtm/ appended, verified by read-back), mods\update\x64\dlcpacks\gtm\dlc.rpf. Not yet tested in game.
