@@ -123,10 +123,26 @@ namespace blockrender
 			s_cands.push_back({d, kv.first});
 		}
 		std::sort(s_cands.begin(), s_cands.end(), [](const Cand &a, const Cand &b) { return a.d < b.d; });
-		// pick each block's detail nearest-first (the budget goes to what's close)...
+		// Budget: every visible block first gets its cheapest look (1x1 per face), so nothing pops out of existence;
+		// what's left upgrades blocks nearest-first towards their distance detail. Costs are real triangle counts.
 		int budget = g_cfg.polyBudget, planned = 0;
 		s_plan.clear();
 		std::vector<std::pair<int, V3>> lights;
+		struct Want
+		{
+			uint64_t key;
+			int faces; // camera-facing exposed face mask
+			int n;
+		};
+		static std::vector<Want> wants;
+		wants.clear();
+		auto cost = [](const Item &it, int faces, int n) {
+			int c = 0, k = lod_index(n);
+			for (int f = 0; f < 6; f++)
+				if (faces & (1 << f))
+					c += it.tris[k][FACES[f].tex];
+			return c;
+		};
 		for (auto &cd : s_cands)
 		{
 			const Block &bk = g_blocks[cd.key];
@@ -134,18 +150,40 @@ namespace blockrender
 				lights.push_back({0, cell_center(key_cell(cd.key))});
 			if (collision::has_prop(cd.key))
 				continue; // a real textured prop stands here (Stage 2)
+			V3 mn = cell_min(key_cell(cd.key));
 			int faces = 0;
 			for (int f = 0; f < 6; f++)
-				if (bk.exposed & (1 << f))
-					faces++;
-			faces = std::min(faces, 3); // at most three faces of a cube face the camera
-			int n = detail_for(cd.d);
-			while (n > 1 && planned + faces * 2 * n * n > budget)
-				n >>= 1;
-			if (planned + faces * 2 > budget)
-				break;
-			planned += faces * 2 * n * n;
-			s_plan.push_back({cd.key, n});
+			{
+				if (!(bk.exposed & (1 << f)))
+					continue;
+				V3 pn((float)FACE_N[f][0], (float)FACE_N[f][1], (float)FACE_N[f][2]);
+				if ((g.camPos - (mn + V3(0.5f, 0.5f, 0.5f) + pn * 0.5f)).dot(pn) > 0)
+					faces |= 1 << f;
+			}
+			if (!faces)
+				continue;
+			int c1 = cost(item(bk.item), faces, 1);
+			if (planned + c1 > budget)
+				break; // over budget even at the cheapest look: the farthest blocks go
+			planned += c1;
+			wants.push_back({cd.key, faces, 1});
+		}
+		for (auto &w : wants)
+		{
+			const Item &it = item(g_blocks[w.key].item);
+			float d = (cell_center(key_cell(w.key)) - g.camPos).len();
+			int c1 = cost(it, w.faces, 1);
+			for (int n = detail_for(d); n > 1; n >>= 1)
+			{
+				int extra = cost(it, w.faces, n) - c1;
+				if (planned + extra <= budget)
+				{
+					planned += extra;
+					w.n = n;
+					break;
+				}
+			}
+			s_plan.push_back({w.key, w.n});
 		}
 		// ...then draw far to near: DRAW_POLY is depth-tested against GTA's world but not against other polys,
 		// so the painter's order is what makes near blocks cover far ones

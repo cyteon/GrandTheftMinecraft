@@ -2,6 +2,7 @@
 #include "config.h"
 #include "log.h"
 #include "render2d.h"
+#include <cstring>
 #include <fstream>
 #include <sstream>
 
@@ -60,6 +61,18 @@ static void build_lods(Item &it, int face, const std::string &hex)
 					o = {(uint8_t)(r / cnt), (uint8_t)(g / cnt), (uint8_t)(b / cnt), (uint8_t)(a / tot)};
 				out[gy * n + gx] = o;
 			}
+		int t = 0;
+		for (int y = 0; y < n; y++)
+			for (int x = 0; x < n;)
+			{
+				int e = x + 1;
+				while (e < n && std::memcmp(&out[y * n + e], &out[y * n + x], sizeof(Rgba)) == 0)
+					e++;
+				if (out[y * n + x].a >= 16)
+					t += 2;
+				x = e;
+			}
+		it.tris[k][face] = t;
 	}
 }
 

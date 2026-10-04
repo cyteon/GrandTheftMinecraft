@@ -25,6 +25,7 @@ struct Item
 	int icon = -1; // drawTexture id
 	// Face colours per level of detail: lod[k] holds an n x n grid (n = 1 << k) for top/side/bottom.
 	std::vector<Rgba> lod[5][3];
+	int tris[5][3] = {}; // triangles the renderer emits per face at each lod (runs merged, clear texels skipped)
 	bool opaque() const { return block && !alpha && !cutout; }
 };
 
