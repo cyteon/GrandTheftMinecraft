@@ -74,6 +74,16 @@ class Geo:
             self.v.append((*p, *n, u, v))
         self.i += [b, b + 3, b + 2, b + 2, b + 1, b]
 
+    def double_sided(self):
+        """Add every quad again facing the other way (Minecraft's no-cull render types, e.g. elytra wings)."""
+        for k in range(0, len(self.i), 3):
+            a, b, c = self.i[k:k + 3]
+            base = len(self.v)
+            for idx in (a, c, b):
+                x, y, z, nx, ny, nz, u, v = self.v[idx]
+                self.v.append((x, y, z, -nx, -ny, -nz, u, v))
+            self.i += [base, base + 1, base + 2]
+
     def write(self, path):
         lines = [f"v {' '.join(f'{c:.6g}' for c in v)}" for v in self.v]
         lines.append("i " + " ".join(map(str, self.i)))
@@ -335,6 +345,8 @@ def main():
             g = Geo()
             for box, uv, infl, mirror in boxes:
                 mc_box(g, scale, box, uv, (tw, th), infl, mirror)
+            if kind == "wing":
+                g.double_sided()
             model = f"gtm_{rig}_{name}"
             g.write(out / f"{model}.geo")
             rows.append(f"{model};{tex};cutout;1;-")

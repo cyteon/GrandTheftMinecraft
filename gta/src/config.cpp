@@ -1,5 +1,6 @@
 #include "config.h"
 #include "log.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,8 @@ static const char *DEFAULT_INI =
 	"Volume=0.8\n"
 	"; third person: you are Steve (the GTA character is hidden). SkinFile = your own 64x64 skin PNG (wide arms)\n"
 	"PlayAsSteve=1\n"
+	"; elytra glide speed compared to Minecraft (1 = vanilla)\n"
+	"ElytraSpeed=1.6\n"
 	"SkinFile=\n"
 	"; Minecraft 1.21.11 is found automatically (official launcher, Prism, CurseForge, Modrinth) or fetched from\n"
 	"; Mojang's servers. To use a specific install: MinecraftJar=C:\\path\\1.21.11.jar, MinecraftAssets=its assets folder\n"
@@ -73,6 +76,7 @@ void config_load()
 		else if (k == "GuiScale") g_cfg.guiScale = parse_int(s);
 		else if (k == "Invincible") g_cfg.invincible = parse_int(s) != 0;
 		else if (k == "NoWanted") g_cfg.noWanted = parse_int(s) != 0;
+		else if (k == "ElytraSpeed") g_cfg.elytraSpeed = std::min(4.0f, std::max(0.5f, (float)std::atof(s)));
 		else if (k == "PlayAsSteve") g_cfg.playAsSteve = parse_int(s) != 0;
 		else if (k == "SkinFile") g_cfg.skinFile = v;
 		else if (k == "MinecraftJar") g_cfg.minecraftJar = v;

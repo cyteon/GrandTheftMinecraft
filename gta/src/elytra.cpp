@@ -1,6 +1,7 @@
 #include "elytra.h"
 #include "audio.h"
 #include "collision.h"
+#include "config.h"
 #include "flight.h"
 #include "fx.h"
 #include "gui.h"
@@ -17,7 +18,7 @@ namespace elytra
 
 	bool worn() { return s_worn; }
 	bool gliding() { return s_on; }
-	V3 velocity() { return s_v * 20.0f; }
+	V3 velocity() { return s_v * (20.0f * g_cfg.elytraSpeed); }
 
 	void toggle_worn()
 	{
@@ -109,8 +110,9 @@ namespace elytra
 		if (len < 1e-4f)
 			return false;
 		V3 dir = d * (1.0f / len);
-		GtaHit h = gta_probe_self(a, b + dir * 0.4f, 1 | 2 | 16);
-		VoxelHit vh = voxel_raycast(a, dir, len + 0.4f);
+		float pad = dir.z < -0.9f ? 0.0f : 0.4f; // the head sticks out ahead of the ped's centre (not below it)
+		GtaHit h = gta_probe_self(a, b + dir * pad, 1 | 2 | 16);
+		VoxelHit vh = voxel_raycast(a, dir, len + pad);
 		if (vh.hit && (!h.hit || vh.t <= h.t))
 		{
 			at = vh.pos;
@@ -152,10 +154,10 @@ namespace elytra
 		{
 			s_acc -= 0.05f;
 			tick();
-			V3 next = s_cur + s_v;
+			V3 next = s_cur + s_v * g_cfg.elytraSpeed;
 			V3 at, n;
-			// the body is ~2 m long lying down: check the path, and the ground just below
-			if (hits(s_cur, next, at, n) || (s_v.z < 0 && hits(next, next - V3(0, 0, 1.0f), at, n)))
+			// lying down, the body reaches ~0.35 m below the ped's centre: check the path, and just under the body
+			if (hits(s_cur, next, at, n) || (s_v.z < 0 && hits(next, next - V3(0, 0, 0.35f), at, n)))
 			{
 				if (n.z > 0.5f) // touched down: Minecraft stops fall flying on the ground
 				{
