@@ -39,8 +39,8 @@ interact with GTA (blocks with collision, TNT, ender pearls, and mobs that fight
 - drawTexture: at most 64 on-screen instances per texture.
 
 ## Stages
-- [ ] Stage 1: ASI + MC HUD/inventory + placeholder blocks + TNT + ender pearl + flint&steel + sword + flight
-- [ ] Stage 2: DLC block props (real textures, lighting)
+- [x] Stage 1: ASI + MC HUD/inventory + placeholder blocks + TNT + ender pearl + flint&steel + sword + flight
+- [x] Stage 2: DLC block props (real textures, lighting, shadows, collision) - confirmed in game 2026-10-04
 - [ ] Stage 3: mobs vs NPCs, spawn eggs
 - [ ] Stage 4: bow/arrows, more items, sounds polish, chat commands
 
@@ -87,3 +87,4 @@ copies the world/config into `_gtm_backup\`.
 - 2026-10-04 test: OpenIV.asi 'failed to load' (asiloader.log). The OpenIV.asi in %LOCALAPPDATA%\...\OpenIV\Games\Five\x64 is a packed container (header '1.2.0.1'), not a PE; OpenIV's ASI Manager unpacks it on install. Installer now only checks for it (MZ header) and tells the user to use Tools > ASI Manager.
 - 2026-10-04 test: 102 blocks -> poly budget ran out, far blocks dropped at ~20-25 m / flickered. Fix: reserve 1x1 for every visible block, then upgrade nearest-first using real per-face triangle counts (Item::tris; full-res side face median 390 tris). OpenIV.asi still not installed by user (ASI Manager step pending).
 - 2026-10-04 test: OpenIV.asi installed via ASI Manager -> DLC loads (F9 'gtm_* (DLC)'), props visible but NO collision for player/cars. Root Box bound + empty physicsDictionary. Vanilla ydr props with embedded collision (prop_ld_crate_01) use a Composite bound (Box children, CompositeFlags1/2) and physicsDictionary = their ytyp/rpf name ('lev_des'), flags 537001984. DLC rebuilt that way; awaiting test.
+- 2026-10-04: Stage 2 confirmed by user: shadows work, bullets hit blocks (composite bound + physicsDictionary fix worked).
