@@ -84,3 +84,4 @@ copies the world/config into `_gtm_backup\`.
   (project nuget.config with <clear/>); prop_box_wood01a is a .yft not .ydr. Runtime: collision.cpp spawns visible
   gtm_* props for exposed blocks within PropRadius 150 (cap 900, camera-nearest); polygons only for the rest.
 - 2026-10-04: Stage 2 installed (user approved): OpenIV.asi, mods\update\update.rpf (1920 MB copy, dlcpacks:/gtm/ appended, verified by read-back), mods\update\x64\dlcpacks\gtm\dlc.rpf. Not yet tested in game.
+- 2026-10-04 test: OpenIV.asi 'failed to load' (asiloader.log). The OpenIV.asi in %LOCALAPPDATA%\...\OpenIV\Games\Five\x64 is a packed container (header '1.2.0.1'), not a PE; OpenIV's ASI Manager unpacks it on install. Installer now only checks for it (MZ header) and tells the user to use Tools > ASI Manager.

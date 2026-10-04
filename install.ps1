@@ -105,13 +105,14 @@ Write-Host "installed GrandTheftMinecraft\ data folder"
 if (-not $NoDlc) {
 	$Dlc = Join-Path $Repo "build\dlc\gtm\dlc.rpf"
 	if (-not (Test-Path $Dlc)) { throw "Build the DLC first: tools\gtmpack build (see README)" }
-	$OivAsi = Join-Path $env:LOCALAPPDATA "New Technology Studio\Apps\OpenIV\Games\Five\x64\OpenIV.asi"
+	# OpenIV.asi must come from OpenIV's own ASI Manager: the copy in OpenIV's app folder is a packed container,
+	# not a DLL (a plain copy fails with "OpenIV.asi failed to load" in asiloader.log)
 	$dstAsi = Join-Path $GameDir "OpenIV.asi"
-	if (-not (Test-Path $dstAsi)) {
-		if (-not (Test-Path $OivAsi)) { throw "OpenIV.asi not found ($OivAsi). Install OpenIV, or use -NoDlc." }
-		Copy-Item $OivAsi $dstAsi
-		Track "OpenIV.asi"
-		Write-Host "installed OpenIV.asi (from your OpenIV install)"
+	$isDll = (Test-Path $dstAsi) -and ([System.IO.File]::ReadAllBytes($dstAsi)[0..1] -join ",") -eq "77,90"
+	if (-not $isDll) {
+		Write-Warning ("OpenIV.asi is not installed in $GameDir. In OpenIV: Tools > ASI Manager, pick this GTA folder, " +
+			"and press Install next to 'OpenIV.asi' (not 'ASI Loader'). Without it the block pack won't load and " +
+			"blocks fall back to Stage 1 polygons.")
 	}
 	$dlcDir = Join-Path $GameDir "mods\update\x64\dlcpacks\gtm"
 	New-Item -ItemType Directory -Force $dlcDir | Out-Null
