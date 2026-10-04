@@ -28,7 +28,10 @@ namespace rig
 		std::string rig;
 		std::vector<int> objs;
 		std::vector<Frame> frames; // per part, after pose()
+		uint32_t firstPose = 0;    // diagnostics
+		int logged = 0;
 		void hide();
+		int live() const;          // parts that currently exist
 	};
 
 	bool load();                       // rigs.txt from the data folder

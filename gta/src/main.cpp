@@ -138,14 +138,14 @@ static std::string debug_text()
 	              "XYZ: %.2f / %.2f / %.2f\n"
 	              "Blocks: %d in %d builds, drawn %d, faces %d, polys %d / %d\n"
 	              "Collision props: %d / %d (%s %.2fx%.2fx%.2f)\n"
-	              "Pearls %d  arrows %d  TNT %d  particles %d  mobs %d\n"
+	              "Pearls %d  arrows %d  TNT %d  particles %d  mobs %d (parts %d)\n"
 	              "%s\n"
 	              "Screen %dx%d gui %d fov %.1f  stress %d",
 	              s_fps, g_mcMode ? "Minecraft" : "GTA", flight::active() ? " (flying)" : "",
 	              g.inVehicle ? " (vehicle)" : "", g.pedPos.x, g.pedPos.y, g.pedPos.z, (int)g_blocks.size(),
 	              (int)g_builds.size(), blockrender::blocksDrawn, blockrender::facesThisFrame,
 	              blockrender::polysThisFrame, g_cfg.polyBudget, collision::count(), g_cfg.maxCollisionProps,
-	              collision::model_name(), sz.x, sz.y, sz.z, fx::pearl_count(), fx::arrow_count(), fx::tnt_count(), fx::particle_count(), mobs::count(),
+	              collision::model_name(), sz.x, sz.y, sz.z, fx::pearl_count(), fx::arrow_count(), fx::tnt_count(), fx::particle_count(), mobs::count(), mobs::parts_live(),
 	              interact::describe().c_str(), g.screenW, g.screenH, g.gui, g.camFov, s_stress);
 	return buf;
 }

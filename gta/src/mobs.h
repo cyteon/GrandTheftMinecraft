@@ -21,6 +21,7 @@ namespace mobs
 	void update();
 	void clear();
 	int count();
+	int parts_live(); // diagnostics: rig parts that exist (6 per mob expected)
 	bool spawn(Type t, const V3 &feet, float heading);
 	int egg_type(const std::string &itemName); // "zombie_spawn_egg" -> ZOMBIE, -1 if not an egg
 	bool is_mob(int ped);

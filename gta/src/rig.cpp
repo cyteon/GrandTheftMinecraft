@@ -100,6 +100,14 @@ namespace rig
 		obj = 0;
 	}
 
+	int Instance::live() const
+	{
+		int n = 0;
+		for (int o : objs)
+			n += o && DOES_ENTITY_EXIST(o);
+		return n;
+	}
+
 	void Instance::hide()
 	{
 		for (int &o : objs)
@@ -229,6 +237,26 @@ namespace rig
 			Hash m = obj && DOES_ENTITY_EXIST(obj) ? GET_ENTITY_MODEL(obj) : 0; // what it is now (place() swaps if needed)
 			place(obj, m, pd.model, pos, X, Y, Z);
 			inst.frames[i] = {pos, X, Y, Z};
+		}
+		// diagnostics: what each part looks like right after the first pose and 5 s later
+		if (!inst.firstPose)
+			inst.firstPose = g.now;
+		if (inst.logged < 2 && g.now - inst.firstPose >= (inst.logged ? 5000u : 0u))
+		{
+			inst.logged++;
+			V3 pp = GET_ENTITY_COORDS(ped, TRUE);
+			logf("rig %s (ped %d at %.1f %.1f %.1f, visible %d) after %u ms:", inst.rig.c_str(), ped, pp.x, pp.y, pp.z,
+			     (int)IS_ENTITY_VISIBLE(ped), g.now - inst.firstPose);
+			for (size_t i = 0; i < def.parts.size(); i++)
+			{
+				Hash h = GET_HASH_KEY(def.parts[i].model.c_str());
+				int o = inst.objs[i];
+				V3 op = o && DOES_ENTITY_EXIST(o) ? V3(GET_ENTITY_COORDS(o, FALSE)) : V3();
+				logf("  %s: valid %d loaded %d obj %d exists %d visible %d alpha %d at %.2f %.2f %.2f", def.parts[i].model.c_str(),
+				     (int)IS_MODEL_VALID(h), (int)HAS_MODEL_LOADED(h), o, o ? (int)DOES_ENTITY_EXIST(o) : 0,
+				     o && DOES_ENTITY_EXIST(o) ? (int)IS_ENTITY_VISIBLE(o) : 0,
+				     o && DOES_ENTITY_EXIST(o) ? GET_ENTITY_ALPHA(o) : -1, op.x, op.y, op.z);
+			}
 		}
 	}
 }

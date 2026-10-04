@@ -45,6 +45,14 @@ namespace mobs
 
 	int count() { return (int)s_mobs.size(); }
 
+	int parts_live()
+	{
+		int n = 0;
+		for (auto &m : s_mobs)
+			n += m.body.live();
+		return n;
+	}
+
 	bool is_mob(int ped)
 	{
 		for (auto &m : s_mobs)
