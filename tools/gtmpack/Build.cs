@@ -150,16 +150,16 @@ static class Build
    </Geometries>
   </Item>
  </DrawableModelsHigh>
- <Bounds type=""Box"">
+ <Bounds type=""Composite"">
   <BoxMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
   <BoxMax x=""0.5"" y=""0.5"" z=""0.5"" />
   <BoxCenter x=""0"" y=""0"" z=""0"" />
   <SphereCenter x=""0"" y=""0"" z=""0"" />
   <SphereRadius value=""0.866026"" />
-  <Margin value=""0.04"" />
+  <Margin value=""0"" />
   <Volume value=""1"" />
   <Inertia x=""0.166667"" y=""0.166667"" z=""0.166667"" />
-  <MaterialIndex value=""{b.Material}"" />
+  <MaterialIndex value=""0"" />
   <MaterialColourIndex value=""0"" />
   <ProceduralID value=""0"" />
   <RoomID value=""0"" />
@@ -167,6 +167,34 @@ static class Build
   <UnkFlags value=""0"" />
   <PolyFlags value=""0"" />
   <UnkType value=""1"" />
+  <Children>
+   <Item type=""Box"">
+    <BoxMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
+    <BoxMax x=""0.5"" y=""0.5"" z=""0.5"" />
+    <BoxCenter x=""0"" y=""0"" z=""0"" />
+    <SphereCenter x=""0"" y=""0"" z=""0"" />
+    <SphereRadius value=""0.866026"" />
+    <Margin value=""0.04"" />
+    <Volume value=""1"" />
+    <Inertia x=""0.166667"" y=""0.166667"" z=""0.166667"" />
+    <MaterialIndex value=""{b.Material}"" />
+    <MaterialColourIndex value=""0"" />
+    <ProceduralID value=""0"" />
+    <RoomID value=""0"" />
+    <PedDensity value=""0"" />
+    <UnkFlags value=""0"" />
+    <PolyFlags value=""0"" />
+    <UnkType value=""1"" />
+    <CompositeTransform>
+     1 0 0 0
+     0 1 0 0
+     0 0 1 0
+     0 0 0 1
+    </CompositeTransform>
+    <CompositeFlags1>MAP_WEAPON, MAP_DYNAMIC, MAP_ANIMAL, MAP_COVER, MAP_VEHICLE</CompositeFlags1>
+    <CompositeFlags2>VEHICLE_NOT_BVH, VEHICLE_BVH, PED, RAGDOLL, ANIMAL, ANIMAL_RAGDOLL, OBJECT, PLANT, PROJECTILE, EXPLOSION, FORKLIFT_FORKS, TEST_WEAPON, TEST_CAMERA, TEST_AI, TEST_SCRIPT, TEST_VEHICLE_WHEEL, GLASS</CompositeFlags2>
+   </Item>
+  </Children>
  </Bounds>
  <Lights />
 </Drawable>";
@@ -181,7 +209,7 @@ static class Build
             string model = "gtm_" + b.Name;
             sb.Append($@"  <Item type=""CBaseArchetypeDef"">
    <lodDist value=""300"" />
-   <flags value=""32"" />
+   <flags value=""537001984"" />
    <specialAttribute value=""0"" />
    <bbMin x=""-0.5"" y=""-0.5"" z=""-0.5"" />
    <bbMax x=""0.5"" y=""0.5"" z=""0.5"" />
@@ -192,7 +220,7 @@ static class Build
    <textureDictionary />
    <clipDictionary />
    <drawableDictionary />
-   <physicsDictionary />
+   <physicsDictionary>{PropsRpf}</physicsDictionary>
    <assetType>ASSET_TYPE_DRAWABLE</assetType>
    <assetName>{model}</assetName>
    <extensions />
