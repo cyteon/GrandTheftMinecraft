@@ -59,7 +59,9 @@ function Track($rel) { if (-not $added.Contains($rel)) { $added.Add($rel) } }
 foreach ($f in "ScriptHookV.dll", "dinput8.dll") {
 	$dst = Join-Path $GameDir $f
 	if (Test-Path $dst) {
-		if ($added.Contains($f)) { Copy-Item (Join-Path $Runtime $f) $dst -Force }
+		$src = Join-Path $Runtime $f
+		$same = (Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash
+		if ($added.Contains($f)) { if (-not $same) { Copy-Item $src $dst -Force; Write-Host "updated $f" } }
 		else { Write-Host "keeping your existing $f" }
 	} else {
 		Copy-Item (Join-Path $Runtime $f) $dst
