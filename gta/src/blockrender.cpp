@@ -78,15 +78,11 @@ namespace blockrender
 
 	static int detail_for(float d)
 	{
+		// full 16x16 texels out to FullDetailDistance, then halve each time the distance doubles
 		int n = g_cfg.polyDetailNear;
-		if (d > 6)
-			n = std::min(n, 8);
-		if (d > 14)
-			n = std::min(n, 4);
-		if (d > 28)
-			n = std::min(n, 2);
-		if (d > 48)
-			n = 1;
+		float full = g_cfg.fullDetailDistance;
+		for (float lim = full; d > lim && n > 1; lim *= 2)
+			n >>= 1;
 		return n;
 	}
 

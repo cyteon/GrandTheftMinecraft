@@ -71,3 +71,4 @@ copies the world/config into `_gtm_backup\`.
   by tan(fov/2)/tan(35deg)); offline harness gta/tests/hand_test.cpp fakes SHV and records DRAW_POLY,
   render_tris.py rasterizes it. Python on Windows: always open source files with encoding='utf-8' (a cp1252 write
   failure truncated blockrender.cpp once; restored from git).
+- 2026-10-04 test 3: painter's order fixed overlap. User: low-res LOD kicks in too close → full 16x16 out to FullDetailDistance=24 m (halving per doubling), budget 30000. Sword sweep sprite removed on request.

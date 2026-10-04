@@ -9,7 +9,8 @@ struct Config
 	int maxCollisionProps = 350;
 	float collisionRadius = 40.0f;
 	float renderDistance = 64.0f;
-	int polyBudget = 20000;
+	int polyBudget = 30000;
+	float fullDetailDistance = 24.0f; // metres of full-resolution block textures
 	int polyDetailNear = 16; // face grid NxN for the nearest blocks (1, 2, 4, 8 or 16)
 	bool invincible = true;
 	bool noWanted = false;

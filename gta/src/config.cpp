@@ -23,7 +23,9 @@ static const char *DEFAULT_INI =
 	"Volume=0.8\n"
 	"[Blocks]\n"
 	"RenderDistance=64\n"
-	"PolyBudget=20000\n"
+	"PolyBudget=30000\n"
+	"; blocks closer than this (metres) get full texture detail; it halves each time the distance doubles\n"
+	"FullDetailDistance=24\n"
 	"; texture detail of the nearest blocks: 1, 2, 4, 8 or 16 (16 = full Minecraft resolution, default)\n"
 	"PolyDetailNear=16\n"
 	"MaxCollisionProps=350\n"
@@ -61,6 +63,7 @@ void config_load()
 		else if (k == "NoWanted") g_cfg.noWanted = parse_int(s) != 0;
 		else if (k == "Volume") g_cfg.volume = (float)std::atof(s);
 		else if (k == "RenderDistance") g_cfg.renderDistance = (float)std::atof(s);
+		else if (k == "FullDetailDistance") g_cfg.fullDetailDistance = (float)std::atof(s);
 		else if (k == "PolyBudget") g_cfg.polyBudget = parse_int(s);
 		else if (k == "PolyDetailNear") g_cfg.polyDetailNear = parse_int(s);
 		else if (k == "MaxCollisionProps") g_cfg.maxCollisionProps = parse_int(s);

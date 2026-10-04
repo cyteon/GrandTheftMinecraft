@@ -58,8 +58,6 @@ namespace interact
 			V3 kb = V3(g.camDir.x, g.camDir.y, 0).norm() * (sword ? 14.0f : 8.0f) + V3(0, 0, 4.0f);
 			APPLY_FORCE_TO_ENTITY(ped, 1, kb.x, kb.y, kb.z, 0, 0, 0, 0, FALSE, TRUE, TRUE, FALSE, TRUE);
 			audio::play_at(sword ? "entity/player/attack/strong" : "damage/hit", t.gh.pos, 1.0f, 1.0f);
-			if (sword)
-				fx::sweep(g.camPos, g.camDir);
 			fx::crit(t.gh.pos);
 		}
 		else if (t.kind == Target::VEHICLE)
@@ -69,8 +67,6 @@ namespace interact
 			V3 kb = V3(g.camDir.x, g.camDir.y, 0).norm() * (sword ? 10.0f : 3.0f) + V3(0, 0, sword ? 4.0f : 1.0f);
 			SET_ENTITY_VELOCITY(veh, v.x + kb.x, v.y + kb.y, v.z + kb.z);
 			audio::play_at(sword ? "entity/player/attack/knockback" : "damage/hit", t.gh.pos, 1.0f, 1.0f);
-			if (sword)
-				fx::sweep(g.camPos, g.camDir);
 		}
 		else if (t.kind == Target::BLOCK)
 		{
@@ -82,8 +78,6 @@ namespace interact
 			audio::block_sound(item(it).sound, cell_center(t.vh.cell), true);
 			remove_block(t.vh.cell);
 		}
-		else if (sword)
-			fx::sweep(g.camPos, g.camDir);
 	}
 
 	static bool overlaps_player(const V3 &mn)
