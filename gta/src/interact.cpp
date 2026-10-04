@@ -8,6 +8,7 @@
 #include "items.h"
 #include "log.h"
 #include "mobs.h"
+#include "elytra.h"
 #include <cstdio>
 
 namespace interact
@@ -276,6 +277,23 @@ namespace interact
 					START_SCRIPT_FIRE(t.gh.pos.x, t.gh.pos.y, t.gh.pos.z, 5, FALSE);
 				audio::play_at("fire/ignite", t.gh.pos, 1.0f, frand(0.8f, 1.2f));
 			}
+		}
+		else if (h->name == "elytra")
+		{
+			gui::swing();
+			elytra::toggle_worn();
+		}
+		else if (h->name == "firework_rocket")
+		{
+			gui::swing();
+			if (elytra::gliding())
+				elytra::boost(); // Minecraft: a rocket while gliding pushes you forward
+			else if (t.kind == Target::BLOCK)
+				fx::launch_firework(cell_min(t.vh.cell) + V3(0.5f, 0.5f, 1.0f));
+			else if (t.kind == Target::GROUND || t.kind == Target::OBJECT)
+				fx::launch_firework(t.gh.pos);
+			else
+				fx::launch_firework(g.pedPos + V3(g.camDir.x, g.camDir.y, 0).norm() * 1.5f - V3(0, 0, 0.9f));
 		}
 		else if (mobs::egg_type(h->name) >= 0)
 		{

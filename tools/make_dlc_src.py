@@ -231,6 +231,11 @@ RIGS = {
         ("rhleg", (-2, 18, 4), "limb", (58271, 14201), [((-2, 0, -2, 4, 6, 4), (0, 16), 0.0, False)]),
         ("lhleg", (2, 18, 4), "limb", (51826, 52301), [((-2, 0, -2, 4, 6, 4), (0, 16), 0.0, False)]),
     ]),
+    # ElytraModel: two 10x20x2 wings (inflated by 1), posed by the ASI from Steve's body; not a ped rig
+    "elytra": ("entity entity/equipment/wings/elytra.png", (64, 32), 0.9375 / 16, [
+        ("lwing", (5, 0, 2), "wing", (0, 0), [((-10, 0, 0, 10, 20, 2), (22, 0), 1.0, False)]),
+        ("rwing", (-5, 0, 2), "wing", (0, 0), [((0, 0, 0, 10, 20, 2), (22, 0), 1.0, True)]),
+    ]),
     "golem": ("entity entity/iron_golem/iron_golem.png", (128, 128), 1 / 16, [
         ("head", (0, -7, -2), "head", (0, 0), [((-4, -12, -5.5, 8, 10, 8), (0, 0), 0.0, False),
                                               ((-1, -5, -7.5, 2, 4, 2), (24, 0), 0.0, False)]),

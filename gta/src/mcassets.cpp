@@ -566,7 +566,8 @@ namespace mcassets
 		for (int i = 0; i < 12; i++)
 			names.push_back("big_smoke_" + std::to_string(i));
 		for (int i = 0; i < 8; i++)
-			names.push_back("generic_" + std::to_string(i)), names.push_back("sweep_" + std::to_string(i));
+			names.push_back("generic_" + std::to_string(i)), names.push_back("sweep_" + std::to_string(i)),
+				names.push_back("spark_" + std::to_string(i));
 		names.push_back("flame"), names.push_back("critical_hit");
 		for (auto &n : names)
 		{
@@ -589,7 +590,8 @@ namespace mcassets
 		{"mob/skeleton/say", 3}, {"mob/skeleton/hurt", 4}, {"mob/skeleton/death", 0},
 		{"mob/creeper/say", 4}, {"mob/creeper/death", 0},
 		{"mob/irongolem/hit", 4}, {"mob/irongolem/damage", 2}, {"mob/irongolem/death", 0},
-		{"mob/irongolem/throw", 0}};
+		{"mob/irongolem/throw", 0}, {"fireworks/launch", 1}, {"fireworks/blast", 1}, {"fireworks/twinkle", 1},
+		{"item/elytra/elytra_loop", 0}};
 
 	static bool build_sounds(const Source &src)
 	{

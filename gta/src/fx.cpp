@@ -49,6 +49,13 @@ namespace fx
 		float fuse, total;
 		int obj; // Stage 2: a real physics TNT block (0 = polygon cube)
 	};
+	struct Rocket
+	{
+		V3 p, v;
+		float age = 0, life = 1.2f;
+		int obj = 0;
+		Hash model = 0;
+	};
 	struct Chip
 	{
 		int obj;
@@ -75,6 +82,7 @@ namespace fx
 	static std::vector<Pearl> s_pearls;
 	static std::vector<Tnt> s_tnt;
 	static std::vector<Chip> s_chips;
+	static std::vector<Rocket> s_rockets;
 	static std::vector<Arrow> s_arrows;
 
 	// ---- Stage 2 props ----
@@ -124,7 +132,7 @@ namespace fx
 	}
 
 	int arrow_count() { return (int)s_arrows.size(); }
-	static int s_explosion[16], s_smoke[12], s_generic[8], s_sweep[8], s_flame[1], s_crit[1];
+	static int s_explosion[16], s_smoke[12], s_generic[8], s_sweep[8], s_flame[1], s_crit[1], s_spark[8];
 	static int s_pearlTex = -1;
 	static int s_tntItem = -1;
 
@@ -143,6 +151,8 @@ namespace fx
 		for (int i = 0; i < 8; i++)
 			s_sweep[i] = r2d::tex("particles/sweep_" + std::to_string(i) + ".png");
 		s_flame[0] = r2d::tex("particles/flame.png");
+		for (int i = 0; i < 8; i++)
+			s_spark[i] = r2d::tex("particles/spark_" + std::to_string(i) + ".png");
 		s_crit[0] = r2d::tex("particles/critical_hit.png");
 		s_pearlTex = r2d::tex("items/ender_pearl.png");
 		s_tntItem = item_find("tnt");
@@ -470,6 +480,121 @@ namespace fx
 			s.drag = 0.92f;
 			s.group = grp;
 			add(s);
+		}
+	}
+
+	// Minecraft firework sparks: spark_7 -> spark_0 as they age, in the star's colour
+	static void spark(const V3 &p, const V3 &v, uint32_t rgb, float life, float size, float gravity, int group)
+	{
+		Sprite s;
+		s.p = p;
+		s.v = v;
+		s.life = life;
+		s.size = size;
+		s.frames = s_spark;
+		s.nFrames = 8;
+		s.rgb = rgb;
+		s.gravity = gravity;
+		s.drag = 0.91f;
+		s.group = group;
+		add(s);
+	}
+
+	void firework_trail(const V3 &p)
+	{
+		int grp = new_group(p);
+		for (int k = 0; k < 2; k++)
+			spark(p + V3(frand(-0.15f, 0.15f), frand(-0.15f, 0.15f), frand(-0.15f, 0.15f)),
+			      V3(frand(-0.5f, 0.5f), frand(-0.5f, 0.5f), frand(-0.5f, 0.2f)), 0xFFFFFF, frand(0.3f, 0.6f), 0.15f, 0,
+			      grp);
+	}
+
+	void launch_firework(const V3 &p)
+	{
+		Rocket r;
+		r.p = p + V3(0, 0, 0.3f);
+		// FireworkRocketEntity: a little random sideways drift, accelerating upward (x1.15 / tick)
+		r.v = V3(frand(-0.02f, 0.02f), frand(-0.02f, 0.02f), 0.05f) * 20.0f;
+		r.life = (20 + rand() % 6 + rand() % 7) / 20.0f;
+		s_rockets.push_back(r);
+		audio::play_at("fireworks/launch", p, 1.0f, 1.0f, 48);
+	}
+
+	static void burst(const V3 &p)
+	{
+		static const uint32_t COLOURS[] = {0xB3312C, 0x3B511A, 0x253192, 0x7B2FBE, 0x287697, 0xD88198,
+		                                   0x41CD34, 0xDECF2A, 0x6689D3, 0xC354CD, 0xEB8844, 0xF0F0F0};
+		uint32_t c1 = COLOURS[rand() % 12], c2 = COLOURS[rand() % 12];
+		int grp = new_group(p);
+		for (int k = 0; k < 90; k++) // Minecraft's small ball: sparks on a sphere
+		{
+			float a = frand(0, 2 * PI), z = frand(-1, 1), rr = std::sqrt(1 - z * z);
+			V3 d(std::cos(a) * rr, std::sin(a) * rr, z);
+			spark(p, d * frand(4.0f, 6.0f), k % 2 ? c1 : c2, frand(0.9f, 1.6f), 0.3f, 1.5f, grp);
+		}
+		audio::play_at("fireworks/blast", p, 3.0f, 1.0f, 96);
+		audio::play_at("fireworks/twinkle", p, 2.0f, 1.0f, 96);
+		DRAW_LIGHT_WITH_RANGE(p.x, p.y, p.z, (c1 >> 16) & 255, (c1 >> 8) & 255, c1 & 255, 25.0f, 8.0f);
+	}
+
+	static void update_rockets(float dt)
+	{
+		for (size_t i = 0; i < s_rockets.size();)
+		{
+			Rocket &r = s_rockets[i];
+			r.age += dt;
+			r.v.x *= std::pow(1.15f, dt * 20.0f), r.v.y *= std::pow(1.15f, dt * 20.0f);
+			r.v.z = r.v.z * std::pow(1.15f, dt * 20.0f) + 0.04f * 20.0f * dt * 20.0f;
+			V3 next = r.p + r.v * dt;
+			bool blocked = gta_probe_self(r.p, next, 1 | 16).hit;
+			if (r.age >= r.life || blocked)
+			{
+				burst(r.p);
+				int o = r.obj;
+				delete_obj(o);
+				s_rockets[i] = s_rockets.back();
+				s_rockets.pop_back();
+				continue;
+			}
+			r.p = next;
+			firework_trail(r.p - r.v.norm() * 0.3f);
+			// the rocket itself: the item model pointing along its flight
+			V3 d = r.v.norm(), side = d.cross(V3(1, 0, 0));
+			if (side.len2() < 1e-3f)
+				side = d.cross(V3(0, 1, 0));
+			side = side.norm();
+			V3 up = side.cross(d);
+			V3 ix = (d - up).norm(), iy = (d + up).norm(), iz = ix.cross(iy);
+			if (collision::dlc())
+			{
+				Hash h = GET_HASH_KEY("gtm_i_firework_rocket");
+				if (!r.obj && IS_MODEL_VALID(h))
+				{
+					if (HAS_MODEL_LOADED(h))
+					{
+						r.obj = CREATE_OBJECT_NO_OFFSET(h, r.p.x, r.p.y, r.p.z, FALSE, TRUE, FALSE, 0);
+						if (r.obj)
+						{
+							FREEZE_ENTITY_POSITION(r.obj, TRUE);
+							SET_ENTITY_COLLISION(r.obj, FALSE, FALSE);
+						}
+					}
+					else
+						REQUEST_MODEL(h);
+				}
+				if (r.obj)
+				{
+					float qm[3][3] = {{ix.x, iy.x, iz.x}, {ix.y, iy.y, iz.y}, {ix.z, iy.z, iz.z}};
+					float tr = qm[0][0] + qm[1][1] + qm[2][2];
+					float qw = std::sqrt(std::max(0.0f, 1 + tr)) / 2;
+					float qx = std::copysign(std::sqrt(std::max(0.0f, 1 + qm[0][0] - qm[1][1] - qm[2][2])) / 2, qm[2][1] - qm[1][2]);
+					float qy = std::copysign(std::sqrt(std::max(0.0f, 1 - qm[0][0] + qm[1][1] - qm[2][2])) / 2, qm[0][2] - qm[2][0]);
+					float qz = std::copysign(std::sqrt(std::max(0.0f, 1 - qm[0][0] - qm[1][1] + qm[2][2])) / 2, qm[1][0] - qm[0][1]);
+					SET_ENTITY_COORDS_NO_OFFSET(r.obj, r.p.x, r.p.y, r.p.z, FALSE, FALSE, FALSE);
+					SET_ENTITY_QUATERNION(r.obj, qx, qy, qz, qw);
+				}
+			}
+			i++;
 		}
 	}
 
@@ -1003,6 +1128,7 @@ namespace fx
 	{
 		float dt = std::min(g.dt, 0.1f);
 		update_arrows(dt);
+		update_rockets(dt);
 		update_chips(dt);
 		update_tnt(dt);
 		update_debris(dt);

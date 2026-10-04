@@ -9,6 +9,7 @@
 #include "gui.h"
 #include "hand.h"
 #include "steve.h"
+#include "elytra.h"
 #include "mobs.h"
 #include "rig.h"
 #include "input.h"
@@ -134,14 +135,14 @@ static std::string debug_text()
 	V3 sz = collision::model_size();
 	std::snprintf(buf, sizeof buf,
 	              "GrandTheftMinecraft " GTM_VERSION "  %.0f fps\n"
-	              "Mode: %s%s%s\n"
+	              "Mode: %s%s%s%s\n"
 	              "XYZ: %.2f / %.2f / %.2f\n"
 	              "Blocks: %d in %d builds, drawn %d, faces %d, polys %d / %d\n"
 	              "Collision props: %d / %d (%s %.2fx%.2fx%.2f)\n"
 	              "Pearls %d  arrows %d  TNT %d  particles %d  mobs %d (parts %d)\n"
 	              "%s\n"
 	              "Screen %dx%d gui %d fov %.1f  stress %d",
-	              s_fps, g_mcMode ? "Minecraft" : "GTA", flight::active() ? " (flying)" : "",
+	              s_fps, g_mcMode ? "Minecraft" : "GTA", flight::active() ? " (flying)" : "", elytra::gliding() ? " (gliding)" : "",
 	              g.inVehicle ? " (vehicle)" : "", g.pedPos.x, g.pedPos.y, g.pedPos.z, (int)g_blocks.size(),
 	              (int)g_builds.size(), blockrender::blocksDrawn, blockrender::facesThisFrame,
 	              blockrender::polysThisFrame, g_cfg.polyBudget, collision::count(), g_cfg.maxCollisionProps,
@@ -310,6 +311,7 @@ static void tick()
 	if (onFoot)
 	{
 		interact::update(!g_invOpen);
+		elytra::update(!g_invOpen);
 		flight::update(!g_invOpen);
 	}
 	else if (g_mcMode && alive && playing && g.inVehicle && !g_invOpen)
@@ -322,11 +324,13 @@ static void tick()
 		interact::g_target = interact::Target{};
 		interact::cancel_use();
 		flight::stop();
+		elytra::stop();
 	}
 	else
 	{
 		interact::g_target = interact::Target{};
 		flight::stop();
+		elytra::stop();
 	}
 	if (s_worldReady)
 		mobs::update();

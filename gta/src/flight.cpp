@@ -1,6 +1,7 @@
 #include "flight.h"
 #include "collision.h"
 #include "common.h"
+#include "elytra.h"
 #include "log.h"
 #include "world.h"
 
@@ -50,7 +51,7 @@ namespace flight
 
 	void update(bool allowInput)
 	{
-		if (!allowInput || g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE) || IS_PED_RAGDOLL(g.ped))
+		if (!allowInput || g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE) || IS_PED_RAGDOLL(g.ped) || elytra::gliding())
 		{
 			stop();
 			return;

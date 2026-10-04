@@ -21,6 +21,7 @@ namespace rig
 		V3 aim;             // non-zero: both arms point this way (bow, crossbow)
 		V3 rightArm;        // non-zero: the right arm points this way (attack swing)
 		float swingBoth = 0; // 0..1: both arms raised forward (iron golem attack)
+		V3 bodyAlong;        // non-zero: the body lies along this direction, head first (elytra glide)
 	};
 
 	struct Instance

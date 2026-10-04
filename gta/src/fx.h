@@ -18,6 +18,8 @@ namespace fx
 	void shoot_arrow(const V3 &from, const V3 &dir, float speed, int damage, bool crit, int owner = 0);
 	void flash_box(const V3 &centre, const V3 halfAxes[3], int alpha); // white overlay (creeper / TNT flash)
 	void poof(const V3 &p); // Minecraft's death smoke
+	void launch_firework(const V3 &p); // a rocket that flies up and bursts
+	void firework_trail(const V3 &p);  // sparks behind a boosting elytra flyer
 	void blood(const V3 &p, const V3 &dir); // a little burst of blood (red chips)
 	void preload(); // request the DLC's TNT / chip / arrow models (Stage 2)
 	void prime_tnt(const Cell &c, float fuseSeconds = 4.0f);

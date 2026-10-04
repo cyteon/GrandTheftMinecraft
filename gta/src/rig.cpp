@@ -13,7 +13,8 @@ namespace rig
 		BODY,
 		HEAD,
 		LIMB,
-		FWDARM
+		FWDARM,
+		WING // posed by whoever wears it (elytra)
 	};
 	struct PartDef
 	{
@@ -50,7 +51,11 @@ namespace rig
 				PartDef p;
 				p.model = f[2];
 				p.name = p.model.substr(p.model.find('_', 4) + 1); // gtm_<rig>_<name>
-				p.kind = f[3] == "body" ? BODY : f[3] == "head" ? HEAD : f[3] == "fwdarm" ? FWDARM : LIMB;
+				p.kind = f[3] == "body"   ? BODY
+				         : f[3] == "head"   ? HEAD
+				         : f[3] == "fwdarm" ? FWDARM
+				         : f[3] == "wing"   ? WING
+				                            : LIMB;
 				p.pivot = V3(std::stof(f[4]), std::stof(f[5]), std::stof(f[6]));
 				p.b0 = std::stoi(f[7]), p.b1 = std::stoi(f[8]);
 				p.arm = p.name.find("arm") != std::string::npos;
@@ -194,7 +199,14 @@ namespace rig
 		float h = deg2rad(GET_ENTITY_HEADING(ped));
 		V3 U(0, 0, 1), F(-std::sin(h), std::cos(h), 0);
 		V3 pedPos = GET_ENTITY_COORDS(ped, TRUE);
-		if (IS_PED_RAGDOLL(ped)) // lying down: follow the spine
+		if (p.bodyAlong.len2() > 0.5f) // gliding: head first along the flight, chest towards the ground
+		{
+			U = p.bodyAlong.norm();
+			V3 down(0, 0, -1);
+			F = down - U * down.dot(U);
+			F = F.len2() > 1e-4f ? F.norm() : V3(-std::sin(h), std::cos(h), 0);
+		}
+		else if (IS_PED_RAGDOLL(ped)) // lying down: follow the spine
 		{
 			V3 pelvis = GET_PED_BONE_COORDS(ped, 11816, 0, 0, 0), neck = GET_PED_BONE_COORDS(ped, 39317, 0, 0, 0);
 			U = (neck - pelvis).norm();
@@ -211,6 +223,8 @@ namespace rig
 		float pitch = clampf(std::asin(clampf(look.z, -1, 1)), deg2rad(-80), deg2rad(80));
 		float yh = yawBody + dy;
 		V3 Fh(-std::sin(yh) * std::cos(pitch), std::cos(yh) * std::cos(pitch), std::sin(pitch));
+		if (p.bodyAlong.len2() > 0.5f) // gliding: the body-relative limit makes no sense lying down
+			Fh = look.norm();
 		V3 Rh = Fh.cross(V3(0, 0, 1)).norm(), Uh = Rh.cross(Fh);
 		float t = g.now / 1000.0f;
 
@@ -224,13 +238,16 @@ namespace rig
 			else if (pd.kind == LIMB || pd.kind == FWDARM)
 			{
 				V3 d;
-				if (pd.kind == FWDARM) // straight out in front, swaying a little
+				if (p.bodyAlong.len2() > 0.5f) // gliding: limbs trail behind, arms a little apart
+					d = (U * -1.0f + R * (pd.arm ? (pd.right ? 0.12f : -0.12f) : (pd.right ? 0.03f : -0.03f))).norm();
+				else if (pd.kind == FWDARM) // straight out in front, swaying a little
 					d = (F + U * (0.08f * std::sin(t * 2.0f + (pd.right ? 0 : 1.7f)))).norm();
 				else
 					d = (V3(GET_PED_BONE_COORDS(ped, pd.b1, 0, 0, 0)) - V3(GET_PED_BONE_COORDS(ped, pd.b0, 0, 0, 0))).norm();
-				if (pd.arm && p.aim.len2() > 0.5f)
+				bool gliding = p.bodyAlong.len2() > 0.5f;
+				if (!gliding && pd.arm && p.aim.len2() > 0.5f)
 					d = p.aim;
-				else if (pd.arm && pd.right && p.rightArm.len2() > 0.5f)
+				else if (!gliding && pd.arm && pd.right && p.rightArm.len2() > 0.5f)
 					d = p.rightArm;
 				if (pd.arm && p.swingBoth > 0) // raise both arms forward (and up) for a slam
 					d = (d * (1 - p.swingBoth) + (F + U * 0.6f).norm() * p.swingBoth).norm();
