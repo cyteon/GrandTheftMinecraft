@@ -3,11 +3,11 @@
 ## 1.2.0
 
 - **The Wither**, summoned like in Minecraft: build a T of four soul sand (or soul soil) and put three wither
-  skeleton skulls on top (new blocks: Soul Sand, Soul Soil, Wither Skeleton Skull). It's a flying three-headed boss
-  with Minecraft's boss bar. It charges up and blows up when it spawns, hovers over its targets and fires exploding
-  wither skulls from all three heads at GTA's people, cops and cars (skulls break blocks too). Below half health it
-  drops to its target's height and fires faster. Cops shoot it, iron golems go after it, and it goes out with a huge
-  explosion.
+  skeleton skulls on top (new blocks: Soul Sand and Soul Soil in Building Blocks, Wither Skeleton Skull in the new
+  Functional Blocks tab). It's a flying three-headed boss with Minecraft's boss bar. It charges up and blows up when
+  it spawns, hovers over its targets and fires exploding wither skulls from all three heads at GTA's people, cops and
+  cars (skulls break blocks too). Below half health it drops to its target's height and fires faster. Cops shoot it,
+  iron golems go after it, and it goes out with a huge explosion.
 
 ## 1.1.0
 

@@ -93,4 +93,4 @@ sprite;crossbow_pulling_0
 sprite;crossbow_pulling_1
 sprite;crossbow_pulling_2
 sprite;crossbow_arrow
-block;wither_skeleton_skull;Wither Skeleton Skull;spawn;k;stone;wither_skeleton;;
+block;wither_skeleton_skull;Wither Skeleton Skull;functional;k;stone;wither_skeleton;;

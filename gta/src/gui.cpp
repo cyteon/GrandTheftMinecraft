@@ -32,6 +32,7 @@ namespace gui
 	static const Tab TABS[] = {
 		{"building", "Building Blocks", "bricks"},
 		{"colored", "Colored Blocks", "cyan_wool"},
+		{"functional", "Functional Blocks", "wither_skeleton_skull"},
 		{"redstone", "Redstone Blocks", "tnt"},
 		{"combat", "Combat", "diamond_sword"},
 		{"tools", "Tools & Utilities", "flint_and_steel"},
