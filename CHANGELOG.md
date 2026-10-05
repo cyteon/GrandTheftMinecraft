@@ -4,6 +4,12 @@
 
 - **Tools in every tier**: wooden, stone, copper, iron, golden, diamond and netherite swords, axes, pickaxes,
   shovels and hoes, each hitting as hard as in Minecraft (a netherite axe does 10, a wooden sword 4).
+- **Blocks with a front** face you when you place them: furnace, blast furnace, smoker, beehive, carved pumpkin,
+  jack o'lantern, dispenser, dropper and the crafting table. Skulls turn towards you in Minecraft's 16 steps, and
+  only their head is solid.
+- Swords no longer break blocks (Minecraft creative).
+- Flying and gliding with an elytra keep going while the inventory is open.
+- Skeletons (and you) hold bows the right way round.
 - **155 more blocks**: every wood type's logs and planks, stone variants (granite, diorite, andesite, deepslate,
   tuff, calcite, mossy and cracked bricks...), nether and end blocks, ores, raw metal blocks, copper, netherite,
   amethyst, leaves, podzol, mycelium, mud, clay, ice, glowing blocks (sea lantern, shroomlight, magma, crying

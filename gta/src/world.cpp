@@ -75,13 +75,14 @@ static void touched(const Cell &c)
 	s_dirtySince = GetTickCount();
 }
 
-bool place_block(const Cell &c, int itemId)
+bool place_block(const Cell &c, int itemId, int facing)
 {
 	if (c.b < 0 || c.b >= (int)g_builds.size() || itemId < 0 || !item(itemId).block)
 		return false;
 	uint64_t k = cell_key(c);
 	bool existed = g_blocks.count(k) != 0;
 	g_blocks[k].item = (uint16_t)itemId;
+	g_blocks[k].facing = (uint8_t)(facing & 15);
 	Build &b = g_builds[c.b];
 	if (!existed)
 		b.count++;
@@ -255,11 +256,13 @@ void world_load()
 		{
 			Cell c;
 			std::string name;
-			ss >> c.b >> c.x >> c.y >> c.z >> name;
+			int facing = 0;
+			ss >> c.b >> c.x >> c.y >> c.z >> name >> facing;
 			int it = item_find(name);
 			if (it < 0 || c.b < 0 || c.b >= (int)g_builds.size())
 				continue;
 			g_blocks[cell_key(c)].item = (uint16_t)it;
+			g_blocks[cell_key(c)].facing = (uint8_t)(facing & 15);
 			Build &b = g_builds[c.b];
 			b.count++;
 			b.minX = std::min(b.minX, (float)c.x), b.maxX = std::max(b.maxX, (float)c.x);
@@ -282,14 +285,18 @@ void world_save_if_dirty()
 	FILE *f = std::fopen(tmp.c_str(), "w");
 	if (!f)
 		return;
-	std::fprintf(f, "# GrandTheftMinecraft world: B <build> <zOff>, K <build> <x> <y> <z> <item>\n");
+	std::fprintf(f, "# GrandTheftMinecraft world: B <build> <zOff>, K <build> <x> <y> <z> <item> [facing 0-15]\n");
 	for (int i = 0; i < (int)g_builds.size(); i++)
 		if (g_builds[i].count > 0)
 			std::fprintf(f, "B %d %.4f\n", i, g_builds[i].zOff);
 	for (auto &kv : g_blocks)
 	{
 		Cell c = key_cell(kv.first);
-		std::fprintf(f, "K %d %d %d %d %s\n", c.b, c.x, c.y, c.z, item(kv.second.item).name.c_str());
+		if (kv.second.facing)
+			std::fprintf(f, "K %d %d %d %d %s %d\n", c.b, c.x, c.y, c.z, item(kv.second.item).name.c_str(),
+			             kv.second.facing);
+		else
+			std::fprintf(f, "K %d %d %d %d %s\n", c.b, c.x, c.y, c.z, item(kv.second.item).name.c_str());
 	}
 	std::fclose(f);
 	MoveFileExA(tmp.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING);

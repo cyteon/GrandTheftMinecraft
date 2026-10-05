@@ -1,9 +1,10 @@
 # GrandTheftMinecraft definitions (no Minecraft content, only names). Read by tools/make_dlc_src.py and the ASI.
 # tab: Minecraft's creative tab(s), comma-separated: building colored natural functional redstone tools combat
 #      food ingredients spawn
-# block;name;Display Name;tab;flags;sound;top texture;side texture;bottom texture   (empty side/bottom = top)
+# block;name;Display Name;tab;flags;sound;top texture;side texture;bottom texture[;front texture]
+#   (empty side/bottom = top; a front needs flag o, it turns towards you when placed)
 #   flags: a alpha (glass), c cutout (leaves), l light, g gravity, t tnt, r grass-tint top, f foliage-tint all,
-#          k mob skull (a half-size head; top = the mob's texture under entity/skeleton/)
+#          o has a front (furnace...), k mob skull (a half-size head; top = the mob's texture under entity/skeleton/)
 # item;name;Display Name;tab;flags;sprite   flags: s stack 1, p stack 16
 # sprite;name   extra held-item sprites (bow/crossbow pull states)
 # icon;name     an inventory icon only (creative tab icons), from the item sprite of that name
@@ -21,7 +22,7 @@ block;spruce_planks;Spruce Planks;building;;wood;spruce_planks;;
 block;birch_planks;Birch Planks;building;;wood;birch_planks;;
 block;oak_leaves;Oak Leaves;natural;cf;grass;oak_leaves;;
 block;bookshelf;Bookshelf;building,functional;;wood;oak_planks;bookshelf;oak_planks
-block;crafting_table;Crafting Table;functional;;wood;crafting_table_top;crafting_table_front;oak_planks
+block;crafting_table;Crafting Table;functional;o;wood;crafting_table_top;crafting_table_side;oak_planks;crafting_table_front
 block;glass;Glass;colored;a;glass;glass;;
 block;ice;Ice;natural;a;glass;ice;;
 block;snow_block;Snow Block;natural;;snow;snow;;
@@ -180,6 +181,14 @@ block;cherry_leaves;Cherry Leaves;natural;c;grass;cherry_leaves;;
 block;azalea_leaves;Azalea Leaves;natural;c;grass;azalea_leaves;;
 block;sea_lantern;Sea Lantern;functional;l;glass;sea_lantern;;
 block;jukebox;Jukebox;functional;;wood;jukebox_top;jukebox_side;jukebox_side
+block;furnace;Furnace;functional;o;stone;furnace_top;furnace_side;furnace_top;furnace_front
+block;blast_furnace;Blast Furnace;functional;o;stone;blast_furnace_top;blast_furnace_side;blast_furnace_top;blast_furnace_front
+block;smoker;Smoker;functional;o;stone;smoker_top;smoker_side;smoker_bottom;smoker_front
+block;beehive;Beehive;functional;o;wood;beehive_end;beehive_side;beehive_end;beehive_front
+block;carved_pumpkin;Carved Pumpkin;natural;o;wood;pumpkin_top;pumpkin_side;pumpkin_top;carved_pumpkin
+block;jack_o_lantern;Jack o'Lantern;natural,functional;ol;wood;pumpkin_top;pumpkin_side;pumpkin_top;jack_o_lantern
+block;dispenser;Dispenser;redstone;o;stone;furnace_top;furnace_side;furnace_top;dispenser_front
+block;dropper;Dropper;redstone;o;stone;furnace_top;furnace_side;furnace_top;dropper_front
 block;redstone_lamp;Redstone Lamp;redstone;;glass;redstone_lamp;;
 block;target;Target;redstone;;grass;target_top;target_side;target_top
 block;note_block;Note Block;redstone;;wood;note_block;;

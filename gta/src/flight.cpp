@@ -51,12 +51,13 @@ namespace flight
 
 	void update(bool allowInput)
 	{
-		if (!allowInput || g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE) || IS_PED_RAGDOLL(g.ped) || elytra::gliding())
+		// allowInput = false (the inventory is open): keep flying, hovering in place
+		if (g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE) || IS_PED_RAGDOLL(g.ped) || elytra::gliding())
 		{
 			stop();
 			return;
 		}
-		if (IS_CONTROL_JUST_PRESSED(0, 22) || (s_on && IS_DISABLED_CONTROL_JUST_PRESSED(0, 22)))
+		if (allowInput && (IS_CONTROL_JUST_PRESSED(0, 22) || (s_on && IS_DISABLED_CONTROL_JUST_PRESSED(0, 22))))
 		{
 			if (g.now - s_lastJump < 300)
 			{
@@ -75,16 +76,16 @@ namespace flight
 		DISABLE_CONTROL_ACTION(0, 36, TRUE); // duck/stealth = descend
 		float h = deg2rad(g.camRot.z);
 		V3 fwd(-std::sin(h), std::cos(h), 0), right(std::cos(h), std::sin(h), 0);
-		float lr = GET_DISABLED_CONTROL_NORMAL(0, 30), ud = GET_DISABLED_CONTROL_NORMAL(0, 31);
-		bool sprint = IS_DISABLED_CONTROL_PRESSED(0, 21);
+		float lr = allowInput ? GET_DISABLED_CONTROL_NORMAL(0, 30) : 0, ud = allowInput ? GET_DISABLED_CONTROL_NORMAL(0, 31) : 0;
+		bool sprint = allowInput && IS_DISABLED_CONTROL_PRESSED(0, 21);
 		float speed = sprint ? 21.6f : 10.9f; // Minecraft creative flight, blocks/s
 		V3 want = fwd * -ud + right * lr;
 		if (want.len2() > 1)
 			want = want.norm();
 		want *= speed;
-		if (IS_DISABLED_CONTROL_PRESSED(0, 22))
+		if (allowInput && IS_DISABLED_CONTROL_PRESSED(0, 22))
 			want.z += 7.5f;
-		if (IS_DISABLED_CONTROL_PRESSED(0, 36))
+		if (allowInput && IS_DISABLED_CONTROL_PRESSED(0, 36))
 			want.z -= 7.5f;
 		s_vel += (want - s_vel) * std::min(1.0f, g.dt * 8.0f);
 

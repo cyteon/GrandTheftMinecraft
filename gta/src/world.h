@@ -22,6 +22,7 @@ struct Cell
 struct Block
 {
 	uint16_t item = 0;
+	uint8_t facing = 0;  // 0..15, 22.5 degree steps anticlockwise; 0 = front towards +Y
 	uint8_t exposed = 0; // bit per face: 0 +Z, 1 -Z, 2 +Y, 3 -Y, 4 +X, 5 -X
 };
 
@@ -35,7 +36,7 @@ V3 cell_min(const Cell &c); // world-space min corner
 inline V3 cell_center(const Cell &c) { return cell_min(c) + V3(0.5f, 0.5f, 0.5f); }
 
 const Block *block_at(const Cell &c);
-bool place_block(const Cell &c, int item);
+bool place_block(const Cell &c, int item, int facing = 0);
 bool remove_block(const Cell &c);
 
 // A build for a block placed against GTA geometry at point p: joins one within 48 m, else makes one.

@@ -64,6 +64,7 @@ namespace collision
 	{
 		int obj;
 		uint16_t item;
+		uint8_t facing;
 	};
 	static std::unordered_map<uint64_t, Prop> s_props; // cell key -> object
 	static std::unordered_set<int> s_handles;
@@ -196,7 +197,7 @@ namespace collision
 		for (auto it = s_props.begin(); it != s_props.end();)
 		{
 			auto bk = g_blocks.find(it->first);
-			if (!keep.count(it->first) || bk == g_blocks.end() || (s_dlc && bk->second.item != it->second.item))
+			if (!keep.count(it->first) || bk == g_blocks.end() || (s_dlc && (bk->second.item != it->second.item || bk->second.facing != it->second.facing)))
 			{
 				destroy(it->second.obj);
 				it = s_props.erase(it);
@@ -240,7 +241,7 @@ namespace collision
 			int obj = CREATE_OBJECT_NO_OFFSET(model, x, y, z, FALSE, TRUE, FALSE, 0);
 			if (!obj)
 				continue;
-			SET_ENTITY_ROTATION(obj, 0, 0, 0, 2, TRUE);
+			SET_ENTITY_ROTATION(obj, 0, 0, s_dlc ? bk.facing * 22.5f : 0, 2, TRUE);
 			SET_ENTITY_COORDS_NO_OFFSET(obj, x, y, z, FALSE, FALSE, FALSE);
 			FREEZE_ENTITY_POSITION(obj, TRUE);
 			SET_ENTITY_VISIBLE(obj, s_dlc, FALSE);
@@ -249,7 +250,7 @@ namespace collision
 			SET_ENTITY_INVINCIBLE(obj, TRUE, FALSE);
 			if (s_dlc)
 				SET_ENTITY_LOD_DIST(obj, (int)(g_cfg.propRadius + 50));
-			s_props[w.second] = {obj, bk.item};
+			s_props[w.second] = {obj, bk.item, bk.facing};
 			s_handles.insert(obj);
 			created++;
 		}

@@ -21,6 +21,7 @@ struct Item
 	std::string name, display, tab, sound;
 	bool block = false;
 	bool alpha = false, light = false, gravity = false, tnt = false, cutout = false;
+	bool oriented = false; // has a front that turns towards you when placed (furnace, carved pumpkin...)
 	bool skull = false; // a half-size head on the floor of its cell, not a full cube
 	int maxStack = 64;
 	int icon = -1; // drawTexture id

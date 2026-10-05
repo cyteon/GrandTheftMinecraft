@@ -123,6 +123,8 @@ namespace steve
 		{
 			// the sprite's diagonal (where blades and bows point) along the hand's forward direction
 			V3 ix = (f.y - f.z).norm(), iy = (f.y + f.z).norm(), iz = ix.cross(iy);
+			if (it.name == "bow") // mirrored across that diagonal: the arc faces away from you, the string towards you
+				std::swap(ix, iy), iz = ix.cross(iy);
 			std::string sprite = hand::sprite_for(sl.item, (hand::Use)use, progress);
 			rig::place(s_held, s_heldModel, "gtm_i_" + sprite + "_tp", handPos + f.y * (0.25f * 1.4142f * 0.7f), ix, iy, iz);
 		}

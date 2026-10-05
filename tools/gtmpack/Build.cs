@@ -60,18 +60,21 @@ static class Build
     static string BoundsXml(ModelDef m)
     {
         if (m.Half == null) return "";
-        string hx = F(m.Half[0]), hy = F(m.Half[1]), hz = F(m.Half[2]);
-        float r = (float)Math.Sqrt(m.Half.Sum(h => h * h));
-        float vol = 8 * m.Half[0] * m.Half[1] * m.Half[2];
-        float ix = (4 * (m.Half[1] * m.Half[1] + m.Half[2] * m.Half[2])) / 12, iy = (4 * (m.Half[0] * m.Half[0] + m.Half[2] * m.Half[2])) / 12, iz = (4 * (m.Half[0] * m.Half[0] + m.Half[1] * m.Half[1])) / 12;
-        float margin = Math.Min(0.04f, m.Half.Min() * 0.5f);
+        float[] h = m.Half.Take(3).ToArray(), c = m.Half.Length >= 6 ? m.Half.Skip(3).Take(3).ToArray() : new float[3];
+        string mn = $@"x=""{F(c[0] - h[0])}"" y=""{F(c[1] - h[1])}"" z=""{F(c[2] - h[2])}""";
+        string mx = $@"x=""{F(c[0] + h[0])}"" y=""{F(c[1] + h[1])}"" z=""{F(c[2] + h[2])}""";
+        string ctr = $@"x=""{F(c[0])}"" y=""{F(c[1])}"" z=""{F(c[2])}""";
+        float r = (float)Math.Sqrt(h.Sum(v => v * v));
+        float vol = 8 * h[0] * h[1] * h[2];
+        float ix = (4 * (h[1] * h[1] + h[2] * h[2])) / 12, iy = (4 * (h[0] * h[0] + h[2] * h[2])) / 12, iz = (4 * (h[0] * h[0] + h[1] * h[1])) / 12;
+        float margin = Math.Min(0.04f, h.Min() * 0.5f);
         string common(string mat) => $@"
-  <BoxCenter x=""0"" y=""0"" z=""0"" />
-  <SphereCenter x=""0"" y=""0"" z=""0"" />
+  <BoxCenter {ctr} />
+  <SphereCenter {ctr} />
   <SphereRadius value=""{F(r)}"" />";
         return $@" <Bounds type=""Composite"">
-  <BoxMin x=""-{hx}"" y=""-{hy}"" z=""-{hz}"" />
-  <BoxMax x=""{hx}"" y=""{hy}"" z=""{hz}"" />{common("0")}
+  <BoxMin {mn} />
+  <BoxMax {mx} />{common("0")}
   <Margin value=""0"" />
   <Volume value=""{F(vol)}"" />
   <Inertia x=""{F(ix)}"" y=""{F(iy)}"" z=""{F(iz)}"" />
@@ -85,10 +88,10 @@ static class Build
   <UnkType value=""1"" />
   <Children>
    <Item type=""Box"">
-    <BoxMin x=""-{hx}"" y=""-{hy}"" z=""-{hz}"" />
-    <BoxMax x=""{hx}"" y=""{hy}"" z=""{hz}"" />
-    <BoxCenter x=""0"" y=""0"" z=""0"" />
-    <SphereCenter x=""0"" y=""0"" z=""0"" />
+    <BoxMin {mn} />
+    <BoxMax {mx} />
+    <BoxCenter {ctr} />
+    <SphereCenter {ctr} />
     <SphereRadius value=""{F(r)}"" />
     <Margin value=""{F(margin)}"" />
     <Volume value=""{F(vol)}"" />

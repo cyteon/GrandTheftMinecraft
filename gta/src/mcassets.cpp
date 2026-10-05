@@ -372,7 +372,7 @@ namespace mcassets
 	// ---- definitions (data/defs.txt, shipped with the mod) ----
 	struct BlockDef
 	{
-		std::string name, display, tab, flags, sound, top, side, bottom;
+		std::string name, display, tab, flags, sound, top, side, bottom, front; // front: only flag o
 	};
 	struct ItemDef
 	{
@@ -410,7 +410,7 @@ namespace mcassets
 			auto f = split(line, ';');
 			if (f[0] == "block" && f.size() >= 9)
 			{
-				BlockDef b{f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8]};
+				BlockDef b{f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f.size() > 9 ? f[9] : ""};
 				if (b.side.empty())
 					b.side = b.top;
 				if (b.bottom.empty())
@@ -559,7 +559,8 @@ namespace mcassets
 		{
 			Img t, s, bt;
 			block_faces(b, t, s, bt);
-			save_png("items/" + b.name + ".png", iso_icon(t, mul(s, 0.8f, 0.8f, 0.8f), mul(s, 0.6f, 0.6f, 0.6f)));
+			Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16); // Minecraft shows the front on the left
+			save_png("items/" + b.name + ".png", iso_icon(t, mul(fr, 0.8f, 0.8f, 0.8f), mul(s, 0.6f, 0.6f, 0.6f)));
 			txt += b.name + ";" + b.display + ";block;" + b.tab + ";" + b.flags + ";" + b.sound + ";" + hexface(t) +
 			       ";" + hexface(s) + ";" + hexface(bt) + "\n";
 		}
@@ -753,9 +754,10 @@ namespace mcassets
 				Img sheet;
 				sheet.w = 64, sheet.h = 16;
 				sheet.px.assign(64 * 16 * 4, 0);
-				const Img *faces[3] = {&t, &s, &bt};
+				Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16);
+				const Img *faces[4] = {&t, &s, &bt, &fr};
 				bool opaque = b.flags.find('a') == std::string::npos && b.flags.find('c') == std::string::npos;
-				for (int k = 0; k < 3; k++)
+				for (int k = 0; k < 4; k++)
 					for (int y = 0; y < 16; y++)
 						for (int x = 0; x < 16; x++)
 						{

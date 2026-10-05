@@ -129,13 +129,16 @@ namespace elytra
 
 	void update(bool allowInput)
 	{
-		if (!allowInput || !s_worn || g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE))
+		// allowInput = false (the inventory is open): keep gliding the way you're looking, just don't start
+		if (!s_worn || g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE))
 		{
 			stop();
 			return;
 		}
 		if (!s_on)
 		{
+			if (!allowInput)
+				return;
 			// Minecraft: press jump while falling with an elytra on
 			V3 v = GET_ENTITY_VELOCITY(g.ped);
 			bool falling = IS_PED_FALLING(g.ped) || (IS_ENTITY_IN_AIR(g.ped) && v.z < -2.0f);

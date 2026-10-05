@@ -453,7 +453,8 @@ namespace mobs
 				{
 					const rig::Frame &f = m.body.frames[ra];
 					V3 hand = f.pos - f.z * (10 * rig::scale("skeleton"));
-					V3 ix = (f.y - f.z).norm(), iy = (f.y + f.z).norm(), iz = ix.cross(iy);
+					// mirrored across the sprite's diagonal so the bow's arc faces away from the skeleton
+					V3 ix = (f.y + f.z).norm(), iy = (f.y - f.z).norm(), iz = ix.cross(iy);
 					rig::place(m.held, m.heldModel, "gtm_i_bow_tp", hand + f.y * 0.12f, ix, iy, iz);
 				}
 				else

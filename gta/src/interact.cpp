@@ -106,6 +106,8 @@ namespace interact
 			const Block *b = block_at(t.vh.cell);
 			if (!b)
 				return;
+			if (h && h->name.size() > 6 && h->name.compare(h->name.size() - 6, 6, "_sword") == 0)
+				return; // Minecraft: swords can't break blocks in creative
 			int it = b->item;
 			fx::block_break(t.vh.cell, it);
 			audio::block_sound(item(it).sound, cell_center(t.vh.cell), true);
@@ -294,7 +296,17 @@ namespace interact
 			return false;
 		if (block_at(c) || overlaps_player(cell_min(c)))
 			return false;
-		if (!place_block(c, itemId))
+		// blocks with a front face you (4 directions); skulls turn in Minecraft's 16 steps
+		int facing = 0;
+		const Item &pi = item(itemId);
+		if (pi.oriented || pi.skull)
+		{
+			V3 d = g.pedPos - cell_center(c);
+			float h = std::atan2(-d.x, d.y) / (PI / 8); // heading towards the player in 22.5 degree steps
+			int step = pi.skull ? 1 : 4;
+			facing = (((int)std::lround(h / step) * step) % 16 + 16) % 16;
+		}
+		if (!place_block(c, itemId, facing))
 			return false;
 		make_room(c);
 		audio::block_sound(item(itemId).sound, cell_center(c), false);
