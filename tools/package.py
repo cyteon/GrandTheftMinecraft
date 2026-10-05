@@ -110,7 +110,11 @@ MANUAL = """GrandTheftMinecraft {v} - manual install (the .oiv does all of this 
 
 
 RELEASE_NOTES = """Minecraft creative mode inside GTA V story mode: the Minecraft HUD and creative inventory, 69 blocks that
-are real GTA objects (lit, shadowed, solid), TNT, ender pearls, flint and steel, sword, bow and crossbow.
+are real GTA objects (lit, shadowed, solid), Minecraft mobs that fight GTA's people, Steve, elytra, TNT and more.
+
+## What's new in {v}
+
+{changes}
 
 ## Downloads
 
@@ -147,6 +151,15 @@ the [README](https://github.com/cyteon/GrandTheftMinecraft#controls).
 """
 
 
+def changes(version):
+    """This version's section of CHANGELOG.md (the release notes start with it)."""
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    m = re.search(rf"^## {re.escape(version)}\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    if not m:
+        raise SystemExit(f"CHANGELOG.md has no '## {version}' section: add this release's changes first")
+    return m.group(1).strip()
+
+
 def main():
     for src in FILES:
         if not src.exists():
@@ -172,7 +185,7 @@ def main():
         z.write(ROOT / "README.md", "README.md")
         z.write(ROOT / "LICENSE", "LICENSE")
         z.write(ROOT / "NOTICE.md", "NOTICE.md")
-    (dist / "RELEASE_NOTES.md").write_text(RELEASE_NOTES.format(v=VERSION), encoding="utf-8")
+    (dist / "RELEASE_NOTES.md").write_text(RELEASE_NOTES.format(v=VERSION, changes=changes(VERSION)), encoding="utf-8")
     for f in (oiv, man):
         print(f"{f.name}: {f.stat().st_size // 1024} KB")
 
