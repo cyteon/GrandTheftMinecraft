@@ -123,6 +123,21 @@ namespace collision
 			logf("blocks: DLC loaded but its textures aren't filled yet (restart GTA once after setup)");
 		if (s_dlc)
 		{
+			// diagnostics: which of the pack's models GTA can stream, sampled across the archive (models.txt order)
+			static const struct
+			{
+				int index;
+				const char *name;
+			} PROBE[] = {{0, "gtm_grass_block"}, {400, "gtm_clay_h"}, {800, "gtm_stripped_oak_log_p"}, {900, "gtm_chiseled_deepslate"}, {1000, "gtm_dead_brain_coral_block_h"}, {1050, "gtm_deepslate_emerald_ore"}, {1100, "gtm_crafter_p"}, {1150, "gtm_birch_stairs_h"}, {1200, "gtm_dark_oak_stairs_ir_t"}, {1300, "gtm_warped_stairs_il_t"}, {1400, "gtm_granite_stairs_s"}, {1500, "gtm_cobbled_deepslate_slab_h"}, {1700, "gtm_smooth_sandstone_stairs_p"}, {1900, "gtm_purpur_slab_double"}, {2048, "gtm_mossy_stone_brick_wall_nes"}, {2100, "gtm_deepslate_brick_wall_ns"}, {2300, "gtm_acacia_fence_n"}, {2500, "gtm_blue_stained_glass_pane_p"}, {2700, "gtm_acacia_door_p"}, {2966, "gtm_i_bow"}, {3100, "gtm_i_wooden_sword_tp"}, {3167, "gtm_r_steve_head"}, {3203, "gtm_arrow"}};
+			for (auto &pr : PROBE)
+				REQUEST_MODEL(GET_HASH_KEY(pr.name));
+			for (int i = 0; i < 300; i++)
+				WAIT(0);
+			for (auto &pr : PROBE)
+			{
+				Hash h = GET_HASH_KEY(pr.name);
+				logf("probe %4d %-34s valid %d loaded %d", pr.index, pr.name, IS_MODEL_VALID(h) ? 1 : 0, HAS_MODEL_LOADED(h) ? 1 : 0);
+			}
 			s_name = "gtm_* (DLC)";
 			s_min = V3(-0.5f, -0.5f, -0.5f), s_max = V3(0.5f, 0.5f, 0.5f);
 			logf("blocks: DLC pack found, %d block models", found);

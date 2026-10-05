@@ -260,19 +260,17 @@ static class Build
         return sb.ToString();
     }
 
-    // RPF7 entries point at their names with 16 bits, so an archive's name table can't pass 64 KB: thousands of
-    // gtm_<long block name>.ydr files would overflow it. The archetype keeps the real name (what scripts spawn);
-    // its drawable file gets a short one.
-    static string AssetName(int index) => $"z{index:x}";
+    // RPF7 entries point at their names with 16 bits, so one archive's name table can't pass 64 KB: the drawables
+    // are spread over several model archives (gtm_m<k>.rpf), each well under it. GTA finds a prop's drawable by its
+    // archetype name, so the files keep their real names.
+    const int NameTableBudget = 40000;
 
     static string YtypXml(IEnumerable<(ModelDef m, Geo g)> models)
     {
         var sb = new StringBuilder();
         sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<CMapTypes>\n <extensions />\n <archetypes>\n");
-        int index = 0;
         foreach (var (m, g) in models)
         {
-            string asset = AssetName(index++);
             string phys = m.Boxes != null ? $"<physicsDictionary>{PropsRpf}</physicsDictionary>" : "<physicsDictionary />";
             sb.Append($@"  <Item type=""CBaseArchetypeDef"">
    <lodDist value=""300"" />
@@ -289,7 +287,7 @@ static class Build
    <drawableDictionary />
    {phys}
    <assetType>ASSET_TYPE_DRAWABLE</assetType>
-   <assetName>{asset}</assetName>
+   <assetName>{m.Name}</assetName>
    <extensions />
   </Item>
 ");
@@ -298,7 +296,27 @@ static class Build
         return sb.ToString();
     }
 
-    static string ContentXml() => $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+    static string ContentXml(int modelArchives)
+    {
+        var items = new StringBuilder();
+        var enable = new StringBuilder();
+        for (int k = 0; k < modelArchives; k++)
+        {
+            items.Append($@"
+    <Item>
+      <filename>{Device}:/%PLATFORM%/levels/gta5/props/gtm_m{k}.rpf</filename>
+      <fileType>RPF_FILE</fileType>
+      <overlay value=""false"" />
+      <disabled value=""true"" />
+      <persistent value=""true"" />
+    </Item>");
+            enable.Append($@"
+        <Item>{Device}:/%PLATFORM%/levels/gta5/props/gtm_m{k}.rpf</Item>");
+        }
+        return ContentXmlBody().Replace("<dataFiles>", "<dataFiles>" + items).Replace("<filesToEnable>", "<filesToEnable>" + enable);
+    }
+
+    static string ContentXmlBody() => $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <CDataFileMgr__ContentsOfDataFileXml>
   <disabledFiles />
   <includedXmlFiles />
@@ -370,14 +388,13 @@ static class Build
             .ToList();
 
         var files = new List<(string name, byte[] data)>();
-        int fileIndex = 0;
         foreach (var (m, g) in models)
         {
             var doc = new XmlDocument();
             doc.LoadXml(DrawableXml(m, g));
             byte[] ydr = XmlMeta.GetData(doc, MetaFormat.Ydr, srcDir);
             if (ydr == null || ydr.Length < 16) throw new Exception($"ydr build failed for {m.Name}");
-            files.Add(($"{AssetName(fileIndex++)}.ydr", ydr));
+            files.Add(($"{m.Name}.ydr", ydr));
         }
         var textures = models.Select(x => x.m.Texture).Distinct().ToList();
         var ytdDoc = new XmlDocument();
@@ -397,15 +414,37 @@ static class Build
         Directory.CreateDirectory(dir);
         if (File.Exists(outRpf)) File.Delete(outRpf);
         var root = RpfFile.CreateNew(dir, Path.GetFileName(outRpf), RpfEncryption.OPEN);
-        RpfFile.CreateFile(root.Root, "content.xml", Encoding.UTF8.GetBytes(ContentXml()));
+        // the drawables in model archives sized to the name table, then the props archive (ytyp, ytd) last
+        var ydrs = files.Where(f => f.name.EndsWith(".ydr")).ToList();
+        var rest = files.Where(f => !f.name.EndsWith(".ydr")).ToList();
+        var chunks = new List<List<(string name, byte[] data)>>();
+        int names = 0;
+        foreach (var f in ydrs)
+        {
+            if (chunks.Count == 0 || names + f.name.Length + 1 > NameTableBudget)
+            {
+                chunks.Add(new List<(string name, byte[] data)>());
+                names = 0;
+            }
+            chunks[^1].Add(f);
+            names += f.name.Length + 1;
+        }
+        RpfFile.CreateFile(root.Root, "content.xml", Encoding.UTF8.GetBytes(ContentXml(chunks.Count)));
         RpfFile.CreateFile(root.Root, "setup2.xml", Encoding.UTF8.GetBytes(Setup2Xml()));
         var d = RpfFile.CreateDirectory(root.Root, "x64");
         d = RpfFile.CreateDirectory(d, "levels");
         d = RpfFile.CreateDirectory(d, "gta5");
         d = RpfFile.CreateDirectory(d, "props");
+        for (int k = 0; k < chunks.Count; k++)
+        {
+            var arc = RpfFile.CreateNew(d, $"gtm_m{k}.rpf", RpfEncryption.OPEN);
+            foreach (var (name, data) in chunks[k])
+                RpfFile.CreateFile(arc.Root, name, data);
+        }
         var props = RpfFile.CreateNew(d, PropsRpf + ".rpf", RpfEncryption.OPEN);
-        foreach (var (name, data) in files)
+        foreach (var (name, data) in rest)
             RpfFile.CreateFile(props.Root, name, data);
+        Console.WriteLine($"{ydrs.Count} drawables in {chunks.Count} model archives");
         Console.WriteLine($"wrote {outRpf} ({new FileInfo(outRpf).Length / 1024} KB)");
         CheckYtdIsLast(outRpf);
         return 0;
@@ -474,6 +513,9 @@ static class Build
         var ytd = inner.First(e => e.NameLower == TexDict + ".ytd");
         if (inner.Any(e => e != ytd && e.FileOffset > ytd.FileOffset))
             throw new Exception("gtm_tex.ytd is not the last file in the props archive");
+        // every drawable readable by its real name (a name table past 64 KB garbles them)
+        int ydrNames = rpf.Children.SelectMany(c => c.AllEntries).OfType<RpfFileEntry>().Count(e => e.NameLower.StartsWith("gtm_") && e.NameLower.EndsWith(".ydr"));
+        Console.WriteLine($"{ydrNames} drawables readable by name");
         Console.WriteLine("layout ok: gtm_tex.ytd is the last data in dlc.rpf");
     }
 
@@ -490,7 +532,7 @@ static class Build
             foreach (var ce in e.AllEntries)
                 Console.WriteLine($"  {ce.Path}");
         Directory.CreateDirectory(outDir);
-        foreach (var name in new[] { "z0.ydr", TexDict + ".ytd", PropsRpf + ".ytyp", "content.xml" })
+        foreach (var name in new[] { "gtm_grass_block.ydr", TexDict + ".ytd", PropsRpf + ".ytyp", "content.xml" })
         {
             var fe = all.FirstOrDefault(x => x.NameLower == name);
             if (fe == null) { Console.Error.WriteLine($"missing {name}"); return 1; }

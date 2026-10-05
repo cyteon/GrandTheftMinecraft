@@ -73,7 +73,7 @@ namespace steve
 			V3 X = b.x * cx.x + b.y * cx.y + b.z * cx.z;
 			V3 Y = b.x * cy.x + b.y * cy.y + b.z * cy.z;
 			V3 Z = b.x * cz.x + b.y * cz.y + b.z * cz.z;
-			rig::place(s_wing[w], s_wingModel[w], w == 0 ? "gtm_elytra_lwing" : "gtm_elytra_rwing", pivot, X, Y, Z);
+			rig::place(s_wing[w], s_wingModel[w], w == 0 ? "gtm_r_elytra_lwing" : "gtm_r_elytra_rwing", pivot, X, Y, Z);
 		}
 	}
 

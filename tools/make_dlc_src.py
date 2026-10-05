@@ -468,7 +468,7 @@ def main():
                 mc_box(g, scale, box, uv, (tw, th), infl, mirror)
             if kind == "wing":
                 g.double_sided()
-            model = f"gtm_{rig}_{name}"
+            model = f"gtm_r_{rig}_{name}"  # r_: rig parts (zombie_head is also a block)
             g.write(out / f"{model}.geo")
             rows.append(f"{model};{tex};cutout;1;-")
             # Minecraft pivot -> GTA space above the ground
@@ -478,6 +478,8 @@ def main():
     texture("gtm_arrow_e", 256, 256, "arrow")
     arrow_geo().write(out / "gtm_arrow.geo")
     rows.append("gtm_arrow;gtm_arrow_e;cutout;1;-")
+    dup = [n for n, c in __import__("collections").Counter(r.split(";")[0] for r in rows).items() if c > 1]
+    assert not dup, f"duplicate model names: {dup}"
     (out / "models.txt").write_text("\n".join(rows) + "\n")
     (out / "tex_recipes.txt").write_text("\n".join(recipes) + "\n")
     print(f"wrote {out}: {len(rows)} models, {len(recipes)} placeholder textures")
