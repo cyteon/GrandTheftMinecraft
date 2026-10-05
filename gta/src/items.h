@@ -32,7 +32,21 @@ enum Shape : uint8_t
 	SH_CROSS,
 	SH_LADDER,
 	SH_DOOR,
-	SH_TRAPDOOR
+	SH_TRAPDOOR,
+	SH_BED,
+	SH_CHEST,
+	SH_SIGN,
+	SH_BANNER,
+	SH_BUTTON,
+	SH_LEVER,
+	SH_PLATE,
+	SH_RAIL,
+	SH_ANVIL,
+	SH_ENCHANTING,
+	SH_BREWING,
+	SH_CAULDRON,
+	SH_CAMPFIRE,
+	SH_POT
 };
 
 struct Item
@@ -54,7 +68,9 @@ struct Item
 	// our own movement checks (flight, gliding, making room) let you through these
 	bool passable() const
 	{
-		return shape == SH_TORCH || shape == SH_CROSS || shape == SH_LANTERN || shape == SH_CARPET || shape == SH_LADDER;
+		return shape == SH_TORCH || shape == SH_CROSS || shape == SH_LANTERN || shape == SH_CARPET || shape == SH_LADDER ||
+		       shape == SH_SIGN || shape == SH_BANNER || shape == SH_BUTTON || shape == SH_LEVER || shape == SH_PLATE ||
+		       shape == SH_RAIL;
 	}
 };
 

@@ -6,7 +6,9 @@
 #   flags: a alpha (glass), c cutout (leaves), l light, g gravity, t tnt, r grass-tint top, f foliage-tint all,
 #          o has a front (furnace...), k mob head (top = its texture under entity/, e.g. zombie/zombie)
 #   flags may end in :<shape>[@<base>]: slab stairs wall fence gate pane carpet torch lantern cross ladder
-#   door trapdoor. With @base the textures (and sound, if empty) come from that block.
+#   door trapdoor bed chest sign banner button lever plate rail anvil enchanting brewing cauldron campfire
+#   pot. Beds, chests, signs and banners take their look from the top field: a texture under entity/ (or
+#   banner:<dye colour>); their @base block gives the chips and the far-away colours. With @base the textures (and sound, if empty) come from that block.
 # item;name;Display Name;tab;flags;sprite   flags: s stack 1, p stack 16
 # sprite;name   extra held-item sprites (bow/crossbow pull states)
 # icon;name     an inventory icon only (creative tab icons), from the item sprite of that name
@@ -650,6 +652,97 @@ block;skeleton_skull;Skeleton Skull;functional;k;stone;skeleton/skeleton;;
 block;zombie_head;Zombie Head;functional;k;stone;zombie/zombie;;
 block;creeper_head;Creeper Head;functional;k;stone;creeper/creeper;;
 block;player_head;Player Head;functional;k;stone;player/wide/steve;;
+block;white_bed;White Bed;colored,functional;:bed@white_wool;wood;bed/white;;
+block;orange_bed;Orange Bed;colored,functional;:bed@orange_wool;wood;bed/orange;;
+block;magenta_bed;Magenta Bed;colored,functional;:bed@magenta_wool;wood;bed/magenta;;
+block;light_blue_bed;Light Blue Bed;colored,functional;:bed@light_blue_wool;wood;bed/light_blue;;
+block;yellow_bed;Yellow Bed;colored,functional;:bed@yellow_wool;wood;bed/yellow;;
+block;lime_bed;Lime Bed;colored,functional;:bed@lime_wool;wood;bed/lime;;
+block;pink_bed;Pink Bed;colored,functional;:bed@pink_wool;wood;bed/pink;;
+block;gray_bed;Gray Bed;colored,functional;:bed@gray_wool;wood;bed/gray;;
+block;light_gray_bed;Light Gray Bed;colored,functional;:bed@light_gray_wool;wood;bed/light_gray;;
+block;cyan_bed;Cyan Bed;colored,functional;:bed@cyan_wool;wood;bed/cyan;;
+block;purple_bed;Purple Bed;colored,functional;:bed@purple_wool;wood;bed/purple;;
+block;blue_bed;Blue Bed;colored,functional;:bed@blue_wool;wood;bed/blue;;
+block;brown_bed;Brown Bed;colored,functional;:bed@brown_wool;wood;bed/brown;;
+block;green_bed;Green Bed;colored,functional;:bed@green_wool;wood;bed/green;;
+block;red_bed;Red Bed;colored,functional;:bed@red_wool;wood;bed/red;;
+block;black_bed;Black Bed;colored,functional;:bed@black_wool;wood;bed/black;;
+block;chest;Chest;functional;:chest@oak_planks;wood;chest/normal;;
+block;trapped_chest;Trapped Chest;redstone;:chest@oak_planks;wood;chest/trapped;;
+block;ender_chest;Ender Chest;functional;l:chest@obsidian;stone;chest/ender;;
+block;oak_sign;Oak Sign;functional;:sign@oak_planks;wood;signs/oak;;
+block;spruce_sign;Spruce Sign;functional;:sign@spruce_planks;wood;signs/spruce;;
+block;birch_sign;Birch Sign;functional;:sign@birch_planks;wood;signs/birch;;
+block;jungle_sign;Jungle Sign;functional;:sign@jungle_planks;wood;signs/jungle;;
+block;acacia_sign;Acacia Sign;functional;:sign@acacia_planks;wood;signs/acacia;;
+block;dark_oak_sign;Dark Oak Sign;functional;:sign@dark_oak_planks;wood;signs/dark_oak;;
+block;mangrove_sign;Mangrove Sign;functional;:sign@mangrove_planks;wood;signs/mangrove;;
+block;cherry_sign;Cherry Sign;functional;:sign@cherry_planks;wood;signs/cherry;;
+block;pale_oak_sign;Pale Oak Sign;functional;:sign@pale_oak_planks;wood;signs/pale_oak;;
+block;bamboo_sign;Bamboo Sign;functional;:sign@bamboo_planks;wood;signs/bamboo;;
+block;crimson_sign;Crimson Sign;functional;:sign@crimson_planks;wood;signs/crimson;;
+block;warped_sign;Warped Sign;functional;:sign@warped_planks;wood;signs/warped;;
+block;white_banner;White Banner;colored,functional;:banner@white_wool;cloth;banner:F9FFFE;;
+block;orange_banner;Orange Banner;colored,functional;:banner@orange_wool;cloth;banner:F9801D;;
+block;magenta_banner;Magenta Banner;colored,functional;:banner@magenta_wool;cloth;banner:C74EBD;;
+block;light_blue_banner;Light Blue Banner;colored,functional;:banner@light_blue_wool;cloth;banner:3AB3DA;;
+block;yellow_banner;Yellow Banner;colored,functional;:banner@yellow_wool;cloth;banner:FED83D;;
+block;lime_banner;Lime Banner;colored,functional;:banner@lime_wool;cloth;banner:80C71F;;
+block;pink_banner;Pink Banner;colored,functional;:banner@pink_wool;cloth;banner:F38BAA;;
+block;gray_banner;Gray Banner;colored,functional;:banner@gray_wool;cloth;banner:474F52;;
+block;light_gray_banner;Light Gray Banner;colored,functional;:banner@light_gray_wool;cloth;banner:9D9D97;;
+block;cyan_banner;Cyan Banner;colored,functional;:banner@cyan_wool;cloth;banner:169C9C;;
+block;purple_banner;Purple Banner;colored,functional;:banner@purple_wool;cloth;banner:8932B8;;
+block;blue_banner;Blue Banner;colored,functional;:banner@blue_wool;cloth;banner:3C44AA;;
+block;brown_banner;Brown Banner;colored,functional;:banner@brown_wool;cloth;banner:835432;;
+block;green_banner;Green Banner;colored,functional;:banner@green_wool;cloth;banner:5E7C16;;
+block;red_banner;Red Banner;colored,functional;:banner@red_wool;cloth;banner:B02E26;;
+block;black_banner;Black Banner;colored,functional;:banner@black_wool;cloth;banner:1D1D21;;
+block;oak_button;Oak Button;redstone;:button@oak_planks;wood;;;
+block;spruce_button;Spruce Button;redstone;:button@spruce_planks;wood;;;
+block;birch_button;Birch Button;redstone;:button@birch_planks;wood;;;
+block;jungle_button;Jungle Button;redstone;:button@jungle_planks;wood;;;
+block;acacia_button;Acacia Button;redstone;:button@acacia_planks;wood;;;
+block;dark_oak_button;Dark Oak Button;redstone;:button@dark_oak_planks;wood;;;
+block;mangrove_button;Mangrove Button;redstone;:button@mangrove_planks;wood;;;
+block;cherry_button;Cherry Button;redstone;:button@cherry_planks;wood;;;
+block;pale_oak_button;Pale Oak Button;redstone;:button@pale_oak_planks;wood;;;
+block;bamboo_button;Bamboo Button;redstone;:button@bamboo_planks;wood;;;
+block;crimson_button;Crimson Button;redstone;:button@crimson_planks;wood;;;
+block;warped_button;Warped Button;redstone;:button@warped_planks;wood;;;
+block;stone_button;Stone Button;redstone;:button@stone;stone;;;
+block;polished_blackstone_button;Polished Blackstone Button;redstone;:button@polished_blackstone;stone;;;
+block;lever;Lever;redstone;:lever;wood;lever;cobblestone;cobblestone
+block;oak_pressure_plate;Oak Pressure Plate;redstone;:plate@oak_planks;wood;;;
+block;spruce_pressure_plate;Spruce Pressure Plate;redstone;:plate@spruce_planks;wood;;;
+block;birch_pressure_plate;Birch Pressure Plate;redstone;:plate@birch_planks;wood;;;
+block;jungle_pressure_plate;Jungle Pressure Plate;redstone;:plate@jungle_planks;wood;;;
+block;acacia_pressure_plate;Acacia Pressure Plate;redstone;:plate@acacia_planks;wood;;;
+block;dark_oak_pressure_plate;Dark Oak Pressure Plate;redstone;:plate@dark_oak_planks;wood;;;
+block;mangrove_pressure_plate;Mangrove Pressure Plate;redstone;:plate@mangrove_planks;wood;;;
+block;cherry_pressure_plate;Cherry Pressure Plate;redstone;:plate@cherry_planks;wood;;;
+block;pale_oak_pressure_plate;Pale Oak Pressure Plate;redstone;:plate@pale_oak_planks;wood;;;
+block;bamboo_pressure_plate;Bamboo Pressure Plate;redstone;:plate@bamboo_planks;wood;;;
+block;crimson_pressure_plate;Crimson Pressure Plate;redstone;:plate@crimson_planks;wood;;;
+block;warped_pressure_plate;Warped Pressure Plate;redstone;:plate@warped_planks;wood;;;
+block;stone_pressure_plate;Stone Pressure Plate;redstone;:plate@stone;stone;;;
+block;polished_blackstone_pressure_plate;Polished Blackstone Pressure Plate;redstone;:plate@polished_blackstone;stone;;;
+block;light_weighted_pressure_plate;Light Weighted Pressure Plate;redstone;:plate@gold_block;stone;;;
+block;heavy_weighted_pressure_plate;Heavy Weighted Pressure Plate;redstone;:plate@iron_block;stone;;;
+block;rail;Rail;redstone;c:rail;stone;rail;;;rail_corner
+block;powered_rail;Powered Rail;redstone;c:rail;stone;powered_rail;;
+block;detector_rail;Detector Rail;redstone;c:rail;stone;detector_rail;;
+block;activator_rail;Activator Rail;redstone;c:rail;stone;activator_rail;;
+block;anvil;Anvil;functional;g:anvil;stone;anvil_top;anvil;anvil
+block;chipped_anvil;Chipped Anvil;functional;g:anvil;stone;chipped_anvil_top;anvil;anvil
+block;damaged_anvil;Damaged Anvil;functional;g:anvil;stone;damaged_anvil_top;anvil;anvil
+block;enchanting_table;Enchanting Table;functional;:enchanting;stone;enchanting_table_top;enchanting_table_side;enchanting_table_bottom
+block;brewing_stand;Brewing Stand;functional;c:brewing;stone;brewing_stand;brewing_stand_base;brewing_stand_base
+block;cauldron;Cauldron;functional;:cauldron;stone;cauldron_top;cauldron_side;cauldron_bottom;cauldron_inner
+block;campfire;Campfire;functional;cl:campfire;wood;campfire_log_lit;campfire_log;campfire_log;campfire_fire
+block;soul_campfire;Soul Campfire;functional;cl:campfire;wood;soul_campfire_log_lit;campfire_log;campfire_log;soul_campfire_fire
+block;flower_pot;Flower Pot;functional;:pot;stone;dirt;flower_pot;flower_pot
 item;wooden_sword;Wooden Sword;combat;s;wooden_sword
 item;stone_sword;Stone Sword;combat;s;stone_sword
 item;copper_sword;Copper Sword;combat;s;copper_sword

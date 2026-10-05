@@ -332,6 +332,119 @@ def wither_models(out, rows, texture):
     rows.append(f"gtm_wither_skull;{tex};cutout;1;-")
 
 
+# ---- furniture with Minecraft entity textures: beds, chests, signs, banners (block-centred metres, front +Y) ----
+ENTITY_SHAPES = ("bed", "chest", "sign", "banner")
+
+
+def xf(g, fp, fn=None):
+    """A Geo with every vertex position (and normal) mapped."""
+    out = Geo()
+    for x, y, z, nx, ny, nz, u, v in g.v:
+        px, py, pz = fp(x, y, z)
+        qx, qy, qz = (fn or fp)(nx, ny, nz) if fn else (nx, ny, nz)
+        out.v.append((px, py, pz, qx, qy, qz, u, v))
+    out.i = list(g.i)
+    return out
+
+
+def join(*gs):
+    out = Geo()
+    for g in gs:
+        base = len(out.v)
+        out.v += g.v
+        out.i += [base + k for k in g.i]
+    return out
+
+
+def bed_half(head):
+    """BedRenderer's head / foot: the 16x16x6 mattress laid flat (the 'front' face up, pillow towards -Y) on legs."""
+    g = Geo()
+    mc_box(g, 1 / 16, (0, 0, 0, 16, 16, 6), (0, 0) if head else (0, 22), (64, 64))
+    for lx, ly in ((13, 0), (0, 0)) if head else ((13, 13), (0, 13)):
+        mc_box(g, 1 / 16, (lx, ly, 6, 3, 3, 3), (50, 6), (64, 64))
+    # mc_box: (-mcx, -mcz, -mcy)/16; flat: x + 1, -z (pillow end = -Y), y + 9/16 (height); centred on the block
+    return xf(g, lambda x, y, z: (x + 1 - 0.5, -z - 0.5, y + 9 / 16 - 0.5), lambda x, y, z: (x, -z, y))
+
+
+def chest_model(opened):
+    """ChestModel (single): bottom, lid, lock; Minecraft draws it y-up, so mc_box's output turns 180 degrees about X."""
+    base, lid = Geo(), Geo()
+    mc_box(base, 1 / 16, (1, 0, 1, 14, 10, 14), (0, 19), (64, 64))
+    mc_box(lid, 1 / 16, (1, 9, 1, 14, 5, 14), (0, 0), (64, 64))
+    mc_box(lid, 1 / 16, (7, 6, 15, 2, 4, 1), (0, 0), (64, 64))
+    flip = lambda x, y, z: (x + 1 - 0.5, -y - 0.5, -z - 0.5)  # noqa: E731
+    flipn = lambda x, y, z: (x, -y, -z)  # noqa: E731
+    base, lid = xf(base, flip, flipn), xf(lid, flip, flipn)
+    if opened:  # the lid swings up about its back edge (Minecraft opens it 90 degrees)
+        import math
+        a = math.radians(85)
+        hy, hz = 1 / 16 - 0.5, 9 / 16 - 0.5
+
+        def r(x, y, z, pivot=True):
+            y0, z0 = (y - hy, z - hz) if pivot else (y, z)
+            y1, z1 = y0 * math.cos(a) - z0 * math.sin(a), y0 * math.sin(a) + z0 * math.cos(a)
+            return (x, y1 + hy, z1 + hz) if pivot else (x, y1, z1)
+        lid = xf(lid, r, lambda x, y, z: r(x, y, z, False))
+    return join(base, lid)
+
+
+SIGN_S = 0.6666667 / 16
+
+
+def sign_model(wall):
+    """SignRenderer: board (+ stick) at 2/3 scale; on a wall the board moves back to it and down."""
+    g = Geo()
+    mc_box(g, SIGN_S, (-12, -14, -1, 24, 12, 2), (0, 0), (64, 32))
+    if not wall:
+        mc_box(g, SIGN_S, (-1, -2, -1, 2, 14, 2), (0, 14), (64, 32))
+        return g
+    return xf(g, lambda x, y, z: (x, y - 0.4375, z - 0.3125))
+
+
+def banner_model(wall):
+    """BannerRenderer: flag (40 px tall, hanging from the bar), pole and bar at 2/3 scale."""
+    g = Geo()
+    mc_box(g, SIGN_S, (-10, -32, -2, 20, 40, 1), (0, 0), (64, 64))
+    mc_box(g, SIGN_S, (-10, -32, -1, 20, 2, 2), (0, 42), (64, 64))
+    if not wall:
+        mc_box(g, SIGN_S, (-1, -30, -1, 2, 42, 2), (44, 0), (64, 64))
+        return g
+    return xf(g, lambda x, y, z: (x, y - 0.4375, z - 0.3125))
+
+
+def entity_furniture(b):
+    """(texture name, size, recipe), {suffix: (geo, collision boxes in pixels)}, hand geo or None."""
+    shape, top = b["shape"], b["top"]
+    if shape == "banner":
+        rgb = top.split(":")[1]
+        tex = (f"gtm_tex_banner_{rgb}", (512, 512), f"banner {rgb}")
+    else:
+        tex = (f"gtm_tex_e_{top.replace('/', '_')}", (512, 256) if shape == "sign" else (512, 512),
+               f"entity entity/{top}.png")
+    if shape == "bed":
+        head, foot = bed_half(True), bed_half(False)
+        both = join(xf(head, lambda x, y, z: (x * 0.5, y * 0.5 - 0.25, z * 0.5)),
+                    xf(foot, lambda x, y, z: (x * 0.5, y * 0.5 + 0.25, z * 0.5)))
+        return tex, {"_head": (head, [((0, 0, 0), (16, 16, 9))]), "_foot": (foot, [((0, 0, 0), (16, 16, 9))])}, both
+    if shape == "chest":
+        closed = chest_model(False)
+        return tex, {"": (closed, [((1, 1, 0), (15, 15, 14))]), "_open": (chest_model(True), [((1, 1, 0), (15, 15, 10))])}, closed
+    if shape == "sign":
+        return tex, {"": (sign_model(False), []), "_wall": (sign_model(True), [])}, None
+    standing = banner_model(False)
+    small = xf(standing, lambda x, y, z: (x * 0.5, y * 0.5, (z - 0.42) * 0.5))
+    return tex, {"": (standing, []), "_wall": (banner_model(True), [])}, small
+
+
+def geo_tris(g):
+    """A Geo's triangles in block pixels (for inventory icons): (normal, (x, y, z, u, v) * 3)."""
+    out = []
+    for k in range(0, len(g.i), 3):
+        vs = [g.v[i] for i in g.i[k:k + 3]]
+        out.append((vs[0][3:6], *[((x + 0.5) * 16, (y + 0.5) * 16, (z + 0.5) * 16, u, v) for x, y, z, _, _, _, u, v in vs]))
+    return out
+
+
 def arrow_geo():
     """Minecraft-style arrow: two crossed 16x5 px planes, 0.7 m along +Y (z up), both sides."""
     g = Geo()
@@ -392,6 +505,11 @@ def main():
         recipes.append(f"{name};{w};{h};{recipe};{fmt}")
 
     rnd = random.Random(7)
+    made_tex, icons, icon_done = set(), [], set()
+
+    def tri_line(t):
+        n, *vs = t
+        return "t;" + ",".join(f"{c:.4g}" for c in n) + ";" + ";".join(",".join(f"{c:.5g}" for c in v) for v in vs)
     for b in blocks:
         name, flags = b["name"], b["flags"]
         tex = f"gtm_{b['base'] or name}"
@@ -399,7 +517,23 @@ def main():
             texture(tex, 512, 128, f"sheet {name}", "dxt5" if "a" in flags else "dxt1")
         shader = "alpha" if "a" in flags else "cutout" if "c" in flags else "default"
         material = {"wood": 70, "cloth": 104, "glass": 69}.get(b["sound"], 1)
-        if b["shape"]:  # slabs, stairs, fences... (tools/shapes.py): a model per variant, the ASI picks one
+        if b["shape"] in ENTITY_SHAPES:  # beds, chests, signs, banners: Minecraft's entity models and textures
+            (etex, (tw, th), recipe), variants, hand = entity_furniture(b)
+            if etex not in made_tex:
+                made_tex.add(etex)
+                texture(etex, tw, th, recipe)
+            for suffix, (g, coll) in variants.items():
+                g.write(out / f"gtm_{name}{suffix}.geo")
+                rows.append(f"gtm_{name}{suffix};{etex};cutout;{material};{shapes.coll_spec(coll)}")
+            if hand:
+                k = HAND_SIZE
+                xf(hand, lambda x, y, z: (-x * k, z * k, y * k), lambda x, y, z: (-x, z, y)).write(out / f"gtm_{name}_h.geo")
+                rows.append(f"gtm_{name}_h;{etex};cutout;{material};-")
+                icons.append(f"tpl;{b['shape']};entity")
+                icons += [tri_line(t) for t in geo_tris(hand)] if b["shape"] not in icon_done else []
+                icon_done.add(b["shape"])
+                icons.append(f"blk;{name};{b['shape']};entity")
+        elif b["shape"]:  # slabs, stairs, fences... (tools/shapes.py): a model per variant, the ASI picks one
             variants, hand = shapes.build(b["shape"], front=bool(b["front"]))
             for suffix, (quads, coll) in variants.items():
                 g = Geo()
@@ -411,6 +545,12 @@ def main():
                 shapes.emit(hand, g, "hand", HAND_SIZE)
                 g.write(out / f"gtm_{name}_h.geo")
                 rows.append(f"gtm_{name}_h;{tex};{shader};{material};-")
+                key = b["shape"] + ("_f" if b["front"] else "")
+                if key not in icon_done:
+                    icon_done.add(key)
+                    icons.append(f"tpl;{key};sheet")
+                    icons += [tri_line(t) for t in shapes.icon_tris(hand)]
+                icons.append(f"blk;{name};{key};sheet")
         elif "k" in flags:  # mob head: SkullModel's 8x8x8 head (+ hat layer) on the floor of its cell, facing +y
             stex = f"gtm_tex_{name}"
             big = b["top"].startswith(("zombie/", "player/"))  # 64x64 textures with a hat layer
@@ -481,6 +621,16 @@ def main():
     dup = [n for n, c in __import__("collections").Counter(r.split(";")[0] for r in rows).items() if c > 1]
     assert not dup, f"duplicate model names: {dup}"
     (out / "models.txt").write_text("\n".join(rows) + "\n")
+    # inventory icons of 3D shaped blocks: geometry only (the ASI draws them with the player's own textures)
+    tpl_seen, lines = set(), ["# tpl;<template>;sheet|entity, then t;<normal>;<x,y,z,u,v> x3 (block pixels); blk;<block>;<template>;<kind>"]
+    for l in icons:
+        if l.startswith("tpl;"):
+            key = l.split(";")[1]
+            if key in tpl_seen:
+                continue
+            tpl_seen.add(key)
+        lines.append(l)
+    (out / "icons.txt").write_text("\n".join(lines) + "\n")
     (out / "tex_recipes.txt").write_text("\n".join(recipes) + "\n")
     print(f"wrote {out}: {len(rows)} models, {len(recipes)} placeholder textures")
 

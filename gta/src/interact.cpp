@@ -1,6 +1,9 @@
 #include "interact.h"
 #include "audio.h"
 #include "blockrender.h"
+#include "collision.h"
+#include "config.h"
+#include "flight.h"
 #include "fx.h"
 #include "gui.h"
 #include "hand.h"
@@ -9,9 +12,11 @@
 #include "log.h"
 #include "mobs.h"
 #include "shapes.h"
+#include "signs.h"
 #include "wither.h"
 #include "elytra.h"
 #include <cstdio>
+#include <vector>
 
 namespace interact
 {
@@ -379,9 +384,43 @@ namespace interact
 			break;
 		case SH_CROSS:
 		case SH_CARPET:
+		case SH_PLATE:
+		case SH_RAIL:
 			if (face != 0)
 				return false;
 			break;
+		case SH_CHEST:
+		case SH_CAMPFIRE:
+			facing = toPlayer;
+			break;
+		case SH_ANVIL: // its long side towards you
+			facing = (toPlayer + 4) % 16;
+			break;
+		case SH_SIGN:
+		case SH_BANNER:
+		case SH_BUTTON:
+		case SH_LEVER:
+			if (face == 1)
+				return false;
+			if (face == 2)
+				facing = facing_of_normal(n), state = ST_WALL;
+			else // standing signs and banners turn in 16 steps, like skulls
+				facing = (pi.shape == SH_SIGN || pi.shape == SH_BANNER) ? facing_to_player(c, 1) : toPlayer;
+			break;
+		case SH_BED:
+		{
+			// the foot where you click, the head one block further away
+			facing = toPlayer;
+			Cell head = shapes::step(c, (shapes::dir_of_facing(facing) + 2) % 4);
+			if (face != 0 || block_at(head) || overlaps_player(cell_min(head)))
+				return false;
+			if (!place_block(c, itemId, facing, 0))
+				return false;
+			place_block(head, itemId, facing, ST_UPPER);
+			make_room(c), make_room(head);
+			audio::block_sound(pi.sound, cell_center(c), false);
+			return true;
+		}
 		case SH_DOOR:
 		{
 			Cell up = c;
@@ -411,7 +450,66 @@ namespace interact
 		audio::block_sound(pi.sound, cell_center(c), false);
 		if (pi.skull)
 			try_summon_wither(c);
+		if (pi.shape == SH_SIGN)
+			signs::edit(c); // Minecraft opens the sign editor as you place it
 		return true;
+	}
+
+	// buttons spring back after a moment (Minecraft: 1 s stone, 1.5 s wood)
+	struct Release
+	{
+		uint64_t key;
+		uint32_t at;
+	};
+	static std::vector<Release> s_releases;
+
+	// Right-click on a bed, chest, sign, button or lever uses it
+	static bool use_block(const Cell &c, const Block &b)
+	{
+		const Item &it = item(b.item);
+		V3 at = cell_center(c);
+		switch (it.shape)
+		{
+		case SH_BED:
+		{
+			int hour = GET_CLOCK_HOURS();
+			if (hour >= 6 && hour < 19)
+			{
+				gui::toast("You can sleep only at night");
+				return true;
+			}
+			// sleep through the night: fade out, morning, fade in
+			DO_SCREEN_FADE_OUT(800);
+			WAIT(1000);
+			SET_CLOCK_TIME(6, 0, 0);
+			WAIT(300);
+			DO_SCREEN_FADE_IN(1200);
+			return true;
+		}
+		case SH_CHEST:
+			gui::open_chest(c);
+			return true;
+		case SH_SIGN:
+			signs::edit(c);
+			return true;
+		case SH_BUTTON:
+			if (!(b.state & ST_OPEN))
+			{
+				set_block_state(c, b.state | ST_OPEN);
+				bool wood = it.sound == "wood";
+				s_releases.push_back({cell_key(c), g.now + (wood ? 1500u : 1000u)});
+				audio::play_at("random/click", at, 0.3f, wood ? 0.7f : 0.6f);
+			}
+			gui::swing();
+			return true;
+		case SH_LEVER:
+			set_block_state(c, b.state ^ ST_OPEN);
+			audio::play_at("random/click", at, 0.3f, (b.state & ST_OPEN) ? 0.6f : 0.5f);
+			gui::swing();
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	// Right-click on a door, trapdoor or gate opens or closes it (not iron ones: Minecraft needs redstone for those).
@@ -424,6 +522,8 @@ namespace interact
 		if (!b)
 			return false;
 		const Item &it = item(b->item);
+		if (use_block(t.vh.cell, *b))
+			return true;
 		if ((it.shape != SH_DOOR && it.shape != SH_TRAPDOOR && it.shape != SH_GATE) || it.name.rfind("iron_", 0) == 0)
 			return false;
 		Block was = *b;
@@ -539,6 +639,92 @@ namespace interact
 	}
 
 	void cancel_use() { s_using = false; }
+
+	// pressure plates go down under people, cars and you; campfires burn whoever stands in them; buttons pop back
+	static void tick()
+	{
+		for (size_t i = 0; i < s_releases.size();)
+		{
+			if (g.now < s_releases[i].at)
+			{
+				i++;
+				continue;
+			}
+			auto it = g_blocks.find(s_releases[i].key);
+			if (it != g_blocks.end() && (it->second.state & ST_OPEN))
+			{
+				set_block_state(key_cell(s_releases[i].key), it->second.state & ~ST_OPEN);
+				audio::play_at("random/click", cell_center(key_cell(s_releases[i].key)), 0.3f, 0.5f);
+			}
+			s_releases[i] = s_releases.back();
+			s_releases.pop_back();
+		}
+		static uint32_t next = 0, nextBurn = 0;
+		if (g.now < next)
+			return;
+		next = g.now + 250;
+		bool burn = g.now >= nextBurn;
+		if (burn)
+			nextBurn = g.now + 500;
+		static std::vector<std::pair<uint64_t, const Item *>> spots;
+		spots.clear();
+		for (auto &kv : g_blocks)
+		{
+			const Item &it = item(kv.second.item);
+			if ((it.shape == SH_PLATE || it.shape == SH_CAMPFIRE) &&
+			    (cell_center(key_cell(kv.first)) - g.pedPos).len2() < 48 * 48)
+				spots.push_back({kv.first, &it});
+		}
+		if (spots.empty())
+			return;
+		static int ents[512];
+		std::vector<V3> feet;
+		feet.push_back(g.pedPos - V3(0, 0, 0.95f));
+		int np = shv::worldGetAllPeds(ents, 512);
+		std::vector<int> peds = {g.ped};
+		for (int k = 0; k < np; k++)
+			if (ents[k] != g.ped && DOES_ENTITY_EXIST(ents[k]) && !IS_ENTITY_DEAD(ents[k], FALSE))
+			{
+				V3 p = GET_ENTITY_COORDS(ents[k], TRUE);
+				if ((p - g.pedPos).len2() < 50 * 50)
+					feet.push_back(p - V3(0, 0, 0.95f)), peds.push_back(ents[k]);
+			}
+		int nv = shv::worldGetAllVehicles(ents, 512);
+		std::vector<V3> wheels;
+		for (int k = 0; k < nv; k++)
+		{
+			V3 p = GET_ENTITY_COORDS(ents[k], TRUE);
+			if ((p - g.pedPos).len2() < 50 * 50)
+				wheels.push_back(p - V3(0, 0, GET_ENTITY_HEIGHT_ABOVE_GROUND(ents[k])));
+		}
+		for (auto &sp : spots)
+		{
+			Cell c = key_cell(sp.first);
+			V3 mn = cell_min(c);
+			auto inside = [&](const V3 &f, float pad) {
+				return f.x > mn.x - pad && f.x < mn.x + 1 + pad && f.y > mn.y - pad && f.y < mn.y + 1 + pad &&
+				       f.z > mn.z - 0.3f && f.z < mn.z + 0.7f;
+			};
+			if (sp.second->shape == SH_PLATE)
+			{
+				bool on = false;
+				for (auto &f : feet)
+					on = on || inside(f, 0.1f);
+				for (auto &w : wheels)
+					on = on || inside(w, 1.0f);
+				const Block &b = g_blocks[sp.first];
+				if (on != bool(b.state & ST_OPEN))
+				{
+					set_block_state(c, on ? b.state | ST_OPEN : b.state & ~ST_OPEN);
+					audio::play_at("random/click", cell_center(c), 0.3f, on ? 0.6f : 0.5f);
+				}
+			}
+			else if (burn)
+				for (size_t k = 0; k < feet.size(); k++)
+					if (inside(feet[k], 0.0f) && !(k == 0 && (g_cfg.invincible || flight::active())))
+						APPLY_DAMAGE_TO_PED(peds[k], 10, FALSE, 0, 0xA2719263 /* unarmed */); // Minecraft: 1 a second
+		}
+	}
 
 	int hand_use(float &progress)
 	{
@@ -675,6 +861,9 @@ namespace interact
 
 	void update(bool allowInput)
 	{
+		tick();
+		if (signs::editing())
+			allowInput = false;
 		find_target();
 		if (g_target.kind == Target::BLOCK)
 			blockrender::draw_outline(g_target.vh.cell);

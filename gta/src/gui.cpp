@@ -6,6 +6,8 @@
 #include "items.h"
 #include "audio.h"
 #include "render2d.h"
+#include "shapes.h"
+#include "world.h"
 #include <algorithm>
 #include <vector>
 
@@ -233,8 +235,213 @@ namespace gui
 
 	static float s_mx, s_my;
 
+	// ---- chests: Minecraft's container screen (generic_54 with three rows) above the inventory and the hotbar ----
+	static bool s_chest = false;
+	static uint64_t s_chestKey = 0;
+	static Slot s_main[27]; // the three inventory rows (kept for the session)
+	static const float CW = 176, CTOP = 71, CH = 71 + 96;
+
+	static Layout chest_layout()
+	{
+		Layout l;
+		l.s = (float)g.gui;
+		l.left = std::floor(g.screenW / 2 - CW * l.s / 2);
+		l.top = std::floor(g.screenH / 2 - CH * l.s / 2);
+		return l;
+	}
+
+	// slot under the mouse: chest 300 + k, inventory rows 400 + k, hotbar 0..8, -1 none
+	static int chest_hover(const Layout &l, float mx, float my, float &sx, float &sy)
+	{
+		float s = l.s;
+		for (int k = 0; k < 27 + 27 + 9; k++)
+		{
+			float x, y;
+			int code;
+			if (k < 27)
+				x = 8 + (k % 9) * 18, y = 18 + (k / 9) * 18, code = 300 + k;
+			else if (k < 54)
+				x = 8 + ((k - 27) % 9) * 18, y = CTOP + 14 + ((k - 27) / 9) * 18, code = 400 + k - 27;
+			else
+				x = 8 + (k - 54) * 18, y = CTOP + 72, code = k - 54;
+			if (in(mx, my, l.left + (x - 1) * s, l.top + (y - 1) * s, 18 * s, 18 * s))
+			{
+				sx = l.left + x * s, sy = l.top + y * s;
+				return code;
+			}
+		}
+		return -1;
+	}
+
+	static std::vector<StoredSlot> &chest_slots()
+	{
+		auto &v = g_chestItems[s_chestKey];
+		if (v.size() < 27)
+			v.resize(27);
+		return v;
+	}
+
+	// read / write any slot of the chest screen as a Slot
+	static Slot get_slot(int code)
+	{
+		if (code >= 400)
+			return s_main[code - 400];
+		if (code >= 300)
+		{
+			StoredSlot &st = chest_slots()[code - 300];
+			Slot sl;
+			sl.item = st.item, sl.count = st.count;
+			return sl;
+		}
+		return g_hotbar[code];
+	}
+	static void set_slot(int code, const Slot &sl)
+	{
+		if (code >= 400)
+			s_main[code - 400] = sl;
+		else if (code >= 300)
+		{
+			chest_slots()[code - 300] = sl.empty() ? StoredSlot{} : StoredSlot{sl.item, sl.count};
+			world_mark_dirty();
+		}
+		else
+			g_hotbar[code] = sl;
+	}
+
+	// Minecraft's clicks: left picks up / puts down / merges / swaps, right takes half or puts one
+	static void click_slot(int code, bool rmb)
+	{
+		Slot sl = get_slot(code);
+		if (rmb)
+		{
+			if (s_carried.empty() && !sl.empty())
+			{
+				s_carried = sl;
+				s_carried.count = (sl.count + 1) / 2;
+				sl.count -= s_carried.count;
+			}
+			else if (!s_carried.empty() && (sl.empty() || (sl.item == s_carried.item && sl.count < item(sl.item).maxStack)))
+			{
+				if (sl.empty())
+					sl = s_carried, sl.count = 0;
+				sl.count++;
+				s_carried.count--;
+			}
+		}
+		else if (!s_carried.empty() && !sl.empty() && sl.item == s_carried.item)
+		{
+			int room = item(sl.item).maxStack - sl.count, n = std::min(room, s_carried.count);
+			sl.count += n, s_carried.count -= n;
+		}
+		else
+			std::swap(sl, s_carried);
+		if (s_carried.count <= 0)
+			s_carried = Slot{};
+		if (sl.count <= 0)
+			sl = Slot{};
+		set_slot(code, sl);
+	}
+
+	void open_chest(const Cell &c)
+	{
+		s_chestKey = cell_key(c);
+		s_chest = true;
+		g_invOpen = true;
+		const Block *b = block_at(c);
+		if (!b)
+			return;
+		set_block_state(c, b->state | ST_OPEN);
+		bool ender = item(b->item).name == "ender_chest";
+		audio::play_at(ender ? "block/enderchest/open" : "block/chest/open", cell_center(c), 0.5f, frand(0.9f, 1.0f));
+	}
+
+	static void close_chest()
+	{
+		if (!s_chest)
+			return;
+		s_chest = false;
+		Cell c = key_cell(s_chestKey);
+		const Block *b = block_at(c);
+		if (b && item(b->item).shape == SH_CHEST)
+		{
+			set_block_state(c, b->state & ~ST_OPEN);
+			bool ender = item(b->item).name == "ender_chest";
+			audio::play_at(ender ? "block/enderchest/close" : "block/chest/close", cell_center(c), 0.5f, frand(0.9f, 1.0f));
+		}
+		world_mark_dirty();
+	}
+
+	static void update_chest()
+	{
+		s_mx = GET_DISABLED_CONTROL_NORMAL(0, 239) * g.screenW;
+		s_my = GET_DISABLED_CONTROL_NORMAL(0, 240) * g.screenH;
+		if (!g_blocks.count(s_chestKey)) // broken while open
+		{
+			g_invOpen = false;
+			close_inventory_reset();
+			return;
+		}
+		Layout l = chest_layout();
+		float sx, sy;
+		int h = chest_hover(l, s_mx, s_my, sx, sy);
+		for (int k = 0; k < 9; k++)
+			if (input::pressed('1' + k) && h >= 0 && h != k)
+			{
+				Slot a = get_slot(h), b = g_hotbar[k];
+				set_slot(h, b);
+				g_hotbar[k] = a;
+			}
+		bool lmb = input::mouse_pressed(VK_LBUTTON), rmb = input::mouse_pressed(VK_RBUTTON);
+		if ((lmb || rmb) && h >= 0)
+			click_slot(h, rmb);
+	}
+
+	static void draw_chest()
+	{
+		Layout l = chest_layout();
+		float s = l.s;
+		rect(0, 0, (float)g.screenW, (float)g.screenH, 0x80101010, L_INV_BACK);
+		draw(tex("gui/chest_top.png"), l.left, l.top, CW * s, CTOP * s, 0xFFFFFFFF, L_INV);
+		draw(tex("gui/chest_bottom.png"), l.left, l.top + CTOP * s, CW * s, 96 * s, 0xFFFFFFFF, L_INV);
+		const Block *b = block_at(key_cell(s_chestKey));
+		std::string title = b ? item(b->item).display : "Chest";
+		text(l.left + 8 * s, l.top + 6 * s, title, 0x404040, false, L_INV_ITEM);
+		text(l.left + 8 * s, l.top + (CTOP + 2) * s, "Inventory", 0x404040, false, L_INV_ITEM);
+		for (int k = 0; k < 27; k++)
+		{
+			draw_item(get_slot(300 + k), l.left + (8 + (k % 9) * 18) * s, l.top + (18 + (k / 9) * 18) * s, 16 * s, L_INV_ITEM);
+			draw_item(s_main[k], l.left + (8 + (k % 9) * 18) * s, l.top + (CTOP + 14 + (k / 9) * 18) * s, 16 * s, L_INV_ITEM);
+		}
+		for (int c = 0; c < 9; c++)
+			draw_item(g_hotbar[c], l.left + (8 + c * 18) * s, l.top + (CTOP + 72) * s, 16 * s, L_INV_ITEM);
+		float sx, sy;
+		int h = chest_hover(l, s_mx, s_my, sx, sy);
+		if (h >= 0)
+		{
+			rect(sx, sy, 16 * s, 16 * s, 0x80FFFFFF, L_INV_TOP);
+			Slot sl = get_slot(h);
+			if (!sl.empty() && s_carried.empty())
+			{
+				const std::string &name = item(sl.item).display;
+				float tw = text_width(name);
+				float tx = s_mx + 12 * s, ty = s_my - 12 * s;
+				rect(tx - 3 * s, ty - 4 * s, tw + 6 * s, 16 * s, 0xF0100010, L_TOOLTIP);
+				text(tx, ty, name, 0xFFFFFF, true, L_TOOLTIP_TEXT);
+			}
+		}
+		if (!s_carried.empty())
+			draw_item(s_carried, s_mx - 8 * s, s_my - 8 * s, 16 * s, L_TOOLTIP_TEXT + 3);
+		float cs = std::max(1.0f, s * 0.5f);
+		draw(t_cursor, s_mx, s_my, 12 * cs, 19 * cs, 0xFFFFFFFF, L_TOOLTIP_TEXT + 6);
+	}
+
 	void update_inventory()
 	{
+		if (s_chest)
+		{
+			update_chest();
+			return;
+		}
 		if (s_tabItems.empty())
 			rebuild_tab();
 		s_mx = GET_DISABLED_CONTROL_NORMAL(0, 239) * g.screenW;
@@ -299,6 +506,11 @@ namespace gui
 
 	void draw_inventory()
 	{
+		if (s_chest)
+		{
+			draw_chest();
+			return;
+		}
 		Layout l = layout();
 		float s = l.s;
 		// dim the world like Minecraft's screen background
@@ -376,7 +588,11 @@ namespace gui
 		draw(t_cursor, s_mx, s_my, 12 * cs, 19 * cs, 0xFFFFFFFF, L_TOOLTIP_TEXT + 6);
 	}
 
-	void close_inventory_reset() { s_carried = Slot{}; }
+	void close_inventory_reset()
+	{
+		s_carried = Slot{};
+		close_chest();
+	}
 
 	void draw_debug(const std::string &extra)
 	{

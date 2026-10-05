@@ -26,6 +26,7 @@ FILES = {  # source -> path in the game folder
     ROOT / "data" / "defs.txt": "GrandTheftMinecraft\\defs.txt",
     ROOT / "build" / "dlc" / "gtm" / "dlc_tex.txt": "GrandTheftMinecraft\\dlc_tex.txt",
     ROOT / "build" / "dlc_src" / "rigs.txt": "GrandTheftMinecraft\\rigs.txt",
+    ROOT / "build" / "dlc_src" / "icons.txt": "GrandTheftMinecraft\\icons.txt",
     ROOT / "build" / "dlc" / "gtm" / "dlc.rpf": "update\\x64\\dlcpacks\\gtm\\dlc.rpf",
 }
 

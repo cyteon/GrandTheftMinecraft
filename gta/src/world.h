@@ -1,6 +1,7 @@
 // Placed blocks. X/Y sit on the global integer grid; Z is offset per "build" by a fraction so blocks stand flush
 // on GTA ground at whatever height it has. A block is (build, x, y, z) → item id.
 #pragma once
+#include <string>
 #include "common.h"
 #include <cstdint>
 #include <unordered_map>
@@ -50,6 +51,15 @@ inline V3 cell_center(const Cell &c) { return cell_min(c) + V3(0.5f, 0.5f, 0.5f)
 const Block *block_at(const Cell &c);
 bool place_block(const Cell &c, int item, int facing = 0, int state = 0);
 bool set_block_state(const Cell &c, int state); // e.g. a door opening
+
+// what some blocks hold: a sign's text (lines split by '\n'), a chest's 27 slots
+struct StoredSlot
+{
+	int item = -1, count = 0;
+};
+extern std::unordered_map<uint64_t, std::string> g_signText;
+extern std::unordered_map<uint64_t, std::vector<StoredSlot>> g_chestItems;
+void world_mark_dirty();
 // also removes what depended on it (Minecraft pops them): the other half of a door, plants / carpets / torches on
 // top, torches and ladders on its sides, a lantern hanging under it
 bool remove_block(const Cell &c);

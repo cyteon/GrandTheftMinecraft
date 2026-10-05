@@ -11,6 +11,7 @@
 #include "steve.h"
 #include "elytra.h"
 #include "mobs.h"
+#include "signs.h"
 #include "wither.h"
 #include "rig.h"
 #include "input.h"
@@ -312,6 +313,8 @@ static void tick()
 	}
 
 	blockrender::draw_blocks();
+	signs::update();
+	signs::draw();
 	if (onFoot)
 	{
 		interact::update(!g_invOpen);

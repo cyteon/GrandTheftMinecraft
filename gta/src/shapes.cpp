@@ -90,6 +90,32 @@ namespace shapes
 		return "_s";
 	}
 
+	// rails join the rails beside them: straight along a line, or (plain rails only) a curve where two meet at a corner
+	static Look rail_look(const Item &it, const Cell &c)
+	{
+		int mask = 0;
+		for (int d = 0; d < 4; d++)
+		{
+			const Block *nb = block_at(step(c, d));
+			if (nb && item(nb->item).shape == SH_RAIL)
+				mask |= BIT[d];
+		}
+		if (it.name == "rail")
+		{
+			int m = 6; // the curve model joins -Y and +X
+			for (int k = 0; k < 4; k++, m = rot1(m))
+				if ((mask & m) == m && (mask & ~m) == 0)
+					return {"_corner", k * 90.0f};
+			// three or four neighbours: a corner if two of them make one (Minecraft prefers south / east)
+			m = 6;
+			if (mask != 5 && mask != 10 && (mask & 5) != 5 && (mask & 10) != 10)
+				for (int k = 0; k < 4; k++, m = rot1(m))
+					if ((mask & m) == m)
+						return {"_corner", k * 90.0f};
+		}
+		return {"_ns", (mask & 10) && !(mask & 5) ? 90.0f : 0.0f};
+	}
+
 	Look look(const Cell &c, const Block &b)
 	{
 		const Item &it = item(b.item);
@@ -122,6 +148,23 @@ namespace shapes
 		case SH_CARPET:
 		case SH_CROSS:
 			return {"", 0};
+		case SH_BED:
+			return {b.state & ST_UPPER ? "_head" : "_foot", yaw};
+		case SH_CHEST:
+			return {open ? "_open" : "", yaw};
+		case SH_SIGN:
+		case SH_BANNER:
+			return {wall ? "_wall" : "", yaw};
+		case SH_BUTTON:
+		case SH_LEVER:
+			return {std::string(wall ? "_wall" : "_floor") + (open ? "_on" : ""), yaw};
+		case SH_PLATE:
+			return {open ? "_down" : "", 0};
+		case SH_RAIL:
+			return rail_look(it, c);
+		case SH_ANVIL:
+		case SH_CAMPFIRE:
+			return {"", yaw};
 		default:
 			return {"", (it.oriented || it.skull) ? yaw : 0};
 		}

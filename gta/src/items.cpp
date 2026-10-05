@@ -113,7 +113,9 @@ bool items_load()
 		if (f.size() >= 11)
 		{
 			static const char *SHAPES[] = {"", "slab", "stairs", "wall", "fence", "gate", "pane", "carpet", "torch",
-			                               "lantern", "cross", "ladder", "door", "trapdoor"};
+			                               "lantern", "cross", "ladder", "door", "trapdoor", "bed", "chest", "sign",
+			                               "banner", "button", "lever", "plate", "rail", "anvil", "enchanting",
+			                               "brewing", "cauldron", "campfire", "pot"};
 			for (int k = 1; k < (int)(sizeof(SHAPES) / sizeof(SHAPES[0])); k++)
 				if (f[9] == SHAPES[k])
 					it.shape = (Shape)k;

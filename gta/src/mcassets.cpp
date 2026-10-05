@@ -374,6 +374,7 @@ namespace mcassets
 	{
 		std::string name, display, tab, flags, sound, top, side, bottom, front; // front: only flag o
 		std::string shape, base; // flags field ":<shape>[@<base>]" (tools/shapes.py): slab, stairs, fence...
+		std::string entity;      // beds, chests, signs, banners: their texture under entity/ (or banner:<rgb>)
 	};
 	struct ItemDef
 	{
@@ -434,6 +435,9 @@ namespace mcassets
 				s_icons.push_back(f[1]);
 		}
 		// shaped blocks made of another block (oak_slab@oak_planks) take its textures
+		for (auto &b : s_blocks)
+			if (b.shape == "bed" || b.shape == "chest" || b.shape == "sign" || b.shape == "banner")
+				b.entity = b.top;
 		for (auto &b : s_blocks)
 			if (!b.base.empty())
 				for (auto &o : s_blocks)
@@ -508,6 +512,12 @@ namespace mcassets
 						save_png("gui/" + n + ".png", up(i));
 				}
 			}
+		Img gen;
+		if (tex("gui/container/generic_54.png", gen) && gen.w >= 176 && gen.h >= 222)
+		{
+			save_png("gui/chest_top.png", up(crop(gen, 0, 0, 176, 71)));     // title + three rows
+			save_png("gui/chest_bottom.png", up(crop(gen, 0, 126, 176, 96))); // inventory + hotbar
+		}
 		Img tab;
 		if (tex("gui/container/creative_inventory/tab_items.png", tab))
 			save_png("gui/tab_items.png", up(crop(tab, 0, 0, 195, 136)));
@@ -616,113 +626,144 @@ namespace mcassets
 			return "b_" + b.side;
 		if (b.shape == "torch" || b.shape == "cross" || b.shape == "ladder")
 			return "b_" + b.top;
-		if (b.shape == "lantern" || b.shape == "door")
+		if (b.shape == "lantern" || b.shape == "door" || b.shape == "sign" || b.shape == "brewing" ||
+		    b.shape == "cauldron" || b.shape == "campfire" || b.shape == "pot")
 			return b.name;
+		if (b.shape == "lever" || b.shape == "rail")
+			return "b_" + b.top;
 		return "";
 	}
 
-	// Inventory icon of a 3D shaped block: its inventory model's boxes (pixels, the block's canonical orientation)
-	// drawn like iso_icon draws a cube: top, the +Y side on the left (shade 0.8), the -X side on the right (0.6).
-	static Img shape_icon(const BlockDef &b, const Img &sheet)
+	// a banner's texture: the pole / bar / flag base with the flag pattern dyed (BannerRenderer's base layer)
+	static Img banner_tex(const std::string &rgbHex)
 	{
-		struct Box
+		Img base, flag;
+		if (!tex("entity/banner_base.png", base))
+			base.w = base.h = 64, base.px.assign(64 * 64 * 4, 255);
+		if (tex("entity/banner/base.png", flag) && flag.w == base.w && flag.h == base.h)
 		{
-			float lo[3], hi[3];
-		};
-		std::vector<Box> boxes;
-		auto add = [&](float x0, float y0, float z0, float x1, float y1, float z1) { boxes.push_back({{x0, y0, z0}, {x1, y1, z1}}); };
-		if (b.shape == "slab")
-			add(0, 0, 0, 16, 16, 8);
-		else if (b.shape == "stairs")
-			add(0, 0, 0, 16, 16, 8), add(0, 0, 8, 16, 8, 16);
-		else if (b.shape == "wall")
-			add(4, 4, 0, 12, 12, 16), add(5, 0, 0, 11, 16, 13);
-		else if (b.shape == "fence")
-			add(6, 0, 0, 10, 4, 16), add(6, 12, 0, 10, 16, 16), add(7, -2, 13, 9, 18, 15), add(7, -2, 5, 9, 18, 7);
-		else if (b.shape == "gate")
-			add(0, 7, 5, 2, 9, 16), add(14, 7, 5, 16, 9, 16), add(6, 7, 6, 10, 9, 15), add(2, 7, 6, 6, 9, 9),
-			    add(2, 7, 12, 6, 9, 15), add(10, 7, 6, 14, 9, 9), add(10, 7, 12, 14, 9, 15);
-		else if (b.shape == "carpet")
-			add(0, 0, 0, 16, 16, 1);
-		else if (b.shape == "trapdoor")
-			add(0, 0, 0, 16, 16, 3);
-		else
-			add(0, 0, 0, 16, 16, 16);
-		// pixels -> icon: the cube's top corner at (32, 32), x along (-29, -15), y along (-29, 15), z along (0, -30) per block
-		auto scr = [](float x, float y, float z, float &sx, float &sy) {
-			sx = 32 + x / 16 * -29 + (y - 16) / 16 * -29;
-			sy = 32 + x / 16 * -15 + (y - 16) / 16 * 15 + (z - 16) / 16 * -30;
-		};
-		struct Face
-		{
-			float o[3], e1[3], e2[3], depth, shade;
-			int kind; // 0 top, 1 +Y, 2 -X
-		};
-		std::vector<Face> faces;
-		for (auto &bx : boxes)
-		{
-			const float *l = bx.lo, *h = bx.hi;
-			faces.push_back({{l[0], l[1], h[2]}, {h[0] - l[0], 0, 0}, {0, h[1] - l[1], 0}, 0, 1.0f, 0});
-			faces.push_back({{l[0], h[1], l[2]}, {h[0] - l[0], 0, 0}, {0, 0, h[2] - l[2]}, 0, 0.8f, 1});
-			faces.push_back({{l[0], l[1], l[2]}, {0, h[1] - l[1], 0}, {0, 0, h[2] - l[2]}, 0, 0.6f, 2});
+			uint32_t rgb = (uint32_t)std::stoul(rgbHex, nullptr, 16);
+			flag = tint(flag, rgb);
+			for (int y = 0; y < base.h; y++)
+				for (int x = 0; x < base.w; x++)
+				{
+					uint8_t *d = base.at(x, y);
+					const uint8_t *f = flag.at(x, y);
+					float a = f[3] / 255.0f;
+					for (int c = 0; c < 3; c++)
+						d[c] = (uint8_t)(d[c] * (1 - a) + f[c] * a);
+				}
 		}
-		for (auto &f : faces) // painter's order: nearer the viewer (low x, high y, high z) drawn later
+		return base;
+	}
+
+	// Inventory icons of 3D shaped blocks: the generator's inventory geometry (icons.txt: triangles in block pixels,
+	// with uvs on the block's sheet or its entity texture), drawn like iso_icon draws a cube: top, the +Y side on
+	// the left (shade 0.8), the -X side on the right (0.6), with a depth buffer.
+	struct IconTri
+	{
+		float n[3], v[3][5];
+	};
+	static std::map<std::string, std::vector<IconTri>> s_iconTpl;
+	static std::map<std::string, std::pair<std::string, std::string>> s_iconOf; // block -> template, kind
+
+	static void load_icons()
+	{
+		std::ifstream in(g_dataDir + "icons.txt");
+		std::string line, cur;
+		while (std::getline(in, line))
 		{
-			float c[3];
-			for (int k = 0; k < 3; k++)
-				c[k] = f.o[k] + f.e1[k] / 2 + f.e2[k] / 2;
-			f.depth = -c[0] + c[1] + c[2];
+			if (line.empty() || line[0] == '#')
+				continue;
+			auto f = split(line, ';');
+			if (f[0] == "tpl" && f.size() >= 3)
+				cur = f[1];
+			else if (f[0] == "blk" && f.size() >= 4)
+				s_iconOf[f[1]] = {f[2], f[3]};
+			else if (f[0] == "t" && f.size() >= 5 && !cur.empty())
+			{
+				IconTri t{};
+				auto n = split(f[1], ',');
+				for (int k = 0; k < 3 && k < (int)n.size(); k++)
+					t.n[k] = std::stof(n[k]);
+				for (int vtx = 0; vtx < 3; vtx++)
+				{
+					auto c = split(f[2 + vtx], ',');
+					for (int k = 0; k < 5 && k < (int)c.size(); k++)
+						t.v[vtx][k] = std::stof(c[k]);
+				}
+				s_iconTpl[cur].push_back(t);
+			}
 		}
-		std::sort(faces.begin(), faces.end(), [](const Face &a, const Face &b) { return a.depth < b.depth; });
+	}
+
+	static Img model_icon(const std::vector<IconTri> &tris, const Img &texImg)
+	{
 		const int S = 64;
 		Img o;
 		o.w = o.h = S;
 		o.px.assign(S * S * 4, 0);
-		bool front = !b.front.empty();
-		for (auto &f : faces)
+		std::vector<float> zb(S * S, -1e9f);
+		auto scr = [](const float *p, float &sx, float &sy, float &d) {
+			sx = 32 + p[0] / 16 * -29 + (p[1] - 16) / 16 * -29;
+			sy = 32 + p[0] / 16 * -15 + (p[1] - 16) / 16 * 15 + (p[2] - 16) / 16 * -30;
+			d = -p[0] + p[1] + p[2]; // towards the viewer
+		};
+		for (auto &t : tris)
 		{
-			float ox, oy, ax, ay, bx2, by2;
-			scr(f.o[0], f.o[1], f.o[2], ox, oy);
-			scr(f.o[0] + f.e1[0], f.o[1] + f.e1[1], f.o[2] + f.e1[2], ax, ay);
-			scr(f.o[0] + f.e2[0], f.o[1] + f.e2[1], f.o[2] + f.e2[2], bx2, by2);
-			ax -= ox, ay -= oy, bx2 -= ox, by2 -= oy;
-			float det = ax * by2 - bx2 * ay;
-			if (std::fabs(det) < 1e-6f)
+			if (-t.n[0] + t.n[1] + t.n[2] <= 0.01f)
+				continue; // facing away
+			float shade = std::min(1.0f, 0.55f + 0.45f * std::max(0.0f, t.n[2]) + 0.25f * std::max(0.0f, t.n[1]) +
+			                                 0.05f * std::max(0.0f, -t.n[0]));
+			float X[3], Y[3], D[3];
+			for (int k = 0; k < 3; k++)
+				scr(t.v[k], X[k], Y[k], D[k]);
+			float den = (Y[1] - Y[2]) * (X[0] - X[2]) + (X[2] - X[1]) * (Y[0] - Y[2]);
+			if (std::fabs(den) < 1e-6f)
 				continue;
-			for (int y = 0; y < S; y++)
-				for (int x = 0; x < S; x++)
+			int x0 = std::max(0, (int)std::floor(std::min({X[0], X[1], X[2]}))), x1 = std::min(S - 1, (int)std::ceil(std::max({X[0], X[1], X[2]})));
+			int y0 = std::max(0, (int)std::floor(std::min({Y[0], Y[1], Y[2]}))), y1 = std::min(S - 1, (int)std::ceil(std::max({Y[0], Y[1], Y[2]})));
+			for (int y = y0; y <= y1; y++)
+				for (int x = x0; x <= x1; x++)
 				{
-					float px = x + 0.5f - ox, py = y + 0.5f - oy;
-					float u = (px * by2 - py * bx2) / det, v = (py * ax - px * ay) / det;
-					if (u < 0 || u >= 1 || v < 0 || v >= 1)
+					float px = x + 0.5f, py = y + 0.5f;
+					float w0 = ((Y[1] - Y[2]) * (px - X[2]) + (X[2] - X[1]) * (py - Y[2])) / den;
+					float w1 = ((Y[2] - Y[0]) * (px - X[2]) + (X[0] - X[2]) * (py - Y[2])) / den;
+					float w2 = 1 - w0 - w1;
+					if (w0 < 0 || w1 < 0 || w2 < 0)
 						continue;
-					float P[3];
-					for (int k = 0; k < 3; k++)
-						P[k] = f.o[k] + f.e1[k] * u + f.e2[k] * v;
-					// the face's texture by position (Minecraft's automatic UVs, as tools/shapes.py)
-					float s_, t_;
-					int col;
-					if (f.kind == 0)
-						s_ = P[0] / 16, t_ = 1 - P[1] / 16, col = 0;
-					else if (f.kind == 1)
-						s_ = 1 - P[0] / 16, t_ = 1 - P[2] / 16, col = front ? 3 : 1;
-					else
-						s_ = 1 - P[1] / 16, t_ = 1 - P[2] / 16, col = 1;
-					int tx = std::clamp((int)std::floor(s_ * 16), 0, 15), ty = std::clamp((int)std::floor(t_ * 16), 0, 15);
-					const uint8_t *c = sheet.at(col * 16 + tx, ty);
+					float d = w0 * D[0] + w1 * D[1] + w2 * D[2];
+					if (d <= zb[y * S + x])
+						continue;
+					float u = w0 * t.v[0][3] + w1 * t.v[1][3] + w2 * t.v[2][3];
+					float v = w0 * t.v[0][4] + w1 * t.v[1][4] + w2 * t.v[2][4];
+					int tx = std::clamp((int)(u * texImg.w), 0, texImg.w - 1), ty = std::clamp((int)(v * texImg.h), 0, texImg.h - 1);
+					const uint8_t *c = texImg.at(tx, ty);
 					if (c[3] < 16)
 						continue;
-					uint8_t *d = o.at(x, y);
-					d[0] = (uint8_t)(c[0] * f.shade), d[1] = (uint8_t)(c[1] * f.shade), d[2] = (uint8_t)(c[2] * f.shade);
-					d[3] = std::max(d[3], c[3]);
+					zb[y * S + x] = d;
+					uint8_t *dst = o.at(x, y);
+					dst[0] = (uint8_t)(c[0] * shade), dst[1] = (uint8_t)(c[1] * shade), dst[2] = (uint8_t)(c[2] * shade);
+					dst[3] = 255;
 				}
 		}
 		return o;
 	}
 
+	static bool entity_tex(const BlockDef &b, Img &out)
+	{
+		if (b.entity.rfind("banner:", 0) == 0)
+		{
+			out = banner_tex(b.entity.substr(7));
+			return true;
+		}
+		return tex("entity/" + b.entity + ".png", out);
+	}
+
 	static bool build_items()
 	{
 		set_status("Building block and item icons...");
+		load_icons();
 		std::string txt = "# name;Display Name;kind;tab;flags;sound;top 16x16 RGBA hex;side;bottom;shape;held sprite\n";
 		for (auto &b : s_blocks)
 		{
@@ -735,8 +776,19 @@ namespace mcassets
 				save_png("items/" + b.name + ".png", up(spr));
 				t = spr; // the hand's fallback draws the "top" face as the held sprite
 			}
-			else if (!b.shape.empty())
-				save_png("items/" + b.name + ".png", shape_icon(b, block_sheet(b)));
+			else if (s_iconOf.count(b.name) && s_iconTpl.count(s_iconOf[b.name].first))
+			{
+				const auto &ic = s_iconOf[b.name];
+				Img texImg;
+				if (ic.second == "entity")
+				{
+					if (!entity_tex(b, texImg))
+						texImg.w = texImg.h = 16, texImg.px.assign(16 * 16 * 4, 255);
+				}
+				else
+					texImg = block_sheet(b);
+				save_png("items/" + b.name + ".png", model_icon(s_iconTpl[ic.first], texImg));
+			}
 			else
 			{
 				Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16); // Minecraft shows the front on the left
@@ -798,7 +850,8 @@ namespace mcassets
 		{"mob/irongolem/throw", 0}, {"fireworks/launch", 1}, {"fireworks/blast", 1}, {"fireworks/twinkle", 1},
 		{"item/elytra/elytra_loop", 0}, {"block/wooden_door/open", 2}, {"block/wooden_door/close", 3},
 		{"block/wooden_trapdoor/open", 5}, {"block/wooden_trapdoor/close", 3}, {"block/fence_gate/open", 2},
-		{"block/fence_gate/close", 2}, {"block/copper_door/toggle", 3}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
+		{"block/fence_gate/close", 2}, {"block/copper_door/toggle", 3}, {"block/chest/open", 0},
+		{"block/chest/close", 3}, {"block/enderchest/open", 0}, {"block/enderchest/close", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
 		{"mob/wither/idle", 4}, {"mob/wither/hurt", 4}, {"mob/wither/death", 0}};
 
 	static bool build_sounds(const Source &src)
@@ -1083,6 +1136,8 @@ namespace mcassets
 					e.w = 64, e.h = 64, e.px.assign(64 * 64 * 4, 255);
 				base = resize_nn(e, w, h);
 			}
+			else if (r[0] == "banner" && r.size() > 1)
+				base = resize_nn(banner_tex(r[1]), w, h);
 			else if (r[0] == "arrow")
 			{
 				Img a;

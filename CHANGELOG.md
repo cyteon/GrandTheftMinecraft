@@ -12,6 +12,15 @@
   froglights, mushroom blocks, sculk, deepslate ores, barrel, loom, fletching / smithing / cartography tables,
   chiseled bookshelf, lodestone, respawn anchor, spawner, crafter and more.
 - **Mob heads**: skeleton skull, zombie head, creeper head and player head.
+- **Furniture and redstone blocks** (91 new): beds in all 16 colours (right-click at night to sleep until morning),
+  chests, trapped chests and ender chests (right-click to open: a lid that lifts and 27 slots that keep what you put
+  in), signs in every wood (standing or on walls; type your text with GTA's keyboard, '|' starts a new line, and it
+  shows on the sign), banners in all 16 colours, buttons and levers (they press and flip), pressure plates (they go
+  down when people or cars are on them), rails (they join up and curve at corners), anvils, enchanting table, brewing
+  stand, cauldron, campfires (they glow and burn whoever stands in them) and flower pots.
+- **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.
+- Arrows, ender pearls and wither skulls fly through torches, plants, carpets, signs and the like instead of
+  sticking in the air around them.
 - Block textures are compressed on the GPU (DXT, lossless for Minecraft's pixel art): the block pack uses about a
   third of the memory it did.
 

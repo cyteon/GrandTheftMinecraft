@@ -2,6 +2,8 @@
 #pragma once
 #include <string>
 
+struct Cell;
+
 struct Slot
 {
 	int item = -1;
@@ -24,7 +26,8 @@ namespace gui
 	void update_inventory();          // input for the open inventory (call before drawing)
 	void draw_hud(bool interactive);
 	void draw_inventory();
-	void close_inventory_reset(); // drops the stack on the cursor
+	void close_inventory_reset(); // drops the stack on the cursor (and closes an open chest)
+	void open_chest(const Cell &c); // a chest's screen (opens the inventory)
 	void draw_debug(const std::string &extra);
 	void toast(const std::string &msg); // short message above the hotbar (uses the item-name slot)
 }

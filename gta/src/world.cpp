@@ -10,6 +10,8 @@
 
 std::vector<Build> g_builds;
 std::unordered_map<uint64_t, Block> g_blocks;
+std::unordered_map<uint64_t, std::string> g_signText;
+std::unordered_map<uint64_t, std::vector<StoredSlot>> g_chestItems;
 int g_worldVersion = 0;
 static uint32_t s_dirtySince = 0;
 static bool s_dirty = false;
@@ -113,6 +115,8 @@ bool remove_block(const Cell &c)
 		return false;
 	Block old = it->second;
 	g_blocks.erase(it);
+	g_signText.erase(cell_key(c));
+	g_chestItems.erase(cell_key(c));
 	g_builds[c.b].count--;
 	touched(c);
 	static int depth = 0;
@@ -136,14 +140,25 @@ static void remove_dependents(const Cell &c, const Block &old)
 		if (b && b->item == old.item)
 			remove_block(o);
 	}
+	if (oi.shape == SH_BED) // the other half, a block towards (head) or away from (foot) the facing
+	{
+		int d = shapes::dir_of_facing(old.facing);
+		Cell o = shapes::step(c, old.state & ST_UPPER ? d : (d + 2) % 4);
+		const Block *b = block_at(o);
+		if (b && b->item == old.item)
+			remove_block(o);
+	}
 	Cell up = c, dn = c;
 	up.z++, dn.z--;
 	if (const Block *b = block_at(up))
 	{
 		const Item &i = item(b->item);
 		bool wall = b->state & ST_WALL;
-		if (i.shape == SH_CROSS || i.shape == SH_CARPET || ((i.shape == SH_TORCH || i.shape == SH_LANTERN) && !wall) ||
-		    (i.shape == SH_DOOR && !(b->state & ST_UPPER)))
+		bool onFloor = i.shape == SH_CROSS || i.shape == SH_CARPET || i.shape == SH_PLATE || i.shape == SH_RAIL ||
+		               i.shape == SH_POT;
+		bool standing = i.shape == SH_TORCH || i.shape == SH_LANTERN || i.shape == SH_SIGN || i.shape == SH_BANNER ||
+		                i.shape == SH_BUTTON || i.shape == SH_LEVER;
+		if (onFloor || (standing && !wall) || (i.shape == SH_DOOR && !(b->state & ST_UPPER)))
 			remove_block(up);
 	}
 	if (const Block *b = block_at(dn))
@@ -156,7 +171,9 @@ static void remove_dependents(const Cell &c, const Block &old)
 		if (!b)
 			continue;
 		const Item &i = item(b->item);
-		if (((i.shape == SH_TORCH && (b->state & ST_WALL)) || i.shape == SH_LADDER) &&
+		bool hung = (b->state & ST_WALL) && (i.shape == SH_TORCH || i.shape == SH_SIGN || i.shape == SH_BANNER ||
+		                                     i.shape == SH_BUTTON || i.shape == SH_LEVER);
+		if ((hung || i.shape == SH_LADDER) &&
 		    shapes::dir_of_facing(b->facing) == d)
 			remove_block(s);
 	}
@@ -315,6 +332,32 @@ void world_load()
 				g_builds[id] = b;
 			}
 		}
+		else if (kind == 'T')
+		{
+			Cell c;
+			ss >> c.b >> c.x >> c.y >> c.z;
+			std::string t;
+			std::getline(ss, t);
+			if (!t.empty() && t[0] == ' ')
+				t.erase(0, 1);
+			for (char &ch : t)
+				if (ch == '|')
+					ch = '\n';
+			g_signText[cell_key(c)] = t;
+		}
+		else if (kind == 'C')
+		{
+			Cell c;
+			int slot = 0, count = 0;
+			std::string name;
+			ss >> c.b >> c.x >> c.y >> c.z >> slot >> name >> count;
+			int it = item_find(name);
+			if (it < 0 || slot < 0 || slot >= 27)
+				continue;
+			auto &v = g_chestItems[cell_key(c)];
+			v.resize(27);
+			v[slot] = {it, count};
+		}
 		else if (kind == 'K')
 		{
 			Cell c;
@@ -340,6 +383,13 @@ void world_load()
 	logf("world: %d builds, %d blocks loaded", (int)g_builds.size(), (int)g_blocks.size());
 }
 
+void world_mark_dirty()
+{
+	if (!s_dirty)
+		s_dirtySince = GetTickCount();
+	s_dirty = true;
+}
+
 void world_save_if_dirty()
 {
 	if (!s_dirty || GetTickCount() - s_dirtySince < 2000)
@@ -353,6 +403,23 @@ void world_save_if_dirty()
 	for (int i = 0; i < (int)g_builds.size(); i++)
 		if (g_builds[i].count > 0)
 			std::fprintf(f, "B %d %.4f\n", i, g_builds[i].zOff);
+	for (auto &kv : g_signText)
+	{
+		Cell c = key_cell(kv.first);
+		std::string t = kv.second;
+		for (char &ch : t)
+			if (ch == '\n')
+				ch = '|';
+		std::fprintf(f, "T %d %d %d %d %s\n", c.b, c.x, c.y, c.z, t.c_str());
+	}
+	for (auto &kv : g_chestItems)
+	{
+		Cell c = key_cell(kv.first);
+		for (int k = 0; k < (int)kv.second.size(); k++)
+			if (kv.second[k].item >= 0 && kv.second[k].count > 0)
+				std::fprintf(f, "C %d %d %d %d %d %s %d\n", c.b, c.x, c.y, c.z, k, item(kv.second[k].item).name.c_str(),
+				             kv.second[k].count);
+	}
 	for (auto &kv : g_blocks)
 	{
 		Cell c = key_cell(kv.first);
