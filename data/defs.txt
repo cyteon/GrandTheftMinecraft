@@ -78,9 +78,198 @@ block;brown_concrete;Brown Concrete;colored;;stone;brown_concrete;;
 block;green_concrete;Green Concrete;colored;;stone;green_concrete;;
 block;red_concrete;Red Concrete;colored;;stone;red_concrete;;
 block;black_concrete;Black Concrete;colored;;stone;black_concrete;;
+block;spruce_log;Spruce Log;building,natural;;wood;spruce_log_top;spruce_log;spruce_log_top
+block;birch_log;Birch Log;building,natural;;wood;birch_log_top;birch_log;birch_log_top
+block;jungle_log;Jungle Log;building,natural;;wood;jungle_log_top;jungle_log;jungle_log_top
+block;acacia_log;Acacia Log;building,natural;;wood;acacia_log_top;acacia_log;acacia_log_top
+block;dark_oak_log;Dark Oak Log;building,natural;;wood;dark_oak_log_top;dark_oak_log;dark_oak_log_top
+block;mangrove_log;Mangrove Log;building,natural;;wood;mangrove_log_top;mangrove_log;mangrove_log_top
+block;cherry_log;Cherry Log;building,natural;;wood;cherry_log_top;cherry_log;cherry_log_top
+block;pale_oak_log;Pale Oak Log;building,natural;;wood;pale_oak_log_top;pale_oak_log;pale_oak_log_top
+block;jungle_planks;Jungle Planks;building;;wood;jungle_planks;;
+block;acacia_planks;Acacia Planks;building;;wood;acacia_planks;;
+block;dark_oak_planks;Dark Oak Planks;building;;wood;dark_oak_planks;;
+block;mangrove_planks;Mangrove Planks;building;;wood;mangrove_planks;;
+block;cherry_planks;Cherry Planks;building;;wood;cherry_planks;;
+block;pale_oak_planks;Pale Oak Planks;building;;wood;pale_oak_planks;;
+block;bamboo_planks;Bamboo Planks;building;;wood;bamboo_planks;;
+block;crimson_planks;Crimson Planks;building;;wood;crimson_planks;;
+block;warped_planks;Warped Planks;building;;wood;warped_planks;;
+block;crimson_stem;Crimson Stem;building,natural;;wood;crimson_stem_top;crimson_stem;crimson_stem_top
+block;warped_stem;Warped Stem;building,natural;;wood;warped_stem_top;warped_stem;warped_stem_top
+block;smooth_stone;Smooth Stone;building;;stone;smooth_stone;;
+block;granite;Granite;building,natural;;stone;granite;;
+block;polished_granite;Polished Granite;building;;stone;polished_granite;;
+block;diorite;Diorite;building,natural;;stone;diorite;;
+block;polished_diorite;Polished Diorite;building;;stone;polished_diorite;;
+block;andesite;Andesite;building,natural;;stone;andesite;;
+block;polished_andesite;Polished Andesite;building;;stone;polished_andesite;;
+block;mossy_cobblestone;Mossy Cobblestone;building;;stone;mossy_cobblestone;;
+block;mossy_stone_bricks;Mossy Stone Bricks;building;;stone;mossy_stone_bricks;;
+block;cracked_stone_bricks;Cracked Stone Bricks;building;;stone;cracked_stone_bricks;;
+block;chiseled_stone_bricks;Chiseled Stone Bricks;building;;stone;chiseled_stone_bricks;;
+block;cobbled_deepslate;Cobbled Deepslate;building;;stone;cobbled_deepslate;;
+block;polished_deepslate;Polished Deepslate;building;;stone;polished_deepslate;;
+block;deepslate_bricks;Deepslate Bricks;building;;stone;deepslate_bricks;;
+block;deepslate_tiles;Deepslate Tiles;building;;stone;deepslate_tiles;;
+block;tuff;Tuff;building,natural;;stone;tuff;;
+block;tuff_bricks;Tuff Bricks;building;;stone;tuff_bricks;;
+block;calcite;Calcite;building,natural;;stone;calcite;;
+block;prismarine;Prismarine;building;;stone;prismarine;;
+block;prismarine_bricks;Prismarine Bricks;building;;stone;prismarine_bricks;;
+block;dark_prismarine;Dark Prismarine;building;;stone;dark_prismarine;;
+block;nether_bricks;Nether Bricks;building;;stone;nether_bricks;;
+block;red_nether_bricks;Red Nether Bricks;building;;stone;red_nether_bricks;;
+block;end_stone_bricks;End Stone Bricks;building;;stone;end_stone_bricks;;
+block;purpur_block;Purpur Block;building;;stone;purpur_block;;
+block;quartz_bricks;Quartz Bricks;building;;stone;quartz_bricks;;
+block;mud_bricks;Mud Bricks;building;;stone;mud_bricks;;
+block;polished_blackstone_bricks;Polished Blackstone Bricks;building;;stone;polished_blackstone_bricks;;
+block;copper_block;Block of Copper;building;;stone;copper_block;;
+block;netherite_block;Block of Netherite;building;;stone;netherite_block;;
+block;amethyst_block;Block of Amethyst;building;;stone;amethyst_block;;
+block;raw_iron_block;Block of Raw Iron;building;;stone;raw_iron_block;;
+block;raw_gold_block;Block of Raw Gold;building;;stone;raw_gold_block;;
+block;raw_copper_block;Block of Raw Copper;building;;stone;raw_copper_block;;
+block;deepslate;Deepslate;building,natural;;stone;deepslate_top;deepslate;deepslate_top
+block;red_sandstone;Red Sandstone;building,natural;;stone;red_sandstone_top;red_sandstone;red_sandstone_bottom
+block;cut_sandstone;Cut Sandstone;building;;stone;sandstone_top;cut_sandstone;sandstone_top
+block;purpur_pillar;Purpur Pillar;building;;stone;purpur_pillar_top;purpur_pillar;purpur_pillar_top
+block;blackstone;Blackstone;building,natural;;stone;blackstone_top;blackstone;blackstone_top
+block;basalt;Basalt;natural;;stone;basalt_top;basalt_side;basalt_top
+block;coarse_dirt;Coarse Dirt;natural;;gravel;coarse_dirt;;
+block;rooted_dirt;Rooted Dirt;natural;;gravel;rooted_dirt;;
+block;mud;Mud;natural;;gravel;mud;;
+block;clay;Clay;natural;;gravel;clay;;
+block;moss_block;Moss Block;natural;;grass;moss_block;;
+block;packed_ice;Packed Ice;natural;;glass;packed_ice;;
+block;blue_ice;Blue Ice;natural;;glass;blue_ice;;
+block;sponge;Sponge;natural;;grass;sponge;;
+block;wet_sponge;Wet Sponge;natural;;grass;wet_sponge;;
+block;nether_wart_block;Nether Wart Block;natural;;wood;nether_wart_block;;
+block;warped_wart_block;Warped Wart Block;natural;;wood;warped_wart_block;;
+block;coal_ore;Coal Ore;natural;;stone;coal_ore;;
+block;iron_ore;Iron Ore;natural;;stone;iron_ore;;
+block;copper_ore;Copper Ore;natural;;stone;copper_ore;;
+block;gold_ore;Gold Ore;natural;;stone;gold_ore;;
+block;redstone_ore;Redstone Ore;natural;;stone;redstone_ore;;
+block;emerald_ore;Emerald Ore;natural;;stone;emerald_ore;;
+block;lapis_ore;Lapis Ore;natural;;stone;lapis_ore;;
+block;diamond_ore;Diamond Ore;natural;;stone;diamond_ore;;
+block;deepslate_diamond_ore;Deepslate Diamond Ore;natural;;stone;deepslate_diamond_ore;;
+block;nether_quartz_ore;Nether Quartz Ore;natural;;stone;nether_quartz_ore;;
+block;nether_gold_ore;Nether Gold Ore;natural;;stone;nether_gold_ore;;
+block;crying_obsidian;Crying Obsidian;natural;l;stone;crying_obsidian;;
+block;magma_block;Magma Block;natural;l;stone;magma;;
+block;shroomlight;Shroomlight;natural;l;wood;shroomlight;;
+block;red_sand;Red Sand;natural;g;sand;red_sand;;
+block;podzol;Podzol;natural;;gravel;podzol_top;podzol_side;dirt
+block;mycelium;Mycelium;natural;;gravel;mycelium_top;mycelium_side;dirt
+block;bone_block;Bone Block;natural;;stone;bone_block_top;bone_block_side;bone_block_top
+block;dried_kelp_block;Dried Kelp Block;natural;;grass;dried_kelp_top;dried_kelp_side;dried_kelp_bottom
+block;crimson_nylium;Crimson Nylium;natural;;stone;crimson_nylium;crimson_nylium_side;netherrack
+block;warped_nylium;Warped Nylium;natural;;stone;warped_nylium;warped_nylium_side;netherrack
+block;ancient_debris;Ancient Debris;natural;;stone;ancient_debris_top;ancient_debris_side;ancient_debris_top
+block;spruce_leaves;Spruce Leaves;natural;cf;grass;spruce_leaves;;
+block;birch_leaves;Birch Leaves;natural;cf;grass;birch_leaves;;
+block;jungle_leaves;Jungle Leaves;natural;cf;grass;jungle_leaves;;
+block;acacia_leaves;Acacia Leaves;natural;cf;grass;acacia_leaves;;
+block;dark_oak_leaves;Dark Oak Leaves;natural;cf;grass;dark_oak_leaves;;
+block;mangrove_leaves;Mangrove Leaves;natural;cf;grass;mangrove_leaves;;
+block;cherry_leaves;Cherry Leaves;natural;c;grass;cherry_leaves;;
+block;azalea_leaves;Azalea Leaves;natural;c;grass;azalea_leaves;;
+block;sea_lantern;Sea Lantern;functional;l;glass;sea_lantern;;
+block;jukebox;Jukebox;functional;;wood;jukebox_top;jukebox_side;jukebox_side
+block;redstone_lamp;Redstone Lamp;redstone;;glass;redstone_lamp;;
+block;target;Target;redstone;;grass;target_top;target_side;target_top
+block;note_block;Note Block;redstone;;wood;note_block;;
+block;slime_block;Slime Block;redstone;a;grass;slime_block;;
+block;honey_block;Honey Block;redstone;a;grass;honey_block_top;honey_block_side;honey_block_bottom
+block;white_terracotta;White Terracotta;colored;;stone;white_terracotta;;
+block;light_gray_terracotta;Light Gray Terracotta;colored;;stone;light_gray_terracotta;;
+block;gray_terracotta;Gray Terracotta;colored;;stone;gray_terracotta;;
+block;black_terracotta;Black Terracotta;colored;;stone;black_terracotta;;
+block;brown_terracotta;Brown Terracotta;colored;;stone;brown_terracotta;;
+block;red_terracotta;Red Terracotta;colored;;stone;red_terracotta;;
+block;orange_terracotta;Orange Terracotta;colored;;stone;orange_terracotta;;
+block;yellow_terracotta;Yellow Terracotta;colored;;stone;yellow_terracotta;;
+block;lime_terracotta;Lime Terracotta;colored;;stone;lime_terracotta;;
+block;green_terracotta;Green Terracotta;colored;;stone;green_terracotta;;
+block;cyan_terracotta;Cyan Terracotta;colored;;stone;cyan_terracotta;;
+block;light_blue_terracotta;Light Blue Terracotta;colored;;stone;light_blue_terracotta;;
+block;blue_terracotta;Blue Terracotta;colored;;stone;blue_terracotta;;
+block;purple_terracotta;Purple Terracotta;colored;;stone;purple_terracotta;;
+block;magenta_terracotta;Magenta Terracotta;colored;;stone;magenta_terracotta;;
+block;pink_terracotta;Pink Terracotta;colored;;stone;pink_terracotta;;
+block;white_stained_glass;White Stained Glass;colored;a;glass;white_stained_glass;;
+block;light_gray_stained_glass;Light Gray Stained Glass;colored;a;glass;light_gray_stained_glass;;
+block;gray_stained_glass;Gray Stained Glass;colored;a;glass;gray_stained_glass;;
+block;black_stained_glass;Black Stained Glass;colored;a;glass;black_stained_glass;;
+block;brown_stained_glass;Brown Stained Glass;colored;a;glass;brown_stained_glass;;
+block;red_stained_glass;Red Stained Glass;colored;a;glass;red_stained_glass;;
+block;orange_stained_glass;Orange Stained Glass;colored;a;glass;orange_stained_glass;;
+block;yellow_stained_glass;Yellow Stained Glass;colored;a;glass;yellow_stained_glass;;
+block;lime_stained_glass;Lime Stained Glass;colored;a;glass;lime_stained_glass;;
+block;green_stained_glass;Green Stained Glass;colored;a;glass;green_stained_glass;;
+block;cyan_stained_glass;Cyan Stained Glass;colored;a;glass;cyan_stained_glass;;
+block;light_blue_stained_glass;Light Blue Stained Glass;colored;a;glass;light_blue_stained_glass;;
+block;blue_stained_glass;Blue Stained Glass;colored;a;glass;blue_stained_glass;;
+block;purple_stained_glass;Purple Stained Glass;colored;a;glass;purple_stained_glass;;
+block;magenta_stained_glass;Magenta Stained Glass;colored;a;glass;magenta_stained_glass;;
+block;pink_stained_glass;Pink Stained Glass;colored;a;glass;pink_stained_glass;;
+block;white_concrete_powder;White Concrete Powder;colored;g;sand;white_concrete_powder;;
+block;light_gray_concrete_powder;Light Gray Concrete Powder;colored;g;sand;light_gray_concrete_powder;;
+block;gray_concrete_powder;Gray Concrete Powder;colored;g;sand;gray_concrete_powder;;
+block;black_concrete_powder;Black Concrete Powder;colored;g;sand;black_concrete_powder;;
+block;brown_concrete_powder;Brown Concrete Powder;colored;g;sand;brown_concrete_powder;;
+block;red_concrete_powder;Red Concrete Powder;colored;g;sand;red_concrete_powder;;
+block;orange_concrete_powder;Orange Concrete Powder;colored;g;sand;orange_concrete_powder;;
+block;yellow_concrete_powder;Yellow Concrete Powder;colored;g;sand;yellow_concrete_powder;;
+block;lime_concrete_powder;Lime Concrete Powder;colored;g;sand;lime_concrete_powder;;
+block;green_concrete_powder;Green Concrete Powder;colored;g;sand;green_concrete_powder;;
+block;cyan_concrete_powder;Cyan Concrete Powder;colored;g;sand;cyan_concrete_powder;;
+block;light_blue_concrete_powder;Light Blue Concrete Powder;colored;g;sand;light_blue_concrete_powder;;
+block;blue_concrete_powder;Blue Concrete Powder;colored;g;sand;blue_concrete_powder;;
+block;purple_concrete_powder;Purple Concrete Powder;colored;g;sand;purple_concrete_powder;;
+block;magenta_concrete_powder;Magenta Concrete Powder;colored;g;sand;magenta_concrete_powder;;
+block;pink_concrete_powder;Pink Concrete Powder;colored;g;sand;pink_concrete_powder;;
+item;wooden_sword;Wooden Sword;combat;s;wooden_sword
+item;stone_sword;Stone Sword;combat;s;stone_sword
+item;copper_sword;Copper Sword;combat;s;copper_sword
+item;iron_sword;Iron Sword;combat;s;iron_sword
+item;golden_sword;Golden Sword;combat;s;golden_sword
 item;diamond_sword;Diamond Sword;combat;s;diamond_sword
+item;netherite_sword;Netherite Sword;combat;s;netherite_sword
 item;bow;Bow;combat;s;bow
 item;crossbow;Crossbow;combat;s;crossbow_standby
+item;wooden_shovel;Wooden Shovel;tools;s;wooden_shovel
+item;wooden_pickaxe;Wooden Pickaxe;tools;s;wooden_pickaxe
+item;wooden_axe;Wooden Axe;tools,combat;s;wooden_axe
+item;wooden_hoe;Wooden Hoe;tools;s;wooden_hoe
+item;stone_shovel;Stone Shovel;tools;s;stone_shovel
+item;stone_pickaxe;Stone Pickaxe;tools;s;stone_pickaxe
+item;stone_axe;Stone Axe;tools,combat;s;stone_axe
+item;stone_hoe;Stone Hoe;tools;s;stone_hoe
+item;copper_shovel;Copper Shovel;tools;s;copper_shovel
+item;copper_pickaxe;Copper Pickaxe;tools;s;copper_pickaxe
+item;copper_axe;Copper Axe;tools,combat;s;copper_axe
+item;copper_hoe;Copper Hoe;tools;s;copper_hoe
+item;iron_shovel;Iron Shovel;tools;s;iron_shovel
+item;iron_pickaxe;Iron Pickaxe;tools;s;iron_pickaxe
+item;iron_axe;Iron Axe;tools,combat;s;iron_axe
+item;iron_hoe;Iron Hoe;tools;s;iron_hoe
+item;golden_shovel;Golden Shovel;tools;s;golden_shovel
+item;golden_pickaxe;Golden Pickaxe;tools;s;golden_pickaxe
+item;golden_axe;Golden Axe;tools,combat;s;golden_axe
+item;golden_hoe;Golden Hoe;tools;s;golden_hoe
+item;diamond_shovel;Diamond Shovel;tools;s;diamond_shovel
+item;diamond_pickaxe;Diamond Pickaxe;tools;s;diamond_pickaxe
+item;diamond_axe;Diamond Axe;tools,combat;s;diamond_axe
+item;diamond_hoe;Diamond Hoe;tools;s;diamond_hoe
+item;netherite_shovel;Netherite Shovel;tools;s;netherite_shovel
+item;netherite_pickaxe;Netherite Pickaxe;tools;s;netherite_pickaxe
+item;netherite_axe;Netherite Axe;tools,combat;s;netherite_axe
+item;netherite_hoe;Netherite Hoe;tools;s;netherite_hoe
 item;flint_and_steel;Flint and Steel;tools;s;flint_and_steel
 item;ender_pearl;Ender Pearl;tools;p;ender_pearl
 item;elytra;Elytra;tools;s;elytra

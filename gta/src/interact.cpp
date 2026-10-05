@@ -51,16 +51,41 @@ namespace interact
 		return s.empty() ? nullptr : &item(s.item);
 	}
 
+	// Minecraft's attack damage for what's in the hand (a fist does 1)
+	static float attack_damage(const Item *h, bool &weapon)
+	{
+		weapon = false;
+		if (!h)
+			return 1;
+		static const char *TIERS[] = {"wooden", "golden", "stone", "copper", "iron", "diamond", "netherite"};
+		static const float SWORD[] = {4, 4, 5, 5, 6, 7, 8}, AXE[] = {7, 7, 9, 9, 9, 9, 10},
+		                   PICK[] = {2, 2, 3, 3, 4, 5, 6};
+		const std::string &n = h->name;
+		size_t us = n.rfind('_');
+		if (us == std::string::npos)
+			return 1;
+		std::string tier = n.substr(0, us), kind = n.substr(us + 1);
+		for (int k = 0; k < 7; k++)
+			if (tier == TIERS[k])
+			{
+				weapon = kind == "sword" || kind == "axe";
+				return kind == "sword" ? SWORD[k] : kind == "axe" ? AXE[k] : kind == "pickaxe" ? PICK[k]
+				       : kind == "shovel" ? PICK[k] + 0.5f : 1;
+			}
+		return 1;
+	}
+
 	static void attack()
 	{
 		gui::swing();
 		const Item *h = held();
-		bool sword = h && h->name == "diamond_sword";
+		bool sword;
+		float damage = attack_damage(h, sword);
 		Target &t = g_target;
 		if (t.kind == Target::PED)
 		{
 			int ped = t.gh.entity;
-			int dmg = sword ? 70 : 10; // Minecraft damage x10 (GTA peds have ~100 effective health)
+			int dmg = (int)(damage * 10); // Minecraft damage x10 (GTA peds have ~100 effective health)
 			SET_PED_TO_RAGDOLL(ped, 1200, 1200, 0, FALSE, FALSE, FALSE);
 			APPLY_DAMAGE_TO_PED(ped, dmg, FALSE, 0, WEAPON_UNARMED);
 			V3 kb = V3(g.camDir.x, g.camDir.y, 0).norm() * (sword ? 14.0f : 8.0f) + V3(0, 0, 4.0f);

@@ -12,9 +12,12 @@ teleport you across Los Santos, arrows hit pedestrians.
 
 - **Minecraft HUD**: hotbar (1-9, mouse wheel), crosshair, item names, the 3D held item with Minecraft's own
   first-person animations, the Minecraft font.
-- **Creative inventory** (`E`): Building Blocks, Colored Blocks, Redstone, Combat, Tools tabs, tooltips, drag
-  and drop, number keys to fill hotbar slots.
-- **69 blocks**: grass, stone, wood, glass, ice, leaves, ores, all 16 wool and concrete colours, TNT and more. Place
+- **Creative inventory** (`E`): Minecraft's ten tabs (Building, Colored, Natural, Functional and Redstone Blocks,
+  Tools & Utilities, Combat, Food & Drinks, Ingredients, Spawn Eggs), tooltips, drag and drop, number keys to fill
+  hotbar slots.
+- **Tools in every tier** (wooden to netherite swords, axes, pickaxes, shovels, hoes) with Minecraft's damage.
+- **227 blocks**: every wood, stone and deepslate variants, ores, nether and end blocks, glowing blocks, all 16
+  colours of wool, concrete, concrete powder, terracotta and stained glass, TNT and more. Place
   them on any GTA surface; they stand flush on the ground, cars and people collide with them, and placing one inside
   a car pushes the car out of the way. Your builds are saved.
 - **TNT**: light it with flint and steel; it hops, flashes, explodes with GTA damage, and chain-reacts.
