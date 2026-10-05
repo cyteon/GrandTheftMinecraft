@@ -117,7 +117,7 @@ namespace steve
 		const rig::Frame &f = s_rig.frames[ra];
 		V3 handPos = f.pos - f.z * (10 * rig::scale("steve"));
 		const Item &it = item(sl.item);
-		if (it.block) // item space is y-up, z towards the viewer: x -> right, y -> up the arm, z -> backwards
+		if (it.held3d()) // item space is y-up, z towards the viewer: x -> right, y -> up the arm, z -> backwards
 			rig::place(s_held, s_heldModel, "gtm_" + it.name + "_h", handPos + f.y * 0.12f, f.x, f.z, f.y * -1.0f);
 		else
 		{

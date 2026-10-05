@@ -28,6 +28,8 @@ from pathlib import Path
 
 import numpy as np
 
+import shapes
+
 ROOT = Path(__file__).resolve().parent.parent
 HAND_SIZE = 0.25  # hand models are this big; the ASI rescales distance so they look Minecraft-sized
 TP_SIZE = 0.5     # held items in third person
@@ -51,7 +53,15 @@ def read_defs():
             continue
         f = line.split(";")
         if f[0] == "block":
-            blocks.append(dict(name=f[1], flags=f[4], sound=f[5], top=f[6], front=len(f) > 9 and f[9]))
+            # flags: letters, then optionally :<shape>[@<base block whose textures it uses>]
+            letters, _, spec = f[4].partition(":")
+            shape, _, base = spec.partition("@")
+            b = dict(name=f[1], flags=letters, shape=shape, base=base, sound=f[5], top=f[6], side=f[7] or f[6],
+                     front=len(f) > 9 and f[9])
+            blocks.append(b)
+            sp = shapes.held_sprite(shape, b["name"], b["top"], b["side"]) if shape else None
+            if sp:
+                sprites.append(sp)
         elif f[0] == "item":
             items.append(f[1])
             sprites.append(f[5])
@@ -377,22 +387,38 @@ def main():
         f.unlink()
     rows, recipes = [], []
 
-    def texture(name, w, h, recipe, fmt="rgba"):
+    def texture(name, w, h, recipe, fmt="dxt5"):  # everything is 8x pixel art: DXT is exact at the top mips
         write_placeholder_dds(out / f"{name}.dds", w, h, len(recipes), fmt)
         recipes.append(f"{name};{w};{h};{recipe};{fmt}")
 
     rnd = random.Random(7)
     for b in blocks:
         name, flags = b["name"], b["flags"]
-        tex = f"gtm_{name}"
-        texture(tex, 512, 128, f"sheet {name}", "dxt5" if "a" in flags else "dxt1")
+        tex = f"gtm_{b['base'] or name}"
+        if not b["base"]:
+            texture(tex, 512, 128, f"sheet {name}", "dxt5" if "a" in flags else "dxt1")
         shader = "alpha" if "a" in flags else "cutout" if "c" in flags else "default"
         material = {"wood": 70, "cloth": 104, "glass": 69}.get(b["sound"], 1)
-        if "k" in flags:  # mob skull: SkullModel's 8x8x8 head sitting on the floor of its cell, facing +y
+        if b["shape"]:  # slabs, stairs, fences... (tools/shapes.py): a model per variant, the ASI picks one
+            variants, hand = shapes.build(b["shape"], front=bool(b["front"]))
+            for suffix, (quads, coll) in variants.items():
+                g = Geo()
+                shapes.emit(quads, g, "world")
+                g.write(out / f"gtm_{name}{suffix}.geo")
+                rows.append(f"gtm_{name}{suffix};{tex};{shader};{material};{shapes.coll_spec(coll)}")
+            if hand:
+                g = Geo()
+                shapes.emit(hand, g, "hand", HAND_SIZE)
+                g.write(out / f"gtm_{name}_h.geo")
+                rows.append(f"gtm_{name}_h;{tex};{shader};{material};-")
+        elif "k" in flags:  # mob head: SkullModel's 8x8x8 head (+ hat layer) on the floor of its cell, facing +y
             stex = f"gtm_tex_{name}"
-            texture(stex, 512, 256, f"entity entity/skeleton/{b['top']}.png")
+            big = b["top"].startswith(("zombie/", "player/"))  # 64x64 textures with a hat layer
+            texture(stex, 512, 512 if big else 256, f"entity entity/{b['top']}.png")
             head = Geo()
-            mc_box(head, 1 / 16, (-4, -8, -4, 8, 8, 8), (0, 0), (64, 32))
+            mc_box(head, 1 / 16, (-4, -8, -4, 8, 8, 8), (0, 0), (64, 64 if big else 32))
+            if big:
+                mc_box(head, 1 / 16, (-4, -8, -4, 8, 8, 8), (32, 0), (64, 64), 0.25)
             g = Geo()
             g.v = [(x, y, z - 0.5, nx, ny, nz, u, v) for x, y, z, nx, ny, nz, u, v in head.v]
             g.i = list(head.i)

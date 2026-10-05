@@ -16,6 +16,25 @@ enum Face
 	F_BOTTOM
 };
 
+// block shapes (tools/shapes.py, gta/src/shapes.cpp)
+enum Shape : uint8_t
+{
+	SH_CUBE,
+	SH_SLAB,
+	SH_STAIRS,
+	SH_WALL,
+	SH_FENCE,
+	SH_GATE,
+	SH_PANE,
+	SH_CARPET,
+	SH_TORCH,
+	SH_LANTERN,
+	SH_CROSS,
+	SH_LADDER,
+	SH_DOOR,
+	SH_TRAPDOOR
+};
+
 struct Item
 {
 	std::string name, display, tab, sound;
@@ -23,12 +42,20 @@ struct Item
 	bool alpha = false, light = false, gravity = false, tnt = false, cutout = false;
 	bool oriented = false; // has a front that turns towards you when placed (furnace, carved pumpkin...)
 	bool skull = false; // a half-size head on the floor of its cell, not a full cube
+	Shape shape = SH_CUBE;
+	std::string sprite; // a block held and shown flat as this sprite (plants, torches, doors...); "" = 3D
 	int maxStack = 64;
 	int icon = -1; // drawTexture id
 	// Face colours per level of detail: lod[k] holds an n x n grid (n = 1 << k) for top/side/bottom.
 	std::vector<Rgba> lod[5][3];
 	int tris[5][3] = {}; // triangles the renderer emits per face at each lod (runs merged, clear texels skipped)
-	bool opaque() const { return block && !alpha && !cutout && !skull; }
+	bool opaque() const { return block && !alpha && !cutout && !skull && shape == SH_CUBE; }
+	bool held3d() const { return block && sprite.empty(); }
+	// our own movement checks (flight, gliding, making room) let you through these
+	bool passable() const
+	{
+		return shape == SH_TORCH || shape == SH_CROSS || shape == SH_LANTERN || shape == SH_CARPET || shape == SH_LADDER;
+	}
 };
 
 extern std::vector<Item> g_items;

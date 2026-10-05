@@ -187,7 +187,7 @@ namespace hand
 				return progress >= 1.0f ? "crossbow_pulling_2" : progress >= 0.58f ? "crossbow_pulling_1" : "crossbow_pulling_0";
 			return "crossbow_standby";
 		}
-		return it.name;
+		return it.sprite.empty() ? it.name : it.sprite;
 	}
 
 	// ---- the real prop (Stage 2) ----
@@ -238,7 +238,7 @@ namespace hand
 	{
 		if (!collision::dlc()) // block pack missing or its textures not filled yet
 			return false;
-		std::string name = it.block ? "gtm_" + it.name + "_h" : "gtm_i_" + sprite;
+		std::string name = it.held3d() ? "gtm_" + it.name + "_h" : "gtm_i_" + sprite;
 		Hash model = GET_HASH_KEY(name.c_str());
 		if (!IS_MODEL_VALID(model))
 			return false;
@@ -349,7 +349,7 @@ namespace hand
 			M.scale(k);
 		}
 		// the model's firstperson_righthand display transform
-		if (it.block)
+		if (it.held3d())
 		{
 			M.rot(1, 45.0f);
 			M.scale(0.40f);
@@ -375,7 +375,7 @@ namespace hand
 		M.translate(-0.5f, -0.5f, -0.5f);
 
 		s_quads.clear();
-		if (it.block)
+		if (it.held3d())
 			build_block(M, it);
 		else
 			build_sprite(M, it);

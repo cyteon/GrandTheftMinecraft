@@ -16,8 +16,10 @@ teleport you across Los Santos, arrows hit pedestrians.
   Tools & Utilities, Combat, Food & Drinks, Ingredients, Spawn Eggs), tooltips, drag and drop, number keys to fill
   hotbar slots.
 - **Tools in every tier** (wooden to netherite swords, axes, pickaxes, shovels, hoes) with Minecraft's damage.
-- **227 blocks**: every wood, stone and deepslate variants, ores, nether and end blocks, glowing blocks, all 16
-  colours of wool, concrete, concrete powder, terracotta and stained glass, TNT and more. Place
+- **Over 630 blocks**: every wood, stone, deepslate, copper and nether variant, ores, glowing blocks, all 16 colours
+  of wool, concrete, concrete powder, terracotta, glazed terracotta and stained glass, TNT and more, plus Minecraft's
+  shaped blocks: slabs, stairs, walls, fences and gates, panes, carpets, torches, lanterns, plants, ladders, doors
+  and trapdoors (doors, trapdoors and gates open with right-click). Place
   them on any GTA surface; they stand flush on the ground, cars and people collide with them, and placing one inside
   a car pushes the car out of the way. Your builds are saved.
 - **TNT**: light it with flint and steel; it hops, flashes, explodes with GTA damage, and chain-reacts.

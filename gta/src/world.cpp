@@ -2,6 +2,7 @@
 #include "config.h"
 #include "items.h"
 #include "log.h"
+#include "shapes.h"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -75,7 +76,7 @@ static void touched(const Cell &c)
 	s_dirtySince = GetTickCount();
 }
 
-bool place_block(const Cell &c, int itemId, int facing)
+bool place_block(const Cell &c, int itemId, int facing, int state)
 {
 	if (c.b < 0 || c.b >= (int)g_builds.size() || itemId < 0 || !item(itemId).block)
 		return false;
@@ -83,6 +84,7 @@ bool place_block(const Cell &c, int itemId, int facing)
 	bool existed = g_blocks.count(k) != 0;
 	g_blocks[k].item = (uint16_t)itemId;
 	g_blocks[k].facing = (uint8_t)(facing & 15);
+	g_blocks[k].state = (uint8_t)state;
 	Build &b = g_builds[c.b];
 	if (!existed)
 		b.count++;
@@ -92,15 +94,72 @@ bool place_block(const Cell &c, int itemId, int facing)
 	return true;
 }
 
+bool set_block_state(const Cell &c, int state)
+{
+	auto it = g_blocks.find(cell_key(c));
+	if (it == g_blocks.end())
+		return false;
+	it->second.state = (uint8_t)state;
+	touched(c);
+	return true;
+}
+
+static void remove_dependents(const Cell &c, const Block &old);
+
 bool remove_block(const Cell &c)
 {
 	auto it = g_blocks.find(cell_key(c));
 	if (it == g_blocks.end())
 		return false;
+	Block old = it->second;
 	g_blocks.erase(it);
 	g_builds[c.b].count--;
 	touched(c);
+	static int depth = 0;
+	if (depth < 32)
+	{
+		depth++;
+		remove_dependents(c, old);
+		depth--;
+	}
 	return true;
+}
+
+static void remove_dependents(const Cell &c, const Block &old)
+{
+	const Item &oi = item(old.item);
+	if (oi.shape == SH_DOOR) // the other half
+	{
+		Cell o = c;
+		o.z += old.state & ST_UPPER ? -1 : 1;
+		const Block *b = block_at(o);
+		if (b && b->item == old.item)
+			remove_block(o);
+	}
+	Cell up = c, dn = c;
+	up.z++, dn.z--;
+	if (const Block *b = block_at(up))
+	{
+		const Item &i = item(b->item);
+		bool wall = b->state & ST_WALL;
+		if (i.shape == SH_CROSS || i.shape == SH_CARPET || ((i.shape == SH_TORCH || i.shape == SH_LANTERN) && !wall) ||
+		    (i.shape == SH_DOOR && !(b->state & ST_UPPER)))
+			remove_block(up);
+	}
+	if (const Block *b = block_at(dn))
+		if (item(b->item).shape == SH_LANTERN && (b->state & ST_WALL))
+			remove_block(dn);
+	for (int d = 0; d < 4; d++) // wall torches and ladders whose wall this was (they face away from it)
+	{
+		Cell s = shapes::step(c, d);
+		const Block *b = block_at(s);
+		if (!b)
+			continue;
+		const Item &i = item(b->item);
+		if (((i.shape == SH_TORCH && (b->state & ST_WALL)) || i.shape == SH_LADDER) &&
+		    shapes::dir_of_facing(b->facing) == d)
+			remove_block(s);
+	}
 }
 
 int build_for_point(const V3 &p)
@@ -222,8 +281,11 @@ bool boxes_hit_blocks(const V3 &mn, const V3 &mx)
 		for (int x = x0; x <= x1; x++)
 			for (int y = y0; y <= y1; y++)
 				for (int z = z0; z <= z1; z++)
-					if (g_blocks.count(cell_key({b, x, y, z})))
+				{
+					auto it = g_blocks.find(cell_key({b, x, y, z}));
+					if (it != g_blocks.end() && !item(it->second.item).passable())
 						return true;
+				}
 	}
 	return false;
 }
@@ -256,13 +318,14 @@ void world_load()
 		{
 			Cell c;
 			std::string name;
-			int facing = 0;
-			ss >> c.b >> c.x >> c.y >> c.z >> name >> facing;
+			int facing = 0, state = 0;
+			ss >> c.b >> c.x >> c.y >> c.z >> name >> facing >> state;
 			int it = item_find(name);
 			if (it < 0 || c.b < 0 || c.b >= (int)g_builds.size())
 				continue;
 			g_blocks[cell_key(c)].item = (uint16_t)it;
 			g_blocks[cell_key(c)].facing = (uint8_t)(facing & 15);
+			g_blocks[cell_key(c)].state = (uint8_t)state;
 			Build &b = g_builds[c.b];
 			b.count++;
 			b.minX = std::min(b.minX, (float)c.x), b.maxX = std::max(b.maxX, (float)c.x);
@@ -285,16 +348,16 @@ void world_save_if_dirty()
 	FILE *f = std::fopen(tmp.c_str(), "w");
 	if (!f)
 		return;
-	std::fprintf(f, "# GrandTheftMinecraft world: B <build> <zOff>, K <build> <x> <y> <z> <item> [facing 0-15]\n");
+	std::fprintf(f, "# GrandTheftMinecraft world: B <build> <zOff>, K <build> <x> <y> <z> <item> [facing 0-15 [state]]\n");
 	for (int i = 0; i < (int)g_builds.size(); i++)
 		if (g_builds[i].count > 0)
 			std::fprintf(f, "B %d %.4f\n", i, g_builds[i].zOff);
 	for (auto &kv : g_blocks)
 	{
 		Cell c = key_cell(kv.first);
-		if (kv.second.facing)
-			std::fprintf(f, "K %d %d %d %d %s %d\n", c.b, c.x, c.y, c.z, item(kv.second.item).name.c_str(),
-			             kv.second.facing);
+		if (kv.second.facing || kv.second.state)
+			std::fprintf(f, "K %d %d %d %d %s %d %d\n", c.b, c.x, c.y, c.z, item(kv.second.item).name.c_str(),
+			             kv.second.facing, kv.second.state);
 		else
 			std::fprintf(f, "K %d %d %d %d %s\n", c.b, c.x, c.y, c.z, item(kv.second.item).name.c_str());
 	}

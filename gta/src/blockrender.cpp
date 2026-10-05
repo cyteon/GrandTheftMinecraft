@@ -150,6 +150,8 @@ namespace blockrender
 				lights.push_back({0, cell_center(key_cell(cd.key))});
 			if (collision::has_prop(cd.key))
 				continue; // a real textured prop stands here (Stage 2)
+			if (collision::dlc() && item(bk.item).shape != SH_CUBE)
+				continue; // shaped blocks (fences, plants...) aren't drawn as polygon cubes in the distance
 			V3 mn = cell_min(key_cell(cd.key));
 			int faces = 0;
 			for (int f = 0; f < 6; f++)

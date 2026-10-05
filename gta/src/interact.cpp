@@ -8,6 +8,7 @@
 #include "items.h"
 #include "log.h"
 #include "mobs.h"
+#include "shapes.h"
 #include "wither.h"
 #include "elytra.h"
 #include <cstdio>
@@ -173,8 +174,11 @@ namespace interact
 			for (int x = x0; x <= x1; x++)
 				for (int y = y0; y <= y1; y++)
 					for (int z = z0; z <= z1; z++)
-						if (g_blocks.count(cell_key({b, x, y, z})) && obb_hits_cell(o, cell_min({b, x, y, z})))
+					{
+						auto it = g_blocks.find(cell_key({b, x, y, z}));
+						if (it != g_blocks.end() && !item(it->second.item).passable() && obb_hits_cell(o, cell_min({b, x, y, z})))
 							return true;
+					}
 		}
 		return false;
 	}
@@ -272,51 +276,193 @@ namespace interact
 			}
 	}
 
+	// the heading from a block towards the player in 22.5 degree steps (block facing units), rounded to `step`
+	static int facing_to_player(const Cell &c, int step)
+	{
+		V3 d = g.pedPos - cell_center(c);
+		float h = std::atan2(-d.x, d.y) / (PI / 8);
+		return (((int)std::lround(h / step) * step) % 16 + 16) % 16;
+	}
+
+	// a horizontal face's normal as a facing (pointing out of the face)
+	static int facing_of_normal(const V3 &n)
+	{
+		return std::fabs(n.x) > std::fabs(n.y) ? (n.x > 0 ? 12 : 4) : (n.y > 0 ? 0 : 8);
+	}
+
+	static bool double_slab(const Cell &c, int itemId)
+	{
+		if (!place_block(c, itemId, 0, ST_DOUBLE))
+			return false;
+		make_room(c);
+		audio::block_sound(item(itemId).sound, cell_center(c), false);
+		return true;
+	}
+
+	// Placing a block where you click, with Minecraft's rules for shaped ones: slabs and stairs go in the half you
+	// click (a slab on a slab doubles it), torches and ladders on walls face away from them, lanterns under a block
+	// hang, plants and carpets need a floor, doors take two blocks and pair up into double doors.
 	static bool place(int itemId)
 	{
 		Target &t = g_target;
+		const Item &pi = item(itemId);
 		Cell c;
+		int face = 0;   // what was clicked: 0 a top, 1 an underside, 2 a side
+		float frac = 0; // how high up the clicked side (0..1)
+		V3 n(0, 0, 1);  // the clicked face's normal
 		if (t.kind == Target::BLOCK)
 		{
-			const int *n = FACE_N[t.vh.face];
-			c = {t.vh.cell.b, t.vh.cell.x + n[0], t.vh.cell.y + n[1], t.vh.cell.z + n[2]};
+			const int *fn = FACE_N[t.vh.face];
+			n = V3((float)fn[0], (float)fn[1], (float)fn[2]);
+			face = t.vh.face == 0 ? 0 : t.vh.face == 1 ? 1 : 2;
+			frac = clampf(t.vh.pos.z - cell_min(t.vh.cell).z, 0, 1);
+			const Block *b = block_at(t.vh.cell);
+			if (pi.shape == SH_SLAB && b && b->item == itemId && !(b->state & ST_DOUBLE) &&
+			    ((face == 0 && !(b->state & ST_TOP)) || (face == 1 && (b->state & ST_TOP))))
+				return double_slab(t.vh.cell, itemId);
+			c = {t.vh.cell.b, t.vh.cell.x + fn[0], t.vh.cell.y + fn[1], t.vh.cell.z + fn[2]};
 		}
 		else if (t.kind == Target::GROUND || t.kind == Target::OBJECT)
 		{
 			int b = build_for_point(t.gh.pos);
 			if (b < 0)
 				return false;
-			V3 p = t.gh.pos, n = t.gh.normal;
-			if (n.z > 0.7f) // floor: stand on it (sink rather than float when the build's grid is offset)
+			V3 p = t.gh.pos;
+			n = t.gh.normal;
+			face = n.z > 0.7f ? 0 : n.z < -0.7f ? 1 : 2;
+			if (face == 0) // floor: stand on it (sink rather than float when the build's grid is offset)
 				c = {b, (int)std::floor(p.x), (int)std::floor(p.y), (int)std::floor(p.z - g_builds[b].zOff + 0.05f)};
 			else
 				c = world_to_cell(b, p + n * 0.5f);
+			frac = clampf(p.z - cell_min(c).z, 0, 1);
 		}
 		else
 			return false;
-		if (block_at(c) || overlaps_player(cell_min(c)))
-			return false;
-		// blocks with a front face you (4 directions); skulls turn in Minecraft's 16 steps
-		int facing = 0;
-		const Item &pi = item(itemId);
-		if (pi.oriented || pi.skull)
+		if (const Block *b = block_at(c))
 		{
-			V3 d = g.pedPos - cell_center(c);
-			float h = std::atan2(-d.x, d.y) / (PI / 8); // heading towards the player in 22.5 degree steps
-			int step = pi.skull ? 1 : 4;
-			facing = (((int)std::lround(h / step) * step) % 16 + 16) % 16;
-		}
-		if (!place_block(c, itemId, facing))
+			if (pi.shape == SH_SLAB && b->item == itemId && !(b->state & ST_DOUBLE)) // into the slab's other half
+				return double_slab(c, itemId);
 			return false;
-		make_room(c);
-		audio::block_sound(item(itemId).sound, cell_center(c), false);
-		if (item(itemId).skull)
+		}
+		if (!pi.passable() && overlaps_player(cell_min(c)))
+			return false;
+		int facing = 0, state = 0;
+		int toPlayer = facing_to_player(c, 4);
+		bool upper = face == 1 || (face == 2 && frac > 0.5f);
+		switch (pi.shape)
+		{
+		case SH_SLAB:
+			state = upper ? ST_TOP : 0;
+			break;
+		case SH_STAIRS:
+			facing = toPlayer, state = upper ? ST_TOP : 0;
+			break;
+		case SH_TRAPDOOR:
+			facing = face == 2 ? facing_of_normal(n) : toPlayer, state = upper ? ST_TOP : 0;
+			break;
+		case SH_GATE:
+			facing = toPlayer;
+			break;
+		case SH_TORCH:
+			if (face == 1)
+				return false;
+			if (face == 2)
+				facing = facing_of_normal(n), state = ST_WALL;
+			break;
+		case SH_LANTERN:
+			state = face == 1 ? ST_WALL : 0;
+			break;
+		case SH_LADDER:
+			if (face != 2)
+				return false;
+			facing = facing_of_normal(n);
+			break;
+		case SH_CROSS:
+		case SH_CARPET:
+			if (face != 0)
+				return false;
+			break;
+		case SH_DOOR:
+		{
+			Cell up = c;
+			up.z++;
+			if (face != 0 || block_at(up) || overlaps_player(cell_min(up)))
+				return false;
+			facing = toPlayer;
+			// next to a door on the left (as you face it): hinge on the right, making a double door
+			const Block *nb = block_at(shapes::step(c, (shapes::dir_of_facing(facing) + 3) % 4));
+			if (nb && item(nb->item).shape == SH_DOOR && !(nb->state & ST_HINGE_R))
+				state |= ST_HINGE_R;
+			if (!place_block(c, itemId, facing, state))
+				return false;
+			place_block(up, itemId, facing, state | ST_UPPER);
+			make_room(c), make_room(up);
+			audio::block_sound(pi.sound, cell_center(c), false);
+			return true;
+		}
+		default:
+			if (pi.oriented || pi.skull) // a front faces you (4 directions); skulls turn in Minecraft's 16 steps
+				facing = facing_to_player(c, pi.skull ? 1 : 4);
+		}
+		if (!place_block(c, itemId, facing, state))
+			return false;
+		if (!pi.passable())
+			make_room(c);
+		audio::block_sound(pi.sound, cell_center(c), false);
+		if (pi.skull)
 			try_summon_wither(c);
 		return true;
 	}
 
-	static void use()
+	// Right-click on a door, trapdoor or gate opens or closes it (not iron ones: Minecraft needs redstone for those).
+	static bool toggle()
 	{
+		Target &t = g_target;
+		if (t.kind != Target::BLOCK)
+			return false;
+		const Block *b = block_at(t.vh.cell);
+		if (!b)
+			return false;
+		const Item &it = item(b->item);
+		if ((it.shape != SH_DOOR && it.shape != SH_TRAPDOOR && it.shape != SH_GATE) || it.name.rfind("iron_", 0) == 0)
+			return false;
+		Block was = *b;
+		bool open = !(was.state & ST_OPEN);
+		int st = open ? was.state | ST_OPEN : was.state & ~ST_OPEN;
+		if (it.shape == SH_GATE)
+		{
+			// a gate swings away from you: opening it from the other side turns it round
+			int f = was.facing, pf = facing_to_player(t.vh.cell, 4);
+			if (open && shapes::dir_of_facing(pf) % 2 == shapes::dir_of_facing(f) % 2)
+				f = pf;
+			place_block(t.vh.cell, was.item, f, st);
+		}
+		else
+			set_block_state(t.vh.cell, st);
+		if (it.shape == SH_DOOR) // both halves
+		{
+			Cell o = t.vh.cell;
+			o.z += was.state & ST_UPPER ? -1 : 1;
+			const Block *ob = block_at(o);
+			if (ob && ob->item == was.item)
+				set_block_state(o, open ? ob->state | ST_OPEN : ob->state & ~ST_OPEN);
+		}
+		V3 at = cell_center(t.vh.cell);
+		bool copper = it.name.find("copper") != std::string::npos;
+		if (it.shape == SH_DOOR)
+			audio::play_at(copper ? "block/copper_door/toggle" : open ? "block/wooden_door/open" : "block/wooden_door/close", at);
+		else if (it.shape == SH_TRAPDOOR)
+			audio::play_at(open ? "block/wooden_trapdoor/open" : "block/wooden_trapdoor/close", at);
+		else
+			audio::play_at(open ? "block/fence_gate/open" : "block/fence_gate/close", at);
+		gui::swing();
+		return true;
+	}
+
+	static void use(bool fresh)
+	{
+		if (fresh && toggle())
+			return;
 		const Item *h = held();
 		if (!h)
 			return;
@@ -544,7 +690,7 @@ namespace interact
 		if (!bowHeld && (input::mouse_pressed(VK_RBUTTON) || (input::mouse_held(VK_RBUTTON) && g.now >= s_nextUse)))
 		{
 			s_nextUse = g.now + 200;
-			use();
+			use(input::mouse_pressed(VK_RBUTTON));
 		}
 		if (input::mouse_pressed(VK_MBUTTON) && g_target.kind == Target::BLOCK)
 		{

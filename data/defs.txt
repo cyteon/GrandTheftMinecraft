@@ -4,7 +4,9 @@
 # block;name;Display Name;tab;flags;sound;top texture;side texture;bottom texture[;front texture]
 #   (empty side/bottom = top; a front needs flag o, it turns towards you when placed)
 #   flags: a alpha (glass), c cutout (leaves), l light, g gravity, t tnt, r grass-tint top, f foliage-tint all,
-#          o has a front (furnace...), k mob skull (a half-size head; top = the mob's texture under entity/skeleton/)
+#          o has a front (furnace...), k mob head (top = its texture under entity/, e.g. zombie/zombie)
+#   flags may end in :<shape>[@<base>]: slab stairs wall fence gate pane carpet torch lantern cross ladder
+#   door trapdoor. With @base the textures (and sound, if empty) come from that block.
 # item;name;Display Name;tab;flags;sprite   flags: s stack 1, p stack 16
 # sprite;name   extra held-item sprites (bow/crossbow pull states)
 # icon;name     an inventory icon only (creative tab icons), from the item sprite of that name
@@ -242,6 +244,412 @@ block;blue_concrete_powder;Blue Concrete Powder;colored;g;sand;blue_concrete_pow
 block;purple_concrete_powder;Purple Concrete Powder;colored;g;sand;purple_concrete_powder;;
 block;magenta_concrete_powder;Magenta Concrete Powder;colored;g;sand;magenta_concrete_powder;;
 block;pink_concrete_powder;Pink Concrete Powder;colored;g;sand;pink_concrete_powder;;
+block;white_glazed_terracotta;White Glazed Terracotta;colored;;stone;white_glazed_terracotta;;
+block;light_gray_glazed_terracotta;Light Gray Glazed Terracotta;colored;;stone;light_gray_glazed_terracotta;;
+block;gray_glazed_terracotta;Gray Glazed Terracotta;colored;;stone;gray_glazed_terracotta;;
+block;black_glazed_terracotta;Black Glazed Terracotta;colored;;stone;black_glazed_terracotta;;
+block;brown_glazed_terracotta;Brown Glazed Terracotta;colored;;stone;brown_glazed_terracotta;;
+block;red_glazed_terracotta;Red Glazed Terracotta;colored;;stone;red_glazed_terracotta;;
+block;orange_glazed_terracotta;Orange Glazed Terracotta;colored;;stone;orange_glazed_terracotta;;
+block;yellow_glazed_terracotta;Yellow Glazed Terracotta;colored;;stone;yellow_glazed_terracotta;;
+block;lime_glazed_terracotta;Lime Glazed Terracotta;colored;;stone;lime_glazed_terracotta;;
+block;green_glazed_terracotta;Green Glazed Terracotta;colored;;stone;green_glazed_terracotta;;
+block;cyan_glazed_terracotta;Cyan Glazed Terracotta;colored;;stone;cyan_glazed_terracotta;;
+block;light_blue_glazed_terracotta;Light Blue Glazed Terracotta;colored;;stone;light_blue_glazed_terracotta;;
+block;blue_glazed_terracotta;Blue Glazed Terracotta;colored;;stone;blue_glazed_terracotta;;
+block;purple_glazed_terracotta;Purple Glazed Terracotta;colored;;stone;purple_glazed_terracotta;;
+block;magenta_glazed_terracotta;Magenta Glazed Terracotta;colored;;stone;magenta_glazed_terracotta;;
+block;pink_glazed_terracotta;Pink Glazed Terracotta;colored;;stone;pink_glazed_terracotta;;
+block;cut_copper;Cut Copper;building;;stone;cut_copper;;
+block;chiseled_copper;Chiseled Copper;building;;stone;chiseled_copper;;
+block;copper_grate;Copper Grate;building;c;stone;copper_grate;;
+block;exposed_copper;Exposed Copper;building;;stone;exposed_copper;;
+block;exposed_cut_copper;Exposed Cut Copper;building;;stone;exposed_cut_copper;;
+block;exposed_chiseled_copper;Exposed Chiseled Copper;building;;stone;exposed_chiseled_copper;;
+block;exposed_copper_grate;Exposed Copper Grate;building;c;stone;exposed_copper_grate;;
+block;weathered_copper;Weathered Copper;building;;stone;weathered_copper;;
+block;weathered_cut_copper;Weathered Cut Copper;building;;stone;weathered_cut_copper;;
+block;weathered_chiseled_copper;Weathered Chiseled Copper;building;;stone;weathered_chiseled_copper;;
+block;weathered_copper_grate;Weathered Copper Grate;building;c;stone;weathered_copper_grate;;
+block;oxidized_copper;Oxidized Copper;building;;stone;oxidized_copper;;
+block;oxidized_cut_copper;Oxidized Cut Copper;building;;stone;oxidized_cut_copper;;
+block;oxidized_chiseled_copper;Oxidized Chiseled Copper;building;;stone;oxidized_chiseled_copper;;
+block;oxidized_copper_grate;Oxidized Copper Grate;building;c;stone;oxidized_copper_grate;;
+block;oak_wood;Oak Wood;building;;wood;oak_log;;
+block;stripped_oak_log;Stripped Oak Log;building;;wood;stripped_oak_log_top;stripped_oak_log;stripped_oak_log_top
+block;stripped_oak_wood;Stripped Oak Wood;building;;wood;stripped_oak_log;;
+block;spruce_wood;Spruce Wood;building;;wood;spruce_log;;
+block;stripped_spruce_log;Stripped Spruce Log;building;;wood;stripped_spruce_log_top;stripped_spruce_log;stripped_spruce_log_top
+block;stripped_spruce_wood;Stripped Spruce Wood;building;;wood;stripped_spruce_log;;
+block;birch_wood;Birch Wood;building;;wood;birch_log;;
+block;stripped_birch_log;Stripped Birch Log;building;;wood;stripped_birch_log_top;stripped_birch_log;stripped_birch_log_top
+block;stripped_birch_wood;Stripped Birch Wood;building;;wood;stripped_birch_log;;
+block;jungle_wood;Jungle Wood;building;;wood;jungle_log;;
+block;stripped_jungle_log;Stripped Jungle Log;building;;wood;stripped_jungle_log_top;stripped_jungle_log;stripped_jungle_log_top
+block;stripped_jungle_wood;Stripped Jungle Wood;building;;wood;stripped_jungle_log;;
+block;acacia_wood;Acacia Wood;building;;wood;acacia_log;;
+block;stripped_acacia_log;Stripped Acacia Log;building;;wood;stripped_acacia_log_top;stripped_acacia_log;stripped_acacia_log_top
+block;stripped_acacia_wood;Stripped Acacia Wood;building;;wood;stripped_acacia_log;;
+block;dark_oak_wood;Dark Oak Wood;building;;wood;dark_oak_log;;
+block;stripped_dark_oak_log;Stripped Dark Oak Log;building;;wood;stripped_dark_oak_log_top;stripped_dark_oak_log;stripped_dark_oak_log_top
+block;stripped_dark_oak_wood;Stripped Dark Oak Wood;building;;wood;stripped_dark_oak_log;;
+block;mangrove_wood;Mangrove Wood;building;;wood;mangrove_log;;
+block;stripped_mangrove_log;Stripped Mangrove Log;building;;wood;stripped_mangrove_log_top;stripped_mangrove_log;stripped_mangrove_log_top
+block;stripped_mangrove_wood;Stripped Mangrove Wood;building;;wood;stripped_mangrove_log;;
+block;cherry_wood;Cherry Wood;building;;wood;cherry_log;;
+block;stripped_cherry_log;Stripped Cherry Log;building;;wood;stripped_cherry_log_top;stripped_cherry_log;stripped_cherry_log_top
+block;stripped_cherry_wood;Stripped Cherry Wood;building;;wood;stripped_cherry_log;;
+block;pale_oak_wood;Pale Oak Wood;building;;wood;pale_oak_log;;
+block;stripped_pale_oak_log;Stripped Pale Oak Log;building;;wood;stripped_pale_oak_log_top;stripped_pale_oak_log;stripped_pale_oak_log_top
+block;stripped_pale_oak_wood;Stripped Pale Oak Wood;building;;wood;stripped_pale_oak_log;;
+block;crimson_hyphae;Crimson Hyphae;building;;wood;crimson_stem;;
+block;stripped_crimson_stem;Stripped Crimson Stem;building;;wood;stripped_crimson_stem_top;stripped_crimson_stem;stripped_crimson_stem_top
+block;stripped_crimson_hyphae;Stripped Crimson Hyphae;building;;wood;stripped_crimson_stem;;
+block;warped_hyphae;Warped Hyphae;building;;wood;warped_stem;;
+block;stripped_warped_stem;Stripped Warped Stem;building;;wood;stripped_warped_stem_top;stripped_warped_stem;stripped_warped_stem_top
+block;stripped_warped_hyphae;Stripped Warped Hyphae;building;;wood;stripped_warped_stem;;
+block;bamboo_block;Block of Bamboo;building;;wood;bamboo_block_top;bamboo_block;bamboo_block_top
+block;stripped_bamboo_block;Block of Stripped Bamboo;building;;wood;stripped_bamboo_block_top;stripped_bamboo_block;stripped_bamboo_block_top
+block;chiseled_deepslate;Chiseled Deepslate;building;;stone;chiseled_deepslate;;
+block;cracked_deepslate_bricks;Cracked Deepslate Bricks;building;;stone;cracked_deepslate_bricks;;
+block;cracked_deepslate_tiles;Cracked Deepslate Tiles;building;;stone;cracked_deepslate_tiles;;
+block;packed_mud;Packed Mud;building;;stone;packed_mud;;
+block;resin_bricks;Resin Bricks;building;;stone;resin_bricks;;
+block;chiseled_resin_bricks;Chiseled Resin Bricks;building;;stone;chiseled_resin_bricks;;
+block;polished_blackstone;Polished Blackstone;building;;stone;polished_blackstone;;
+block;chiseled_polished_blackstone;Chiseled Polished Blackstone;building;;stone;chiseled_polished_blackstone;;
+block;cracked_polished_blackstone_bricks;Cracked Polished Blackstone Bricks;building;;stone;cracked_polished_blackstone_bricks;;
+block;gilded_blackstone;Gilded Blackstone;building;;stone;gilded_blackstone;;
+block;smooth_basalt;Smooth Basalt;building;;stone;smooth_basalt;;
+block;chiseled_nether_bricks;Chiseled Nether Bricks;building;;stone;chiseled_nether_bricks;;
+block;cracked_nether_bricks;Cracked Nether Bricks;building;;stone;cracked_nether_bricks;;
+block;polished_tuff;Polished Tuff;building;;stone;polished_tuff;;
+block;dripstone_block;Dripstone Block;building;;stone;dripstone_block;;
+block;resin_block;Block of Resin;building;;stone;resin_block;;
+block;smooth_sandstone;Smooth Sandstone;building;;stone;sandstone_top;;
+block;chiseled_sandstone;Chiseled Sandstone;building;;stone;sandstone_top;chiseled_sandstone;sandstone_top
+block;cut_red_sandstone;Cut Red Sandstone;building;;stone;red_sandstone_top;cut_red_sandstone;red_sandstone_top
+block;chiseled_red_sandstone;Chiseled Red Sandstone;building;;stone;red_sandstone_top;chiseled_red_sandstone;red_sandstone_top
+block;smooth_red_sandstone;Smooth Red Sandstone;building;;stone;red_sandstone_top;;
+block;smooth_quartz;Smooth Quartz Block;building;;stone;quartz_block_bottom;;
+block;quartz_pillar;Quartz Pillar;building;;stone;quartz_pillar_top;quartz_pillar;quartz_pillar_top
+block;chiseled_quartz_block;Chiseled Quartz Block;building;;stone;chiseled_quartz_block_top;chiseled_quartz_block;chiseled_quartz_block_top
+block;polished_basalt;Polished Basalt;building,natural;;stone;polished_basalt_top;polished_basalt_side;polished_basalt_top
+block;chiseled_tuff;Chiseled Tuff;building;;stone;chiseled_tuff_top;chiseled_tuff;chiseled_tuff_top
+block;chiseled_tuff_bricks;Chiseled Tuff Bricks;building;;stone;chiseled_tuff_bricks_top;chiseled_tuff_bricks;chiseled_tuff_bricks_top
+block;tube_coral_block;Tube Coral Block;natural;;stone;tube_coral_block;;
+block;brain_coral_block;Brain Coral Block;natural;;stone;brain_coral_block;;
+block;bubble_coral_block;Bubble Coral Block;natural;;stone;bubble_coral_block;;
+block;fire_coral_block;Fire Coral Block;natural;;stone;fire_coral_block;;
+block;horn_coral_block;Horn Coral Block;natural;;stone;horn_coral_block;;
+block;dead_tube_coral_block;Dead Tube Coral Block;natural;;stone;dead_tube_coral_block;;
+block;dead_brain_coral_block;Dead Brain Coral Block;natural;;stone;dead_brain_coral_block;;
+block;dead_bubble_coral_block;Dead Bubble Coral Block;natural;;stone;dead_bubble_coral_block;;
+block;dead_fire_coral_block;Dead Fire Coral Block;natural;;stone;dead_fire_coral_block;;
+block;dead_horn_coral_block;Dead Horn Coral Block;natural;;stone;dead_horn_coral_block;;
+block;ochre_froglight;Ochre Froglight;natural,functional;l;wood;ochre_froglight_top;ochre_froglight_side;ochre_froglight_top
+block;verdant_froglight;Verdant Froglight;natural,functional;l;wood;verdant_froglight_top;verdant_froglight_side;verdant_froglight_top
+block;pearlescent_froglight;Pearlescent Froglight;natural,functional;l;wood;pearlescent_froglight_top;pearlescent_froglight_side;pearlescent_froglight_top
+block;red_mushroom_block;Red Mushroom Block;natural;;wood;red_mushroom_block;;
+block;brown_mushroom_block;Brown Mushroom Block;natural;;wood;brown_mushroom_block;;
+block;mushroom_stem;Mushroom Stem;natural;;wood;mushroom_block_inside;mushroom_stem;mushroom_block_inside
+block;sculk;Sculk;natural;;grass;sculk;;
+block;sculk_catalyst;Sculk Catalyst;natural;;grass;sculk_catalyst_top;sculk_catalyst_side;sculk_catalyst_bottom
+block;deepslate_coal_ore;Deepslate Coal Ore;natural;;stone;deepslate_coal_ore;;
+block;deepslate_iron_ore;Deepslate Iron Ore;natural;;stone;deepslate_iron_ore;;
+block;deepslate_copper_ore;Deepslate Copper Ore;natural;;stone;deepslate_copper_ore;;
+block;deepslate_gold_ore;Deepslate Gold Ore;natural;;stone;deepslate_gold_ore;;
+block;deepslate_redstone_ore;Deepslate Redstone Ore;natural;;stone;deepslate_redstone_ore;;
+block;deepslate_emerald_ore;Deepslate Emerald Ore;natural;;stone;deepslate_emerald_ore;;
+block;deepslate_lapis_ore;Deepslate Lapis Ore;natural;;stone;deepslate_lapis_ore;;
+block;honeycomb_block;Honeycomb Block;natural;;grass;honeycomb_block;;
+block;pale_moss_block;Pale Moss Block;natural;;grass;pale_moss_block;;
+block;powder_snow;Powder Snow;natural;;snow;powder_snow;;
+block;mangrove_roots;Mangrove Roots;natural;c;wood;mangrove_roots_top;mangrove_roots_side;mangrove_roots_top
+block;muddy_mangrove_roots;Muddy Mangrove Roots;natural;;gravel;muddy_mangrove_roots_top;muddy_mangrove_roots_side;muddy_mangrove_roots_top
+block;barrel;Barrel;functional;;wood;barrel_top;barrel_side;barrel_bottom
+block;fletching_table;Fletching Table;functional;o;wood;fletching_table_top;fletching_table_side;birch_planks;fletching_table_front
+block;smithing_table;Smithing Table;functional;o;wood;smithing_table_top;smithing_table_side;smithing_table_bottom;smithing_table_front
+block;cartography_table;Cartography Table;functional;o;wood;cartography_table_top;cartography_table_side3;dark_oak_planks;cartography_table_side1
+block;loom;Loom;functional;o;wood;loom_top;loom_side;loom_bottom;loom_front
+block;chiseled_bookshelf;Chiseled Bookshelf;functional;o;wood;chiseled_bookshelf_top;chiseled_bookshelf_side;chiseled_bookshelf_top;chiseled_bookshelf_occupied
+block;lodestone;Lodestone;functional;;stone;lodestone_top;lodestone_side;lodestone_top
+block;respawn_anchor;Respawn Anchor;functional;;stone;respawn_anchor_top_off;respawn_anchor_side0;respawn_anchor_bottom
+block;spawner;Monster Spawner;functional;c;stone;spawner;;
+block;crafter;Crafter;redstone;o;stone;crafter_top;crafter_east;crafter_bottom;crafter_south
+block;oak_slab;Oak Slab;building;:slab@oak_planks;wood;;;
+block;oak_stairs;Oak Stairs;building;:stairs@oak_planks;wood;;;
+block;spruce_slab;Spruce Slab;building;:slab@spruce_planks;wood;;;
+block;spruce_stairs;Spruce Stairs;building;:stairs@spruce_planks;wood;;;
+block;birch_slab;Birch Slab;building;:slab@birch_planks;wood;;;
+block;birch_stairs;Birch Stairs;building;:stairs@birch_planks;wood;;;
+block;jungle_slab;Jungle Slab;building;:slab@jungle_planks;wood;;;
+block;jungle_stairs;Jungle Stairs;building;:stairs@jungle_planks;wood;;;
+block;acacia_slab;Acacia Slab;building;:slab@acacia_planks;wood;;;
+block;acacia_stairs;Acacia Stairs;building;:stairs@acacia_planks;wood;;;
+block;dark_oak_slab;Dark Oak Slab;building;:slab@dark_oak_planks;wood;;;
+block;dark_oak_stairs;Dark Oak Stairs;building;:stairs@dark_oak_planks;wood;;;
+block;mangrove_slab;Mangrove Slab;building;:slab@mangrove_planks;wood;;;
+block;mangrove_stairs;Mangrove Stairs;building;:stairs@mangrove_planks;wood;;;
+block;cherry_slab;Cherry Slab;building;:slab@cherry_planks;wood;;;
+block;cherry_stairs;Cherry Stairs;building;:stairs@cherry_planks;wood;;;
+block;pale_oak_slab;Pale Oak Slab;building;:slab@pale_oak_planks;wood;;;
+block;pale_oak_stairs;Pale Oak Stairs;building;:stairs@pale_oak_planks;wood;;;
+block;bamboo_slab;Bamboo Slab;building;:slab@bamboo_planks;wood;;;
+block;bamboo_stairs;Bamboo Stairs;building;:stairs@bamboo_planks;wood;;;
+block;crimson_slab;Crimson Slab;building;:slab@crimson_planks;wood;;;
+block;crimson_stairs;Crimson Stairs;building;:stairs@crimson_planks;wood;;;
+block;warped_slab;Warped Slab;building;:slab@warped_planks;wood;;;
+block;warped_stairs;Warped Stairs;building;:stairs@warped_planks;wood;;;
+block;stone_slab;Stone Slab;building;:slab@stone;stone;;;
+block;stone_stairs;Stone Stairs;building;:stairs@stone;stone;;;
+block;cobblestone_slab;Cobblestone Slab;building;:slab@cobblestone;stone;;;
+block;cobblestone_stairs;Cobblestone Stairs;building;:stairs@cobblestone;stone;;;
+block;mossy_cobblestone_slab;Mossy Cobblestone Slab;building;:slab@mossy_cobblestone;stone;;;
+block;mossy_cobblestone_stairs;Mossy Cobblestone Stairs;building;:stairs@mossy_cobblestone;stone;;;
+block;smooth_stone_slab;Smooth Stone Slab;building;:slab@smooth_stone;stone;;;
+block;stone_brick_slab;Stone Brick Slab;building;:slab@stone_bricks;stone;;;
+block;stone_brick_stairs;Stone Brick Stairs;building;:stairs@stone_bricks;stone;;;
+block;mossy_stone_brick_slab;Mossy Stone Brick Slab;building;:slab@mossy_stone_bricks;stone;;;
+block;mossy_stone_brick_stairs;Mossy Stone Brick Stairs;building;:stairs@mossy_stone_bricks;stone;;;
+block;granite_slab;Granite Slab;building;:slab@granite;stone;;;
+block;granite_stairs;Granite Stairs;building;:stairs@granite;stone;;;
+block;polished_granite_slab;Polished Granite Slab;building;:slab@polished_granite;stone;;;
+block;polished_granite_stairs;Polished Granite Stairs;building;:stairs@polished_granite;stone;;;
+block;diorite_slab;Diorite Slab;building;:slab@diorite;stone;;;
+block;diorite_stairs;Diorite Stairs;building;:stairs@diorite;stone;;;
+block;polished_diorite_slab;Polished Diorite Slab;building;:slab@polished_diorite;stone;;;
+block;polished_diorite_stairs;Polished Diorite Stairs;building;:stairs@polished_diorite;stone;;;
+block;andesite_slab;Andesite Slab;building;:slab@andesite;stone;;;
+block;andesite_stairs;Andesite Stairs;building;:stairs@andesite;stone;;;
+block;polished_andesite_slab;Polished Andesite Slab;building;:slab@polished_andesite;stone;;;
+block;polished_andesite_stairs;Polished Andesite Stairs;building;:stairs@polished_andesite;stone;;;
+block;cobbled_deepslate_slab;Cobbled Deepslate Slab;building;:slab@cobbled_deepslate;stone;;;
+block;cobbled_deepslate_stairs;Cobbled Deepslate Stairs;building;:stairs@cobbled_deepslate;stone;;;
+block;polished_deepslate_slab;Polished Deepslate Slab;building;:slab@polished_deepslate;stone;;;
+block;polished_deepslate_stairs;Polished Deepslate Stairs;building;:stairs@polished_deepslate;stone;;;
+block;deepslate_brick_slab;Deepslate Brick Slab;building;:slab@deepslate_bricks;stone;;;
+block;deepslate_brick_stairs;Deepslate Brick Stairs;building;:stairs@deepslate_bricks;stone;;;
+block;deepslate_tile_slab;Deepslate Tile Slab;building;:slab@deepslate_tiles;stone;;;
+block;deepslate_tile_stairs;Deepslate Tile Stairs;building;:stairs@deepslate_tiles;stone;;;
+block;tuff_slab;Tuff Slab;building;:slab@tuff;stone;;;
+block;tuff_stairs;Tuff Stairs;building;:stairs@tuff;stone;;;
+block;polished_tuff_slab;Polished Tuff Slab;building;:slab@polished_tuff;stone;;;
+block;polished_tuff_stairs;Polished Tuff Stairs;building;:stairs@polished_tuff;stone;;;
+block;tuff_brick_slab;Tuff Brick Slab;building;:slab@tuff_bricks;stone;;;
+block;tuff_brick_stairs;Tuff Brick Stairs;building;:stairs@tuff_bricks;stone;;;
+block;brick_slab;Brick Slab;building;:slab@bricks;stone;;;
+block;brick_stairs;Brick Stairs;building;:stairs@bricks;stone;;;
+block;mud_brick_slab;Mud Brick Slab;building;:slab@mud_bricks;stone;;;
+block;mud_brick_stairs;Mud Brick Stairs;building;:stairs@mud_bricks;stone;;;
+block;resin_brick_slab;Resin Brick Slab;building;:slab@resin_bricks;stone;;;
+block;resin_brick_stairs;Resin Brick Stairs;building;:stairs@resin_bricks;stone;;;
+block;sandstone_slab;Sandstone Slab;building;:slab@sandstone;stone;;;
+block;sandstone_stairs;Sandstone Stairs;building;:stairs@sandstone;stone;;;
+block;smooth_sandstone_slab;Smooth Sandstone Slab;building;:slab@smooth_sandstone;stone;;;
+block;smooth_sandstone_stairs;Smooth Sandstone Stairs;building;:stairs@smooth_sandstone;stone;;;
+block;cut_sandstone_slab;Cut Sandstone Slab;building;:slab@cut_sandstone;stone;;;
+block;red_sandstone_slab;Red Sandstone Slab;building;:slab@red_sandstone;stone;;;
+block;red_sandstone_stairs;Red Sandstone Stairs;building;:stairs@red_sandstone;stone;;;
+block;smooth_red_sandstone_slab;Smooth Red Sandstone Slab;building;:slab@smooth_red_sandstone;stone;;;
+block;smooth_red_sandstone_stairs;Smooth Red Sandstone Stairs;building;:stairs@smooth_red_sandstone;stone;;;
+block;cut_red_sandstone_slab;Cut Red Sandstone Slab;building;:slab@cut_red_sandstone;stone;;;
+block;prismarine_slab;Prismarine Slab;building;:slab@prismarine;stone;;;
+block;prismarine_stairs;Prismarine Stairs;building;:stairs@prismarine;stone;;;
+block;prismarine_brick_slab;Prismarine Brick Slab;building;:slab@prismarine_bricks;stone;;;
+block;prismarine_brick_stairs;Prismarine Brick Stairs;building;:stairs@prismarine_bricks;stone;;;
+block;dark_prismarine_slab;Dark Prismarine Slab;building;:slab@dark_prismarine;stone;;;
+block;dark_prismarine_stairs;Dark Prismarine Stairs;building;:stairs@dark_prismarine;stone;;;
+block;nether_brick_slab;Nether Brick Slab;building;:slab@nether_bricks;stone;;;
+block;nether_brick_stairs;Nether Brick Stairs;building;:stairs@nether_bricks;stone;;;
+block;red_nether_brick_slab;Red Nether Brick Slab;building;:slab@red_nether_bricks;stone;;;
+block;red_nether_brick_stairs;Red Nether Brick Stairs;building;:stairs@red_nether_bricks;stone;;;
+block;blackstone_slab;Blackstone Slab;building;:slab@blackstone;stone;;;
+block;blackstone_stairs;Blackstone Stairs;building;:stairs@blackstone;stone;;;
+block;polished_blackstone_slab;Polished Blackstone Slab;building;:slab@polished_blackstone;stone;;;
+block;polished_blackstone_stairs;Polished Blackstone Stairs;building;:stairs@polished_blackstone;stone;;;
+block;polished_blackstone_brick_slab;Polished Blackstone Brick Slab;building;:slab@polished_blackstone_bricks;stone;;;
+block;polished_blackstone_brick_stairs;Polished Blackstone Brick Stairs;building;:stairs@polished_blackstone_bricks;stone;;;
+block;end_stone_brick_slab;End Stone Brick Slab;building;:slab@end_stone_bricks;stone;;;
+block;end_stone_brick_stairs;End Stone Brick Stairs;building;:stairs@end_stone_bricks;stone;;;
+block;purpur_slab;Purpur Slab;building;:slab@purpur_block;stone;;;
+block;purpur_stairs;Purpur Stairs;building;:stairs@purpur_block;stone;;;
+block;quartz_slab;Quartz Slab;building;:slab@quartz_block;stone;;;
+block;quartz_stairs;Quartz Stairs;building;:stairs@quartz_block;stone;;;
+block;smooth_quartz_slab;Smooth Quartz Slab;building;:slab@smooth_quartz;stone;;;
+block;smooth_quartz_stairs;Smooth Quartz Stairs;building;:stairs@smooth_quartz;stone;;;
+block;cut_copper_slab;Cut Copper Slab;building;:slab@cut_copper;stone;;;
+block;cut_copper_stairs;Cut Copper Stairs;building;:stairs@cut_copper;stone;;;
+block;exposed_cut_copper_slab;Exposed Cut Copper Slab;building;:slab@exposed_cut_copper;stone;;;
+block;exposed_cut_copper_stairs;Exposed Cut Copper Stairs;building;:stairs@exposed_cut_copper;stone;;;
+block;weathered_cut_copper_slab;Weathered Cut Copper Slab;building;:slab@weathered_cut_copper;stone;;;
+block;weathered_cut_copper_stairs;Weathered Cut Copper Stairs;building;:stairs@weathered_cut_copper;stone;;;
+block;oxidized_cut_copper_slab;Oxidized Cut Copper Slab;building;:slab@oxidized_cut_copper;stone;;;
+block;oxidized_cut_copper_stairs;Oxidized Cut Copper Stairs;building;:stairs@oxidized_cut_copper;stone;;;
+block;cobblestone_wall;Cobblestone Wall;building;:wall@cobblestone;stone;;;
+block;mossy_cobblestone_wall;Mossy Cobblestone Wall;building;:wall@mossy_cobblestone;stone;;;
+block;stone_brick_wall;Stone Brick Wall;building;:wall@stone_bricks;stone;;;
+block;mossy_stone_brick_wall;Mossy Stone Brick Wall;building;:wall@mossy_stone_bricks;stone;;;
+block;granite_wall;Granite Wall;building;:wall@granite;stone;;;
+block;diorite_wall;Diorite Wall;building;:wall@diorite;stone;;;
+block;andesite_wall;Andesite Wall;building;:wall@andesite;stone;;;
+block;cobbled_deepslate_wall;Cobbled Deepslate Wall;building;:wall@cobbled_deepslate;stone;;;
+block;polished_deepslate_wall;Polished Deepslate Wall;building;:wall@polished_deepslate;stone;;;
+block;deepslate_brick_wall;Deepslate Brick Wall;building;:wall@deepslate_bricks;stone;;;
+block;deepslate_tile_wall;Deepslate Tile Wall;building;:wall@deepslate_tiles;stone;;;
+block;tuff_wall;Tuff Wall;building;:wall@tuff;stone;;;
+block;polished_tuff_wall;Polished Tuff Wall;building;:wall@polished_tuff;stone;;;
+block;tuff_brick_wall;Tuff Brick Wall;building;:wall@tuff_bricks;stone;;;
+block;brick_wall;Brick Wall;building;:wall@bricks;stone;;;
+block;mud_brick_wall;Mud Brick Wall;building;:wall@mud_bricks;stone;;;
+block;resin_brick_wall;Resin Brick Wall;building;:wall@resin_bricks;stone;;;
+block;sandstone_wall;Sandstone Wall;building;:wall@sandstone;stone;;;
+block;red_sandstone_wall;Red Sandstone Wall;building;:wall@red_sandstone;stone;;;
+block;prismarine_wall;Prismarine Wall;building;:wall@prismarine;stone;;;
+block;nether_brick_wall;Nether Brick Wall;building;:wall@nether_bricks;stone;;;
+block;red_nether_brick_wall;Red Nether Brick Wall;building;:wall@red_nether_bricks;stone;;;
+block;blackstone_wall;Blackstone Wall;building;:wall@blackstone;stone;;;
+block;polished_blackstone_wall;Polished Blackstone Wall;building;:wall@polished_blackstone;stone;;;
+block;polished_blackstone_brick_wall;Polished Blackstone Brick Wall;building;:wall@polished_blackstone_bricks;stone;;;
+block;end_stone_brick_wall;End Stone Brick Wall;building;:wall@end_stone_bricks;stone;;;
+block;oak_fence;Oak Fence;building;:fence@oak_planks;wood;;;
+block;oak_fence_gate;Oak Fence Gate;building,redstone;:gate@oak_planks;wood;;;
+block;spruce_fence;Spruce Fence;building;:fence@spruce_planks;wood;;;
+block;spruce_fence_gate;Spruce Fence Gate;building,redstone;:gate@spruce_planks;wood;;;
+block;birch_fence;Birch Fence;building;:fence@birch_planks;wood;;;
+block;birch_fence_gate;Birch Fence Gate;building,redstone;:gate@birch_planks;wood;;;
+block;jungle_fence;Jungle Fence;building;:fence@jungle_planks;wood;;;
+block;jungle_fence_gate;Jungle Fence Gate;building,redstone;:gate@jungle_planks;wood;;;
+block;acacia_fence;Acacia Fence;building;:fence@acacia_planks;wood;;;
+block;acacia_fence_gate;Acacia Fence Gate;building,redstone;:gate@acacia_planks;wood;;;
+block;dark_oak_fence;Dark Oak Fence;building;:fence@dark_oak_planks;wood;;;
+block;dark_oak_fence_gate;Dark Oak Fence Gate;building,redstone;:gate@dark_oak_planks;wood;;;
+block;mangrove_fence;Mangrove Fence;building;:fence@mangrove_planks;wood;;;
+block;mangrove_fence_gate;Mangrove Fence Gate;building,redstone;:gate@mangrove_planks;wood;;;
+block;cherry_fence;Cherry Fence;building;:fence@cherry_planks;wood;;;
+block;cherry_fence_gate;Cherry Fence Gate;building,redstone;:gate@cherry_planks;wood;;;
+block;pale_oak_fence;Pale Oak Fence;building;:fence@pale_oak_planks;wood;;;
+block;pale_oak_fence_gate;Pale Oak Fence Gate;building,redstone;:gate@pale_oak_planks;wood;;;
+block;bamboo_fence;Bamboo Fence;building;:fence@bamboo_planks;wood;;;
+block;bamboo_fence_gate;Bamboo Fence Gate;building,redstone;:gate@bamboo_planks;wood;;;
+block;crimson_fence;Crimson Fence;building;:fence@crimson_planks;wood;;;
+block;crimson_fence_gate;Crimson Fence Gate;building,redstone;:gate@crimson_planks;wood;;;
+block;warped_fence;Warped Fence;building;:fence@warped_planks;wood;;;
+block;warped_fence_gate;Warped Fence Gate;building,redstone;:gate@warped_planks;wood;;;
+block;nether_brick_fence;Nether Brick Fence;building;:fence@nether_bricks;stone;;;
+block;glass_pane;Glass Pane;colored,functional;a:pane;glass;glass_pane_top;glass;
+block;white_stained_glass_pane;White Stained Glass Pane;colored;a:pane;glass;white_stained_glass_pane_top;white_stained_glass;
+block;light_gray_stained_glass_pane;Light Gray Stained Glass Pane;colored;a:pane;glass;light_gray_stained_glass_pane_top;light_gray_stained_glass;
+block;gray_stained_glass_pane;Gray Stained Glass Pane;colored;a:pane;glass;gray_stained_glass_pane_top;gray_stained_glass;
+block;black_stained_glass_pane;Black Stained Glass Pane;colored;a:pane;glass;black_stained_glass_pane_top;black_stained_glass;
+block;brown_stained_glass_pane;Brown Stained Glass Pane;colored;a:pane;glass;brown_stained_glass_pane_top;brown_stained_glass;
+block;red_stained_glass_pane;Red Stained Glass Pane;colored;a:pane;glass;red_stained_glass_pane_top;red_stained_glass;
+block;orange_stained_glass_pane;Orange Stained Glass Pane;colored;a:pane;glass;orange_stained_glass_pane_top;orange_stained_glass;
+block;yellow_stained_glass_pane;Yellow Stained Glass Pane;colored;a:pane;glass;yellow_stained_glass_pane_top;yellow_stained_glass;
+block;lime_stained_glass_pane;Lime Stained Glass Pane;colored;a:pane;glass;lime_stained_glass_pane_top;lime_stained_glass;
+block;green_stained_glass_pane;Green Stained Glass Pane;colored;a:pane;glass;green_stained_glass_pane_top;green_stained_glass;
+block;cyan_stained_glass_pane;Cyan Stained Glass Pane;colored;a:pane;glass;cyan_stained_glass_pane_top;cyan_stained_glass;
+block;light_blue_stained_glass_pane;Light Blue Stained Glass Pane;colored;a:pane;glass;light_blue_stained_glass_pane_top;light_blue_stained_glass;
+block;blue_stained_glass_pane;Blue Stained Glass Pane;colored;a:pane;glass;blue_stained_glass_pane_top;blue_stained_glass;
+block;purple_stained_glass_pane;Purple Stained Glass Pane;colored;a:pane;glass;purple_stained_glass_pane_top;purple_stained_glass;
+block;magenta_stained_glass_pane;Magenta Stained Glass Pane;colored;a:pane;glass;magenta_stained_glass_pane_top;magenta_stained_glass;
+block;pink_stained_glass_pane;Pink Stained Glass Pane;colored;a:pane;glass;pink_stained_glass_pane_top;pink_stained_glass;
+block;iron_bars;Iron Bars;building;c:pane;stone;iron_bars;iron_bars;
+block;white_carpet;White Carpet;colored;:carpet@white_wool;cloth;;;
+block;light_gray_carpet;Light Gray Carpet;colored;:carpet@light_gray_wool;cloth;;;
+block;gray_carpet;Gray Carpet;colored;:carpet@gray_wool;cloth;;;
+block;black_carpet;Black Carpet;colored;:carpet@black_wool;cloth;;;
+block;brown_carpet;Brown Carpet;colored;:carpet@brown_wool;cloth;;;
+block;red_carpet;Red Carpet;colored;:carpet@red_wool;cloth;;;
+block;orange_carpet;Orange Carpet;colored;:carpet@orange_wool;cloth;;;
+block;yellow_carpet;Yellow Carpet;colored;:carpet@yellow_wool;cloth;;;
+block;lime_carpet;Lime Carpet;colored;:carpet@lime_wool;cloth;;;
+block;green_carpet;Green Carpet;colored;:carpet@green_wool;cloth;;;
+block;cyan_carpet;Cyan Carpet;colored;:carpet@cyan_wool;cloth;;;
+block;light_blue_carpet;Light Blue Carpet;colored;:carpet@light_blue_wool;cloth;;;
+block;blue_carpet;Blue Carpet;colored;:carpet@blue_wool;cloth;;;
+block;purple_carpet;Purple Carpet;colored;:carpet@purple_wool;cloth;;;
+block;magenta_carpet;Magenta Carpet;colored;:carpet@magenta_wool;cloth;;;
+block;pink_carpet;Pink Carpet;colored;:carpet@pink_wool;cloth;;;
+block;moss_carpet;Moss Carpet;natural;:carpet@moss_block;grass;;;
+block;pale_moss_carpet;Pale Moss Carpet;natural;:carpet;grass;pale_moss_carpet;;
+block;torch;Torch;functional;cl:torch;wood;torch;;
+block;soul_torch;Soul Torch;functional;cl:torch;wood;soul_torch;;
+block;redstone_torch;Redstone Torch;redstone;cl:torch;wood;redstone_torch;;
+block;lantern;Lantern;functional;cl:lantern;stone;lantern;;
+block;soul_lantern;Soul Lantern;functional;cl:lantern;stone;soul_lantern;;
+block;dandelion;Dandelion;natural;c:cross;grass;dandelion;;
+block;poppy;Poppy;natural;c:cross;grass;poppy;;
+block;blue_orchid;Blue Orchid;natural;c:cross;grass;blue_orchid;;
+block;allium;Allium;natural;c:cross;grass;allium;;
+block;azure_bluet;Azure Bluet;natural;c:cross;grass;azure_bluet;;
+block;red_tulip;Red Tulip;natural;c:cross;grass;red_tulip;;
+block;orange_tulip;Orange Tulip;natural;c:cross;grass;orange_tulip;;
+block;white_tulip;White Tulip;natural;c:cross;grass;white_tulip;;
+block;pink_tulip;Pink Tulip;natural;c:cross;grass;pink_tulip;;
+block;oxeye_daisy;Oxeye Daisy;natural;c:cross;grass;oxeye_daisy;;
+block;cornflower;Cornflower;natural;c:cross;grass;cornflower;;
+block;lily_of_the_valley;Lily of The Valley;natural;c:cross;grass;lily_of_the_valley;;
+block;wither_rose;Wither Rose;natural;c:cross;grass;wither_rose;;
+block;torchflower;Torchflower;natural;c:cross;grass;torchflower;;
+block;oak_sapling;Oak Sapling;natural;c:cross;grass;oak_sapling;;
+block;spruce_sapling;Spruce Sapling;natural;c:cross;grass;spruce_sapling;;
+block;birch_sapling;Birch Sapling;natural;c:cross;grass;birch_sapling;;
+block;jungle_sapling;Jungle Sapling;natural;c:cross;grass;jungle_sapling;;
+block;acacia_sapling;Acacia Sapling;natural;c:cross;grass;acacia_sapling;;
+block;dark_oak_sapling;Dark Oak Sapling;natural;c:cross;grass;dark_oak_sapling;;
+block;cherry_sapling;Cherry Sapling;natural;c:cross;grass;cherry_sapling;;
+block;pale_oak_sapling;Pale Oak Sapling;natural;c:cross;grass;pale_oak_sapling;;
+block;dead_bush;Dead Bush;natural;c:cross;grass;dead_bush;;
+block;brown_mushroom;Brown Mushroom;natural;c:cross;grass;brown_mushroom;;
+block;red_mushroom;Red Mushroom;natural;c:cross;grass;red_mushroom;;
+block;crimson_fungus;Crimson Fungus;natural;c:cross;grass;crimson_fungus;;
+block;warped_fungus;Warped Fungus;natural;c:cross;grass;warped_fungus;;
+block;crimson_roots;Crimson Roots;natural;c:cross;grass;crimson_roots;;
+block;warped_roots;Warped Roots;natural;c:cross;grass;warped_roots;;
+block;nether_sprouts;Nether Sprouts;natural;c:cross;grass;nether_sprouts;;
+block;short_grass;Short Grass;natural;cf:cross;grass;short_grass;;
+block;fern;Fern;natural;cf:cross;grass;fern;;
+block;cobweb;Cobweb;natural;c:cross;cloth;cobweb;;
+block;ladder;Ladder;functional;c:ladder;wood;ladder;;
+block;oak_door;Oak Door;building,redstone;c:door;wood;oak_door_top;oak_door_bottom;
+block;spruce_door;Spruce Door;building,redstone;c:door;wood;spruce_door_top;spruce_door_bottom;
+block;birch_door;Birch Door;building,redstone;c:door;wood;birch_door_top;birch_door_bottom;
+block;jungle_door;Jungle Door;building,redstone;c:door;wood;jungle_door_top;jungle_door_bottom;
+block;acacia_door;Acacia Door;building,redstone;c:door;wood;acacia_door_top;acacia_door_bottom;
+block;dark_oak_door;Dark Oak Door;building,redstone;c:door;wood;dark_oak_door_top;dark_oak_door_bottom;
+block;mangrove_door;Mangrove Door;building,redstone;c:door;wood;mangrove_door_top;mangrove_door_bottom;
+block;cherry_door;Cherry Door;building,redstone;c:door;wood;cherry_door_top;cherry_door_bottom;
+block;pale_oak_door;Pale Oak Door;building,redstone;c:door;wood;pale_oak_door_top;pale_oak_door_bottom;
+block;bamboo_door;Bamboo Door;building,redstone;c:door;wood;bamboo_door_top;bamboo_door_bottom;
+block;crimson_door;Crimson Door;building,redstone;c:door;wood;crimson_door_top;crimson_door_bottom;
+block;warped_door;Warped Door;building,redstone;c:door;wood;warped_door_top;warped_door_bottom;
+block;iron_door;Iron Door;building,redstone;c:door;stone;iron_door_top;iron_door_bottom;
+block;copper_door;Copper Door;building,redstone;c:door;stone;copper_door_top;copper_door_bottom;
+block;exposed_copper_door;Exposed Copper Door;building,redstone;c:door;stone;exposed_copper_door_top;exposed_copper_door_bottom;
+block;weathered_copper_door;Weathered Copper Door;building,redstone;c:door;stone;weathered_copper_door_top;weathered_copper_door_bottom;
+block;oxidized_copper_door;Oxidized Copper Door;building,redstone;c:door;stone;oxidized_copper_door_top;oxidized_copper_door_bottom;
+block;oak_trapdoor;Oak Trapdoor;building,redstone;c:trapdoor;wood;oak_trapdoor;;
+block;spruce_trapdoor;Spruce Trapdoor;building,redstone;c:trapdoor;wood;spruce_trapdoor;;
+block;birch_trapdoor;Birch Trapdoor;building,redstone;c:trapdoor;wood;birch_trapdoor;;
+block;jungle_trapdoor;Jungle Trapdoor;building,redstone;c:trapdoor;wood;jungle_trapdoor;;
+block;acacia_trapdoor;Acacia Trapdoor;building,redstone;c:trapdoor;wood;acacia_trapdoor;;
+block;dark_oak_trapdoor;Dark Oak Trapdoor;building,redstone;c:trapdoor;wood;dark_oak_trapdoor;;
+block;mangrove_trapdoor;Mangrove Trapdoor;building,redstone;c:trapdoor;wood;mangrove_trapdoor;;
+block;cherry_trapdoor;Cherry Trapdoor;building,redstone;c:trapdoor;wood;cherry_trapdoor;;
+block;pale_oak_trapdoor;Pale Oak Trapdoor;building,redstone;c:trapdoor;wood;pale_oak_trapdoor;;
+block;bamboo_trapdoor;Bamboo Trapdoor;building,redstone;c:trapdoor;wood;bamboo_trapdoor;;
+block;crimson_trapdoor;Crimson Trapdoor;building,redstone;c:trapdoor;wood;crimson_trapdoor;;
+block;warped_trapdoor;Warped Trapdoor;building,redstone;c:trapdoor;wood;warped_trapdoor;;
+block;iron_trapdoor;Iron Trapdoor;building,redstone;c:trapdoor;stone;iron_trapdoor;;
+block;copper_trapdoor;Copper Trapdoor;building,redstone;c:trapdoor;stone;copper_trapdoor;;
+block;exposed_copper_trapdoor;Exposed Copper Trapdoor;building,redstone;c:trapdoor;stone;exposed_copper_trapdoor;;
+block;weathered_copper_trapdoor;Weathered Copper Trapdoor;building,redstone;c:trapdoor;stone;weathered_copper_trapdoor;;
+block;oxidized_copper_trapdoor;Oxidized Copper Trapdoor;building,redstone;c:trapdoor;stone;oxidized_copper_trapdoor;;
+block;skeleton_skull;Skeleton Skull;functional;k;stone;skeleton/skeleton;;
+block;zombie_head;Zombie Head;functional;k;stone;zombie/zombie;;
+block;creeper_head;Creeper Head;functional;k;stone;creeper/creeper;;
+block;player_head;Player Head;functional;k;stone;player/wide/steve;;
 item;wooden_sword;Wooden Sword;combat;s;wooden_sword
 item;stone_sword;Stone Sword;combat;s;stone_sword
 item;copper_sword;Copper Sword;combat;s;copper_sword
@@ -309,7 +717,7 @@ sprite;crossbow_pulling_0
 sprite;crossbow_pulling_1
 sprite;crossbow_pulling_2
 sprite;crossbow_arrow
-block;wither_skeleton_skull;Wither Skeleton Skull;functional;k;stone;wither_skeleton;;
+block;wither_skeleton_skull;Wither Skeleton Skull;functional;k;stone;skeleton/wither_skeleton;;
 icon;oak_sign
 icon;diamond_pickaxe
 icon;netherite_sword

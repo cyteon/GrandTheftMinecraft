@@ -19,10 +19,22 @@ struct Cell
 	bool operator==(const Cell &o) const { return b == o.b && x == o.x && y == o.y && z == o.z; }
 };
 
+// Block::state bits
+enum : uint8_t
+{
+	ST_TOP = 1,     // slab / stairs / trapdoor in the upper half
+	ST_DOUBLE = 2,  // two slabs
+	ST_OPEN = 4,    // door / trapdoor / gate
+	ST_WALL = 8,    // torch on a wall, lantern hanging
+	ST_HINGE_R = 16, // door hinged on the right
+	ST_UPPER = 32,  // a door's upper half
+};
+
 struct Block
 {
 	uint16_t item = 0;
 	uint8_t facing = 0;  // 0..15, 22.5 degree steps anticlockwise; 0 = front towards +Y
+	uint8_t state = 0;   // ST_* bits
 	uint8_t exposed = 0; // bit per face: 0 +Z, 1 -Z, 2 +Y, 3 -Y, 4 +X, 5 -X
 };
 
@@ -36,7 +48,10 @@ V3 cell_min(const Cell &c); // world-space min corner
 inline V3 cell_center(const Cell &c) { return cell_min(c) + V3(0.5f, 0.5f, 0.5f); }
 
 const Block *block_at(const Cell &c);
-bool place_block(const Cell &c, int item, int facing = 0);
+bool place_block(const Cell &c, int item, int facing = 0, int state = 0);
+bool set_block_state(const Cell &c, int state); // e.g. a door opening
+// also removes what depended on it (Minecraft pops them): the other half of a door, plants / carpets / torches on
+// top, torches and ladders on its sides, a lantern hanging under it
 bool remove_block(const Cell &c);
 
 // A build for a block placed against GTA geometry at point p: joins one within 48 m, else makes one.

@@ -18,8 +18,8 @@ static class Build
 
     const string TexDict = "gtm_tex";
 
-    // models.txt row: model;texture;shader;material;collision half-extents ("-" = none)
-    record ModelDef(string Name, string Texture, string Shader, int Material, float[] Half);
+    // models.txt row: model;texture;shader;material;collision boxes "hx,hy,hz[,cx,cy,cz]" joined by '|' ("-" = none)
+    record ModelDef(string Name, string Texture, string Shader, int Material, float[][] Boxes);
 
     class Geo
     {
@@ -66,39 +66,33 @@ static class Build
 
     static string BoundsXml(ModelDef m)
     {
-        if (m.Half == null) return "";
-        float[] h = m.Half.Take(3).ToArray(), c = m.Half.Length >= 6 ? m.Half.Skip(3).Take(3).ToArray() : new float[3];
-        string mn = $@"x=""{F(c[0] - h[0])}"" y=""{F(c[1] - h[1])}"" z=""{F(c[2] - h[2])}""";
-        string mx = $@"x=""{F(c[0] + h[0])}"" y=""{F(c[1] + h[1])}"" z=""{F(c[2] + h[2])}""";
-        string ctr = $@"x=""{F(c[0])}"" y=""{F(c[1])}"" z=""{F(c[2])}""";
-        float r = (float)Math.Sqrt(h.Sum(v => v * v));
-        float vol = 8 * h[0] * h[1] * h[2];
-        float ix = (4 * (h[1] * h[1] + h[2] * h[2])) / 12, iy = (4 * (h[0] * h[0] + h[2] * h[2])) / 12, iz = (4 * (h[0] * h[0] + h[1] * h[1])) / 12;
-        float margin = Math.Min(0.04f, h.Min() * 0.5f);
-        string common(string mat) => $@"
-  <BoxCenter {ctr} />
-  <SphereCenter {ctr} />
-  <SphereRadius value=""{F(r)}"" />";
-        return $@" <Bounds type=""Composite"">
-  <BoxMin {mn} />
-  <BoxMax {mx} />{common("0")}
-  <Margin value=""0"" />
-  <Volume value=""{F(vol)}"" />
-  <Inertia x=""{F(ix)}"" y=""{F(iy)}"" z=""{F(iz)}"" />
-  <MaterialIndex value=""0"" />
-  <MaterialColourIndex value=""0"" />
-  <ProceduralID value=""0"" />
-  <RoomID value=""0"" />
-  <PedDensity value=""0"" />
-  <UnkFlags value=""0"" />
-  <PolyFlags value=""0"" />
-  <UnkType value=""1"" />
-  <Children>
+        if (m.Boxes == null) return "";
+        string V(float x, float y, float z) => $@"x=""{F(x)}"" y=""{F(y)}"" z=""{F(z)}""";
+        // each box: half extents hx,hy,hz and an optional centre cx,cy,cz (metres, model space)
+        var boxes = m.Boxes.Select(b => (h: b.Take(3).ToArray(), c: b.Length >= 6 ? b.Skip(3).Take(3).ToArray() : new float[3])).ToList();
+        float[] lo = new float[3], hi = new float[3];
+        for (int k = 0; k < 3; k++)
+        {
+            lo[k] = boxes.Min(b => b.c[k] - b.h[k]);
+            hi[k] = boxes.Max(b => b.c[k] + b.h[k]);
+        }
+        float[] uc = Enumerable.Range(0, 3).Select(k => (lo[k] + hi[k]) / 2).ToArray();
+        float[] uh = Enumerable.Range(0, 3).Select(k => (hi[k] - lo[k]) / 2).ToArray();
+        float ur = (float)Math.Sqrt(uh.Sum(v => v * v));
+        float uvol = boxes.Sum(b => 8 * b.h[0] * b.h[1] * b.h[2]);
+        var children = new StringBuilder();
+        foreach (var (h, c) in boxes)
+        {
+            float r = (float)Math.Sqrt(h.Sum(v => v * v));
+            float vol = 8 * h[0] * h[1] * h[2];
+            float ix = (4 * (h[1] * h[1] + h[2] * h[2])) / 12, iy = (4 * (h[0] * h[0] + h[2] * h[2])) / 12, iz = (4 * (h[0] * h[0] + h[1] * h[1])) / 12;
+            float margin = Math.Min(0.04f, h.Min() * 0.5f);
+            children.Append($@"
    <Item type=""Box"">
-    <BoxMin {mn} />
-    <BoxMax {mx} />
-    <BoxCenter {ctr} />
-    <SphereCenter {ctr} />
+    <BoxMin {V(c[0] - h[0], c[1] - h[1], c[2] - h[2])} />
+    <BoxMax {V(c[0] + h[0], c[1] + h[1], c[2] + h[2])} />
+    <BoxCenter {V(c[0], c[1], c[2])} />
+    <SphereCenter {V(c[0], c[1], c[2])} />
     <SphereRadius value=""{F(r)}"" />
     <Margin value=""{F(margin)}"" />
     <Volume value=""{F(vol)}"" />
@@ -119,7 +113,27 @@ static class Build
     </CompositeTransform>
     <CompositeFlags1>MAP_WEAPON, MAP_DYNAMIC, MAP_ANIMAL, MAP_COVER, MAP_VEHICLE</CompositeFlags1>
     <CompositeFlags2>VEHICLE_NOT_BVH, VEHICLE_BVH, PED, RAGDOLL, ANIMAL, ANIMAL_RAGDOLL, OBJECT, PLANT, PROJECTILE, EXPLOSION, FORKLIFT_FORKS, TEST_WEAPON, TEST_CAMERA, TEST_AI, TEST_SCRIPT, TEST_VEHICLE_WHEEL, GLASS</CompositeFlags2>
-   </Item>
+   </Item>");
+        }
+        float uix = (4 * (uh[1] * uh[1] + uh[2] * uh[2])) / 12, uiy = (4 * (uh[0] * uh[0] + uh[2] * uh[2])) / 12, uiz = (4 * (uh[0] * uh[0] + uh[1] * uh[1])) / 12;
+        return $@" <Bounds type=""Composite"">
+  <BoxMin {V(lo[0], lo[1], lo[2])} />
+  <BoxMax {V(hi[0], hi[1], hi[2])} />
+  <BoxCenter {V(uc[0], uc[1], uc[2])} />
+  <SphereCenter {V(uc[0], uc[1], uc[2])} />
+  <SphereRadius value=""{F(ur)}"" />
+  <Margin value=""0"" />
+  <Volume value=""{F(uvol)}"" />
+  <Inertia x=""{F(uix)}"" y=""{F(uiy)}"" z=""{F(uiz)}"" />
+  <MaterialIndex value=""0"" />
+  <MaterialColourIndex value=""0"" />
+  <ProceduralID value=""0"" />
+  <RoomID value=""0"" />
+  <PedDensity value=""0"" />
+  <UnkFlags value=""0"" />
+  <PolyFlags value=""0"" />
+  <UnkType value=""1"" />
+  <Children>{children}
   </Children>
  </Bounds>
 ";
@@ -246,13 +260,20 @@ static class Build
         return sb.ToString();
     }
 
+    // RPF7 entries point at their names with 16 bits, so an archive's name table can't pass 64 KB: thousands of
+    // gtm_<long block name>.ydr files would overflow it. The archetype keeps the real name (what scripts spawn);
+    // its drawable file gets a short one.
+    static string AssetName(int index) => $"z{index:x}";
+
     static string YtypXml(IEnumerable<(ModelDef m, Geo g)> models)
     {
         var sb = new StringBuilder();
         sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<CMapTypes>\n <extensions />\n <archetypes>\n");
+        int index = 0;
         foreach (var (m, g) in models)
         {
-            string phys = m.Half != null ? $"<physicsDictionary>{PropsRpf}</physicsDictionary>" : "<physicsDictionary />";
+            string asset = AssetName(index++);
+            string phys = m.Boxes != null ? $"<physicsDictionary>{PropsRpf}</physicsDictionary>" : "<physicsDictionary />";
             sb.Append($@"  <Item type=""CBaseArchetypeDef"">
    <lodDist value=""300"" />
    <flags value=""537001984"" />
@@ -268,7 +289,7 @@ static class Build
    <drawableDictionary />
    {phys}
    <assetType>ASSET_TYPE_DRAWABLE</assetType>
-   <assetName>{m.Name}</assetName>
+   <assetName>{asset}</assetName>
    <extensions />
   </Item>
 ");
@@ -344,18 +365,19 @@ static class Build
         var models = File.ReadAllLines(Path.Combine(srcDir, "models.txt"))
             .Where(l => l.Contains(';'))
             .Select(l => l.Split(';'))
-            .Select(p => new ModelDef(p[0], p[1], p[2], int.Parse(p[3]), p[4] == "-" ? null : p[4].Split(',').Select(x => float.Parse(x, C)).ToArray()))
+            .Select(p => new ModelDef(p[0], p[1], p[2], int.Parse(p[3]), p[4] == "-" ? null : p[4].Split('|').Select(b => b.Split(',').Select(x => float.Parse(x, C)).ToArray()).ToArray()))
             .Select(m => (m, g: Geo.Load(Path.Combine(srcDir, m.Name + ".geo"))))
             .ToList();
 
         var files = new List<(string name, byte[] data)>();
+        int fileIndex = 0;
         foreach (var (m, g) in models)
         {
             var doc = new XmlDocument();
             doc.LoadXml(DrawableXml(m, g));
             byte[] ydr = XmlMeta.GetData(doc, MetaFormat.Ydr, srcDir);
             if (ydr == null || ydr.Length < 16) throw new Exception($"ydr build failed for {m.Name}");
-            files.Add(($"{m.Name}.ydr", ydr));
+            files.Add(($"{AssetName(fileIndex++)}.ydr", ydr));
         }
         var textures = models.Select(x => x.m.Texture).Distinct().ToList();
         var ytdDoc = new XmlDocument();
@@ -468,7 +490,7 @@ static class Build
             foreach (var ce in e.AllEntries)
                 Console.WriteLine($"  {ce.Path}");
         Directory.CreateDirectory(outDir);
-        foreach (var name in new[] { "gtm_grass_block.ydr", "gtm_i_bow.ydr", TexDict + ".ytd", PropsRpf + ".ytyp", "content.xml" })
+        foreach (var name in new[] { "z0.ydr", TexDict + ".ytd", PropsRpf + ".ytyp", "content.xml" })
         {
             var fe = all.FirstOrDefault(x => x.NameLower == name);
             if (fe == null) { Console.Error.WriteLine($"missing {name}"); return 1; }

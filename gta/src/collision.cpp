@@ -3,6 +3,7 @@
 #include "dlcpatch.h"
 #include "items.h"
 #include "log.h"
+#include "shapes.h"
 #include "world.h"
 #include <algorithm>
 #include <unordered_map>
@@ -63,8 +64,8 @@ namespace collision
 	struct Prop
 	{
 		int obj;
-		uint16_t item;
-		uint8_t facing;
+		Hash model;
+		float yaw;
 	};
 	static std::unordered_map<uint64_t, Prop> s_props; // cell key -> object
 	static std::unordered_set<int> s_handles;
@@ -133,6 +134,31 @@ namespace collision
 		}
 	}
 
+	// the block pack's model for a block in its current state (stair corners, fence arms...) and its turn
+	static std::unordered_map<std::string, Hash> s_models;
+	static Hash model_named(const std::string &name)
+	{
+		auto it = s_models.find(name);
+		if (it != s_models.end())
+			return it->second;
+		Hash h = GET_HASH_KEY(name.c_str());
+		if (!IS_MODEL_VALID(h))
+			h = 0;
+		s_models[name] = h;
+		return h;
+	}
+	static Hash block_model(const Cell &c, const Block &bk, float &yaw)
+	{
+		yaw = 0;
+		if (!s_dlc)
+			return item(bk.item).passable() ? 0 : s_model; // collision crates only where you can't walk through
+		shapes::Look lk = shapes::look(c, bk);
+		yaw = lk.yaw;
+		const std::string &n = item(bk.item).name;
+		Hash h = model_named("gtm_" + n + lk.suffix);
+		return h ? h : model_named("gtm_" + n);
+	}
+
 	bool dlc() { return s_dlc; }
 	bool is_ours(int e) { return e && s_handles.count(e); }
 	int count() { return (int)s_props.size(); }
@@ -191,13 +217,19 @@ namespace collision
 		std::sort(want.begin(), want.end());
 		if ((int)want.size() > cap)
 			want.resize(cap);
-		std::unordered_set<uint64_t> keep;
+		std::unordered_map<uint64_t, std::pair<Hash, float>> keep; // what each block should look like now
 		for (auto &w : want)
-			keep.insert(w.second);
+		{
+			float yaw;
+			Hash m = block_model(key_cell(w.second), g_blocks[w.second], yaw);
+			keep[w.second] = {m, yaw};
+		}
 		for (auto it = s_props.begin(); it != s_props.end();)
 		{
 			auto bk = g_blocks.find(it->first);
-			if (!keep.count(it->first) || bk == g_blocks.end() || (s_dlc && (bk->second.item != it->second.item || bk->second.facing != it->second.facing)))
+			auto k = keep.find(it->first);
+			if (k == keep.end() || bk == g_blocks.end() || k->second.first != it->second.model ||
+			    k->second.second != it->second.yaw)
 			{
 				destroy(it->second.obj);
 				it = s_props.erase(it);
@@ -216,10 +248,10 @@ namespace collision
 				s_lastVersion = -1;
 				break;
 			}
-			const Block &bk = g_blocks[w.second];
 			Cell c = key_cell(w.second);
 			V3 mn = cell_min(c);
-			Hash model = s_dlc ? s_itemModel[bk.item] : s_model;
+			Hash model = keep[w.second].first;
+			float yaw = keep[w.second].second;
 			if (!model)
 				continue; // no prop for this block: the polygon renderer draws it
 			if (!HAS_MODEL_LOADED(model))
@@ -241,7 +273,7 @@ namespace collision
 			int obj = CREATE_OBJECT_NO_OFFSET(model, x, y, z, FALSE, TRUE, FALSE, 0);
 			if (!obj)
 				continue;
-			SET_ENTITY_ROTATION(obj, 0, 0, s_dlc ? bk.facing * 22.5f : 0, 2, TRUE);
+			SET_ENTITY_ROTATION(obj, 0, 0, yaw, 2, TRUE);
 			SET_ENTITY_COORDS_NO_OFFSET(obj, x, y, z, FALSE, FALSE, FALSE);
 			FREEZE_ENTITY_POSITION(obj, TRUE);
 			SET_ENTITY_VISIBLE(obj, s_dlc, FALSE);
@@ -250,7 +282,7 @@ namespace collision
 			SET_ENTITY_INVINCIBLE(obj, TRUE, FALSE);
 			if (s_dlc)
 				SET_ENTITY_LOD_DIST(obj, (int)(g_cfg.propRadius + 50));
-			s_props[w.second] = {obj, bk.item, bk.facing};
+			s_props[w.second] = {obj, model, yaw};
 			s_handles.insert(obj);
 			created++;
 		}

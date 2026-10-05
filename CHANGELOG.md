@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0
+
+- **Shaped blocks** (about 270 new): slabs (top, bottom, double), stairs (with Minecraft's corner shapes), walls,
+  fences and fence gates that connect to their neighbours, glass panes and iron bars, carpets, torches (on the floor
+  or on walls), lanterns (standing or hanging), flowers, saplings, grass and other plants, cobwebs, ladders, doors
+  (two blocks tall, double doors pair up) and trapdoors. Right-click opens doors, trapdoors and gates (iron ones
+  need redstone, like in Minecraft). Torches, plants, carpets and ladders pop off when what holds them is broken.
+- **133 more full blocks**: all 16 glazed terracottas, copper in every stage (cut, chiseled, grates), wood and
+  stripped logs for every tree, chiseled and cracked stone variants, quartz pillar, smooth sandstone, coral blocks,
+  froglights, mushroom blocks, sculk, deepslate ores, barrel, loom, fletching / smithing / cartography tables,
+  chiseled bookshelf, lodestone, respawn anchor, spawner, crafter and more.
+- **Mob heads**: skeleton skull, zombie head, creeper head and player head.
+- Block textures are compressed on the GPU (DXT, lossless for Minecraft's pixel art): the block pack uses about a
+  third of the memory it did.
+
 ## 1.3.0
 
 - **Tools in every tier**: wooden, stone, copper, iron, golden, diamond and netherite swords, axes, pickaxes,

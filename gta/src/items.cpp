@@ -110,6 +110,15 @@ bool items_load()
 		if (f.size() >= 9)
 			for (int face = 0; face < 3; face++)
 				build_lods(it, face, f[6 + face]);
+		if (f.size() >= 11)
+		{
+			static const char *SHAPES[] = {"", "slab", "stairs", "wall", "fence", "gate", "pane", "carpet", "torch",
+			                               "lantern", "cross", "ladder", "door", "trapdoor"};
+			for (int k = 1; k < (int)(sizeof(SHAPES) / sizeof(SHAPES[0])); k++)
+				if (f[9] == SHAPES[k])
+					it.shape = (Shape)k;
+			it.sprite = f[10];
+		}
 		it.icon = r2d::tex("items/" + it.name + ".png");
 		g_items.push_back(std::move(it));
 	}

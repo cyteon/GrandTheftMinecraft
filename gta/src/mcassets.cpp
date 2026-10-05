@@ -373,6 +373,7 @@ namespace mcassets
 	struct BlockDef
 	{
 		std::string name, display, tab, flags, sound, top, side, bottom, front; // front: only flag o
+		std::string shape, base; // flags field ":<shape>[@<base>]" (tools/shapes.py): slab, stairs, fence...
 	};
 	struct ItemDef
 	{
@@ -411,6 +412,16 @@ namespace mcassets
 			if (f[0] == "block" && f.size() >= 9)
 			{
 				BlockDef b{f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f.size() > 9 ? f[9] : ""};
+				size_t colon = b.flags.find(':');
+				if (colon != std::string::npos)
+				{
+					std::string spec = b.flags.substr(colon + 1);
+					b.flags.resize(colon);
+					size_t at = spec.find('@');
+					b.shape = spec.substr(0, at);
+					if (at != std::string::npos)
+						b.base = spec.substr(at + 1);
+				}
 				if (b.side.empty())
 					b.side = b.top;
 				if (b.bottom.empty())
@@ -422,6 +433,15 @@ namespace mcassets
 			else if (f[0] == "icon" && f.size() >= 2)
 				s_icons.push_back(f[1]);
 		}
+		// shaped blocks made of another block (oak_slab@oak_planks) take its textures
+		for (auto &b : s_blocks)
+			if (!b.base.empty())
+				for (auto &o : s_blocks)
+					if (o.name == b.base)
+					{
+						b.top = o.top, b.side = o.side, b.bottom = o.bottom, b.front = o.front;
+						break;
+					}
 		return !s_blocks.empty();
 	}
 
@@ -429,10 +449,11 @@ namespace mcassets
 
 	static void block_faces(const BlockDef &b, Img &t, Img &s, Img &bt)
 	{
-		if (b.flags.find('k') != std::string::npos) // mob skull: the head of entity/skeleton/<top>.png (64x32)
+		if (b.flags.find('k') != std::string::npos) // mob head: the head of entity/<top>.png (64x32 or 64x64)
 		{
 			Img e;
-			if (!tex("entity/skeleton/" + b.top + ".png", e) || e.w < 32 || e.h < 16)
+			std::string path = b.top.find('/') != std::string::npos ? b.top : "skeleton/" + b.top;
+			if (!tex("entity/" + path + ".png", e) || e.w < 32 || e.h < 16)
 				e.w = 64, e.h = 32, e.px.assign(64 * 32 * 4, 255);
 			int k = e.w / 64;
 			t = resize_nn(crop(e, 8 * k, 0, 8 * k, 8 * k), 16, 16);
@@ -551,18 +572,178 @@ namespace mcassets
 		return true;
 	}
 
+	// a block's texture sheet at 16 px per face: top, side, bottom, front (what the block pack's sheets hold)
+	static Img block_sheet(const BlockDef &b)
+	{
+		Img t, s, bt;
+		block_faces(b, t, s, bt);
+		Img sheet;
+		sheet.w = 64, sheet.h = 16;
+		sheet.px.assign(64 * 16 * 4, 0);
+		Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16);
+		const Img *faces[4] = {&t, &s, &bt, &fr};
+		bool opaque = b.flags.find('a') == std::string::npos && b.flags.find('c') == std::string::npos;
+		for (int k = 0; k < 4; k++)
+			for (int y = 0; y < 16; y++)
+				for (int x = 0; x < 16; x++)
+				{
+					uint8_t *p = sheet.at(k * 16 + x, y);
+					std::memcpy(p, faces[k]->at(x, y), 4);
+					if (opaque)
+						p[3] = 255;
+				}
+		return sheet;
+	}
+
+	// a 2D sprite: "b_<texture>" = block/<texture>.png (plants, torches, panes held flat), else item/<name>.png
+	static bool load_sprite(const std::string &name, Img &spr)
+	{
+		bool ok = name.rfind("b_", 0) == 0 ? tex("block/" + name.substr(2) + ".png", spr) : tex("item/" + name + ".png", spr);
+		if (!ok)
+			return false;
+		if (spr.h > spr.w) // animated strip
+			spr = crop(spr, 0, 0, spr.w, spr.w);
+		if (name == "b_short_grass" || name == "b_fern")
+			spr = tint(spr, GRASS_TINT);
+		spr = resize_nn(spr, 16, 16);
+		return true;
+	}
+
+	// the sprite a shaped block is held and shown as, or "" for a 3D one (same rule as tools/shapes.py)
+	static std::string held_sprite(const BlockDef &b)
+	{
+		if (b.shape == "pane")
+			return "b_" + b.side;
+		if (b.shape == "torch" || b.shape == "cross" || b.shape == "ladder")
+			return "b_" + b.top;
+		if (b.shape == "lantern" || b.shape == "door")
+			return b.name;
+		return "";
+	}
+
+	// Inventory icon of a 3D shaped block: its inventory model's boxes (pixels, the block's canonical orientation)
+	// drawn like iso_icon draws a cube: top, the +Y side on the left (shade 0.8), the -X side on the right (0.6).
+	static Img shape_icon(const BlockDef &b, const Img &sheet)
+	{
+		struct Box
+		{
+			float lo[3], hi[3];
+		};
+		std::vector<Box> boxes;
+		auto add = [&](float x0, float y0, float z0, float x1, float y1, float z1) { boxes.push_back({{x0, y0, z0}, {x1, y1, z1}}); };
+		if (b.shape == "slab")
+			add(0, 0, 0, 16, 16, 8);
+		else if (b.shape == "stairs")
+			add(0, 0, 0, 16, 16, 8), add(0, 0, 8, 16, 8, 16);
+		else if (b.shape == "wall")
+			add(4, 4, 0, 12, 12, 16), add(5, 0, 0, 11, 16, 13);
+		else if (b.shape == "fence")
+			add(6, 0, 0, 10, 4, 16), add(6, 12, 0, 10, 16, 16), add(7, -2, 13, 9, 18, 15), add(7, -2, 5, 9, 18, 7);
+		else if (b.shape == "gate")
+			add(0, 7, 5, 2, 9, 16), add(14, 7, 5, 16, 9, 16), add(6, 7, 6, 10, 9, 15), add(2, 7, 6, 6, 9, 9),
+			    add(2, 7, 12, 6, 9, 15), add(10, 7, 6, 14, 9, 9), add(10, 7, 12, 14, 9, 15);
+		else if (b.shape == "carpet")
+			add(0, 0, 0, 16, 16, 1);
+		else if (b.shape == "trapdoor")
+			add(0, 0, 0, 16, 16, 3);
+		else
+			add(0, 0, 0, 16, 16, 16);
+		// pixels -> icon: the cube's top corner at (32, 32), x along (-29, -15), y along (-29, 15), z along (0, -30) per block
+		auto scr = [](float x, float y, float z, float &sx, float &sy) {
+			sx = 32 + x / 16 * -29 + (y - 16) / 16 * -29;
+			sy = 32 + x / 16 * -15 + (y - 16) / 16 * 15 + (z - 16) / 16 * -30;
+		};
+		struct Face
+		{
+			float o[3], e1[3], e2[3], depth, shade;
+			int kind; // 0 top, 1 +Y, 2 -X
+		};
+		std::vector<Face> faces;
+		for (auto &bx : boxes)
+		{
+			const float *l = bx.lo, *h = bx.hi;
+			faces.push_back({{l[0], l[1], h[2]}, {h[0] - l[0], 0, 0}, {0, h[1] - l[1], 0}, 0, 1.0f, 0});
+			faces.push_back({{l[0], h[1], l[2]}, {h[0] - l[0], 0, 0}, {0, 0, h[2] - l[2]}, 0, 0.8f, 1});
+			faces.push_back({{l[0], l[1], l[2]}, {0, h[1] - l[1], 0}, {0, 0, h[2] - l[2]}, 0, 0.6f, 2});
+		}
+		for (auto &f : faces) // painter's order: nearer the viewer (low x, high y, high z) drawn later
+		{
+			float c[3];
+			for (int k = 0; k < 3; k++)
+				c[k] = f.o[k] + f.e1[k] / 2 + f.e2[k] / 2;
+			f.depth = -c[0] + c[1] + c[2];
+		}
+		std::sort(faces.begin(), faces.end(), [](const Face &a, const Face &b) { return a.depth < b.depth; });
+		const int S = 64;
+		Img o;
+		o.w = o.h = S;
+		o.px.assign(S * S * 4, 0);
+		bool front = !b.front.empty();
+		for (auto &f : faces)
+		{
+			float ox, oy, ax, ay, bx2, by2;
+			scr(f.o[0], f.o[1], f.o[2], ox, oy);
+			scr(f.o[0] + f.e1[0], f.o[1] + f.e1[1], f.o[2] + f.e1[2], ax, ay);
+			scr(f.o[0] + f.e2[0], f.o[1] + f.e2[1], f.o[2] + f.e2[2], bx2, by2);
+			ax -= ox, ay -= oy, bx2 -= ox, by2 -= oy;
+			float det = ax * by2 - bx2 * ay;
+			if (std::fabs(det) < 1e-6f)
+				continue;
+			for (int y = 0; y < S; y++)
+				for (int x = 0; x < S; x++)
+				{
+					float px = x + 0.5f - ox, py = y + 0.5f - oy;
+					float u = (px * by2 - py * bx2) / det, v = (py * ax - px * ay) / det;
+					if (u < 0 || u >= 1 || v < 0 || v >= 1)
+						continue;
+					float P[3];
+					for (int k = 0; k < 3; k++)
+						P[k] = f.o[k] + f.e1[k] * u + f.e2[k] * v;
+					// the face's texture by position (Minecraft's automatic UVs, as tools/shapes.py)
+					float s_, t_;
+					int col;
+					if (f.kind == 0)
+						s_ = P[0] / 16, t_ = 1 - P[1] / 16, col = 0;
+					else if (f.kind == 1)
+						s_ = 1 - P[0] / 16, t_ = 1 - P[2] / 16, col = front ? 3 : 1;
+					else
+						s_ = 1 - P[1] / 16, t_ = 1 - P[2] / 16, col = 1;
+					int tx = std::clamp((int)std::floor(s_ * 16), 0, 15), ty = std::clamp((int)std::floor(t_ * 16), 0, 15);
+					const uint8_t *c = sheet.at(col * 16 + tx, ty);
+					if (c[3] < 16)
+						continue;
+					uint8_t *d = o.at(x, y);
+					d[0] = (uint8_t)(c[0] * f.shade), d[1] = (uint8_t)(c[1] * f.shade), d[2] = (uint8_t)(c[2] * f.shade);
+					d[3] = std::max(d[3], c[3]);
+				}
+		}
+		return o;
+	}
+
 	static bool build_items()
 	{
 		set_status("Building block and item icons...");
-		std::string txt = "# name;Display Name;kind;tab;flags;sound;top 16x16 RGBA hex;side;bottom\n";
+		std::string txt = "# name;Display Name;kind;tab;flags;sound;top 16x16 RGBA hex;side;bottom;shape;held sprite\n";
 		for (auto &b : s_blocks)
 		{
 			Img t, s, bt;
 			block_faces(b, t, s, bt);
-			Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16); // Minecraft shows the front on the left
-			save_png("items/" + b.name + ".png", iso_icon(t, mul(fr, 0.8f, 0.8f, 0.8f), mul(s, 0.6f, 0.6f, 0.6f)));
+			std::string sprite = held_sprite(b);
+			Img spr;
+			if (!sprite.empty() && load_sprite(sprite, spr))
+			{
+				save_png("items/" + b.name + ".png", up(spr));
+				t = spr; // the hand's fallback draws the "top" face as the held sprite
+			}
+			else if (!b.shape.empty())
+				save_png("items/" + b.name + ".png", shape_icon(b, block_sheet(b)));
+			else
+			{
+				Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16); // Minecraft shows the front on the left
+				save_png("items/" + b.name + ".png", iso_icon(t, mul(fr, 0.8f, 0.8f, 0.8f), mul(s, 0.6f, 0.6f, 0.6f)));
+			}
 			txt += b.name + ";" + b.display + ";block;" + b.tab + ";" + b.flags + ";" + b.sound + ";" + hexface(t) +
-			       ";" + hexface(s) + ";" + hexface(bt) + "\n";
+			       ";" + hexface(s) + ";" + hexface(bt) + ";" + b.shape + ";" + sprite + "\n";
 		}
 		for (auto &it : s_items)
 		{
@@ -615,7 +796,9 @@ namespace mcassets
 		{"mob/creeper/say", 4}, {"mob/creeper/death", 0},
 		{"mob/irongolem/hit", 4}, {"mob/irongolem/damage", 2}, {"mob/irongolem/death", 0},
 		{"mob/irongolem/throw", 0}, {"fireworks/launch", 1}, {"fireworks/blast", 1}, {"fireworks/twinkle", 1},
-		{"item/elytra/elytra_loop", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
+		{"item/elytra/elytra_loop", 0}, {"block/wooden_door/open", 2}, {"block/wooden_door/close", 3},
+		{"block/wooden_trapdoor/open", 5}, {"block/wooden_trapdoor/close", 3}, {"block/fence_gate/open", 2},
+		{"block/fence_gate/close", 2}, {"block/copper_door/toggle", 3}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
 		{"mob/wither/idle", 4}, {"mob/wither/hurt", 4}, {"mob/wither/death", 0}};
 
 	static bool build_sounds(const Source &src)
@@ -862,32 +1045,14 @@ namespace mcassets
 			Img base;
 			if (r[0] == "sheet" && r.size() > 1 && byName.count(r[1]))
 			{
-				const BlockDef &b = *byName[r[1]];
-				Img t, s, bt;
-				block_faces(b, t, s, bt);
-				Img sheet;
-				sheet.w = 64, sheet.h = 16;
-				sheet.px.assign(64 * 16 * 4, 0);
-				Img fr = b.front.empty() ? s : resize_nn(block_tex(b.front), 16, 16);
-				const Img *faces[4] = {&t, &s, &bt, &fr};
-				bool opaque = b.flags.find('a') == std::string::npos && b.flags.find('c') == std::string::npos;
-				for (int k = 0; k < 4; k++)
-					for (int y = 0; y < 16; y++)
-						for (int x = 0; x < 16; x++)
-						{
-							uint8_t *p = sheet.at(k * 16 + x, y);
-							std::memcpy(p, faces[k]->at(x, y), 4);
-							if (opaque)
-								p[3] = 255;
-						}
-				base = resize_nn(sheet, w, h);
+				base = resize_nn(block_sheet(*byName[r[1]]), w, h);
 			}
 			else if (r[0] == "sprite" && r.size() > 1)
 			{
 				Img spr;
-				if (!tex("item/" + r[1] + ".png", spr))
+				if (!load_sprite(r[1], spr))
 					spr.w = spr.h = 16, spr.px.assign(16 * 16 * 4, 0);
-				base = resize_nn(resize_nn(spr, 16, 16), w, h);
+				base = resize_nn(spr, w, h);
 			}
 			else if (r[0] == "skin")
 			{
