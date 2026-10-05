@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- **Tools in every tier**: wooden, stone, copper, iron, golden, diamond and netherite swords, axes, pickaxes,
+  shovels and hoes, each hitting as hard as in Minecraft (a netherite axe does 10, a wooden sword 4).
+- **155 more blocks**: every wood type's logs and planks, stone variants (granite, diorite, andesite, deepslate,
+  tuff, calcite, mossy and cracked bricks...), nether and end blocks, ores, raw metal blocks, copper, netherite,
+  amethyst, leaves, podzol, mycelium, mud, clay, ice, glowing blocks (sea lantern, shroomlight, magma, crying
+  obsidian), redstone lamp, target, note block, slime and honey blocks, and all 16 colours of terracotta, stained
+  glass and concrete powder.
+
 ## 1.2.0
 
 - **The Wither**, summoned like in Minecraft: build a T of four soul sand (or soul soil) and put three wither
@@ -11,13 +21,6 @@
 - **Minecraft's creative tabs**: Building, Colored, Natural, Functional and Redstone Blocks along the top; Tools &
   Utilities, Combat, Food & Drinks, Ingredients and Spawn Eggs along the bottom, with Minecraft's tab icons. Blocks
   sit in the same tabs as in Minecraft (some in more than one).
-- **Tools in every tier**: wooden, stone, copper, iron, golden, diamond and netherite swords, axes, pickaxes,
-  shovels and hoes, each hitting as hard as in Minecraft (a netherite axe does 10, a wooden sword 4).
-- **155 more blocks**: every wood type's logs and planks, stone variants (granite, diorite, andesite, deepslate,
-  tuff, calcite, mossy and cracked bricks...), nether and end blocks, ores, raw metal blocks, copper, netherite,
-  amethyst, leaves, podzol, mycelium, mud, clay, ice, glowing blocks (sea lantern, shroomlight, magma, crying
-  obsidian), redstone lamp, target, note block, slime and honey blocks, and all 16 colours of terracotta, stained
-  glass and concrete powder.
 - **Food and ingredients** to hold: apple, golden apple, bread, steak, cooked porkchop, cookie, coal, iron and gold
   ingots, diamond, emerald, lapis lazuli, redstone dust, stick, gunpowder.
 
