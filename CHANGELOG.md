@@ -10,6 +10,9 @@
 - Swords no longer break blocks (Minecraft creative).
 - Flying and gliding with an elytra keep going while the inventory is open.
 - Skeletons (and you) hold bows the right way round.
+- Arrows and cars: an arrow through a car window now reliably smashes that window and hits whoever sits behind it
+  (it used to smash the far window and miss the people inside); doors, bonnet and roof catch the arrow, and an arrow
+  crossing the cabin leaves through the far window or sticks in the far door.
 - **155 more blocks**: every wood type's logs and planks, stone variants (granite, diorite, andesite, deepslate,
   tuff, calcite, mossy and cracked bricks...), nether and end blocks, ores, raw metal blocks, copper, netherite,
   amethyst, leaves, podzol, mycelium, mud, clay, ice, glowing blocks (sea lantern, shroomlight, magma, crying

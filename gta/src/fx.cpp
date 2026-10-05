@@ -873,17 +873,58 @@ namespace fx
 	static const char *WINDOWS[] = {"window_lf", "window_rf", "window_lr", "window_rr",
 	                                "window_lm", "window_rm", "windscreen", "windscreen_r"};
 
-	// which window (SMASH_VEHICLE_WINDOW index) a hit on a vehicle went into, or -1: GTA's line probes report the
-	// car body's material for windows, so go by how close the hit is to a window bone
-	// Which window (SMASH_VEHICLE_WINDOW index) a hit on a vehicle went into, or -1. GTA's line probes report the
-	// body's material for windows, so decide in the car's own coordinates: anything above the window line (the
-	// lowest window bone, less a margin) is glass, and it belongs to the horizontally nearest window.
-	static int window_at(int veh, const V3 &p)
+	// Car windows, decided in the car's own coordinates. GTA's car collision mostly has no glass: a ray through a
+	// window flies on through the cabin and hits the far door from inside. So instead of trusting the hit point, find
+	// where the arrow enters (and leaves) the car's box: above the window line (the lowest window bone, less a margin)
+	// on a side, front or back face it's glass, belonging to the horizontally nearest window bone; lower down, or on
+	// the roof / underside, it's bodywork.
+	struct CarSpan
 	{
-		V3 lp = GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(veh, p.x, p.y, p.z);
+		float tin, tout;    // metres along the arrow's path
+		int inAxis, outAxis; // which face of the box: 0 sides, 1 front/back, 2 roof/underside
+		V3 inL, outL;       // entry / exit points in the car's coordinates
+	};
+
+	static bool car_span(int veh, const V3 &from, const V3 &dir, float len, CarSpan &cs)
+	{
+		Vector3 mn{}, mx{};
+		GET_MODEL_DIMENSIONS(GET_ENTITY_MODEL(veh), &mn, &mx);
+		V3 to = from + dir * len;
+		V3 la = GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(veh, from.x, from.y, from.z);
+		V3 lb = GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(veh, to.x, to.y, to.z);
+		V3 ld = (lb - la) * (1.0f / len);
+		float lo[3] = {mn.x, mn.y, mn.z}, hi[3] = {mx.x, mx.y, mx.z}, o[3] = {la.x, la.y, la.z}, d[3] = {ld.x, ld.y, ld.z};
+		cs.tin = -1e9f, cs.tout = 1e9f, cs.inAxis = cs.outAxis = 0;
+		for (int k = 0; k < 3; k++)
+		{
+			if (std::fabs(d[k]) < 1e-6f)
+			{
+				if (o[k] < lo[k] || o[k] > hi[k])
+					return false;
+				continue;
+			}
+			float t0 = (lo[k] - o[k]) / d[k], t1 = (hi[k] - o[k]) / d[k];
+			if (t0 > t1)
+				std::swap(t0, t1);
+			if (t0 > cs.tin)
+				cs.tin = t0, cs.inAxis = k;
+			if (t1 < cs.tout)
+				cs.tout = t1, cs.outAxis = k;
+		}
+		if (cs.tin > cs.tout || cs.tout < 0)
+			return false;
+		cs.inL = la + ld * cs.tin, cs.outL = la + ld * cs.tout;
+		return true;
+	}
+
+	// the window at a point on the car's box (car coordinates) crossed through face `axis`, or -1 for bodywork
+	static int window_at_local(int veh, const V3 &lp, int axis)
+	{
+		if (axis == 2)
+			return -1; // roof or underside
 		float belt = 1e9f;
 		int best = -1;
-		float bestD = 1.6f * 1.6f;
+		float bestD = 1e9f;
 		for (int i = 0; i < 8; i++)
 		{
 			int bi = GET_ENTITY_BONE_INDEX_BY_NAME(veh, WINDOWS[i]);
@@ -892,14 +933,16 @@ namespace fx
 			V3 w = GET_WORLD_POSITION_OF_ENTITY_BONE(veh, bi);
 			V3 wl = GET_OFFSET_FROM_ENTITY_GIVEN_WORLD_COORDS(veh, w.x, w.y, w.z);
 			belt = std::min(belt, wl.z);
-			float d = (wl.x - lp.x) * (wl.x - lp.x) + (wl.y - lp.y) * (wl.y - lp.y);
-			if (d < bestD)
-				bestD = d, best = i;
+			float dd = (wl.x - lp.x) * (wl.x - lp.x) + (wl.y - lp.y) * (wl.y - lp.y);
+			if (dd < bestD)
+				bestD = dd, best = i;
 		}
 		if (best < 0 || lp.z < belt - 0.15f)
-			return -1; // no windows, or below the window line: bodywork
+			return -1;
 		return best;
 	}
+
+	static V3 car_to_world(int veh, const V3 &l) { return GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(veh, l.x, l.y, l.z); }
 
 	void blood(const V3 &p, const V3 &dir)
 	{
@@ -970,20 +1013,62 @@ namespace fx
 						gh.hit = false;
 					VoxelHit vh = voxel_raycast(a.p, dir, len);
 					int type = gh.hit && gh.entity && DOES_ENTITY_EXIST(gh.entity) ? GET_ENTITY_TYPE(gh.entity) : 0;
-					// people sitting in the vehicle the arrow entered (or riders / open cars it's about to hit)
+					// cars: where the arrow meets the car's box decides glass or bodywork (see car_span)
 					int victim = 0;
 					V3 victimAt;
+					bool smashed = false;
 					if (a.inside && DOES_ENTITY_EXIST(a.inside))
-						victim = occupant_on_path(a.inside, a.p, next, victimAt);
-					int window = gh.hit && type == 2 ? window_at(gh.entity, gh.pos) : -1;
-					if (gh.hit && type == 2)
 					{
+						// flying through the cabin: people on the path, then out through the far side
+						CarSpan cs;
+						float reach = len;
+						if (car_span(a.inside, a.p, dir, len, cs) && cs.tout < len)
+							reach = std::max(0.0f, cs.tout);
+						victim = occupant_on_path(a.inside, a.p, a.p + dir * reach, victimAt);
+						if (!victim && reach < len && !(vh.hit && vh.t < reach))
+						{
+							int veh = a.inside;
+							V3 out = car_to_world(veh, cs.outL);
+							int w = window_at_local(veh, cs.outL, cs.outAxis);
+							if (w >= 0) // out through a window: smash it and fly on
+							{
+								SMASH_VEHICLE_WINDOW(veh, w);
+								audio::play_at("random/glass", out, 0.6f, frand(1.2f, 1.5f));
+								a.inside = 0;
+							}
+							else // into the far door / roof from inside: stuck there
+							{
+								gh.hit = true, gh.entity = veh, gh.pos = out, gh.t = reach, type = 2;
+							}
+						}
+					}
+					int window = -1;
+					V3 entry;
+					if (gh.hit && type == 2 && gh.entity != a.inside)
+					{
+						CarSpan cs;
+						if (car_span(gh.entity, a.p, dir, gh.t + 4.0f, cs) && cs.tin >= -0.05f)
+						{
+							window = window_at_local(gh.entity, cs.inL, cs.inAxis);
+							if (window >= 0)
+							{
+								entry = car_to_world(gh.entity, cs.inL);
+								// whoever sits on the rest of this frame's path
+								float rest = std::max(0.0f, std::min(len, cs.tout) - cs.tin);
+								victim = occupant_on_path(gh.entity, entry, entry + dir * rest, victimAt);
+								SMASH_VEHICLE_WINDOW(gh.entity, window);
+								audio::play_at("random/glass", entry, 0.6f, frand(1.2f, 1.5f));
+								smashed = true;
+								a.inside = gh.entity;
+								a.insideLeft = cs.tout - cs.tin + 0.5f;
+							}
+						}
 						static int logged = 0;
 						if (logged++ < 8)
 							logf("arrow hit vehicle: material 0x%08X, window %d", (unsigned)gh.material, window);
+						if (!victim && window < 0) // riders, open cars
+							victim = occupant_on_path(gh.entity, a.p, gh.pos + dir * 0.3f, victimAt);
 					}
-					if (!victim && gh.hit && type == 2 && window < 0 && !glass_passes(gh.material)) // riders, open cars
-						victim = occupant_on_path(gh.entity, a.p, gh.pos + dir * 0.3f, victimAt);
 					if (victim && (!vh.hit || (victimAt - a.p).len() < vh.t))
 					{
 						gh.hit = true;
@@ -1001,19 +1086,14 @@ namespace fx
 						a.age = 0;
 						audio::play_at("random/bowhit", vh.pos, 1.0f, frand(1.0f, 1.3f));
 					}
-					// glass: smash car windows and fly on into the car; shop windows just let it through
-					else if (gh.hit && (window >= 0 || glass_passes(gh.material)))
+					// a car window it just smashed: on into the cabin (next frame checks who's on the path)
+					else if (smashed && type != 1)
+						a.p = entry + dir * 0.05f;
+					// shop windows and other shoot-through glass just let it through
+					else if (gh.hit && type != 2 && glass_passes(gh.material))
 					{
-						if (type == 2)
-						{
-							int w = window >= 0 ? window : nearest_vehicle_bone(gh.entity, gh.pos, WINDOWS, 8, 2.5f);
-							if (w >= 0)
-								SMASH_VEHICLE_WINDOW(gh.entity, w);
-							a.inside = gh.entity;
-							a.insideLeft = 4.0f;
-						}
 						audio::play_at("random/glass", gh.pos, 0.6f, frand(1.2f, 1.5f));
-						a.p = gh.pos + dir * 0.05f; // just past the glass: next frame checks who's behind it
+						a.p = gh.pos + dir * 0.05f;
 					}
 					else if (gh.hit && type == 1)
 					{
