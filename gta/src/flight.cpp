@@ -4,6 +4,8 @@
 #include "elytra.h"
 #include "log.h"
 #include "world.h"
+#include "items.h"
+#include "shapes.h"
 
 namespace flight
 {
@@ -130,5 +132,86 @@ namespace flight
 		}
 		SET_ENTITY_COORDS_NO_OFFSET(g.ped, np.x, np.y, np.z, FALSE, FALSE, FALSE);
 		SET_ENTITY_HEADING(g.ped, g.camRot.z);
+	}
+
+	// ---- ladders: in a ladder's block, forward or jump climbs, nothing slides down slowly, crouch holds on (Minecraft) ----
+	static bool s_climb = false;
+
+	static const Block *ladder_at(const V3 &p)
+	{
+		int b = build_for_point(p);
+		if (b < 0)
+			return nullptr;
+		const Block *k = block_at(world_to_cell(b, p));
+		return k && item(k->item).shape == SH_LADDER ? k : nullptr;
+	}
+
+	void climb_stop()
+	{
+		if (!s_climb)
+			return;
+		s_climb = false;
+		FREEZE_ENTITY_POSITION(g.ped, FALSE);
+	}
+
+	bool climbing() { return s_climb; }
+
+	void climb_update(bool allowInput)
+	{
+		if (s_on || elytra::gliding() || g.inVehicle || IS_ENTITY_DEAD(g.ped, FALSE) || IS_PED_RAGDOLL(g.ped))
+		{
+			climb_stop();
+			return;
+		}
+		V3 feet = g.pedPos - V3(0, 0, 0.9f);
+		const Block *lad = ladder_at(feet + V3(0, 0, 0.1f));
+		if (!lad)
+			lad = ladder_at(g.pedPos);
+		float ud = allowInput ? GET_DISABLED_CONTROL_NORMAL(0, 31) : 0; // < 0 = forward
+		bool up = allowInput && (ud < -0.3f || IS_DISABLED_CONTROL_PRESSED(0, 22));
+		bool hold = allowInput && IS_DISABLED_CONTROL_PRESSED(0, 36);
+		bool away = allowInput && ud > 0.3f;
+		if (!lad || away)
+		{
+			if (s_climb && lad == nullptr && up)
+			{
+				// off the top: step onto the block the ladder leans on
+				climb_stop();
+				SET_ENTITY_VELOCITY(g.ped, g.camDir.x * 2.0f, g.camDir.y * 2.0f, 3.0f);
+				return;
+			}
+			climb_stop();
+			return;
+		}
+		if (!s_climb)
+		{
+			GtaHit dn = gta_probe(g.pedPos, g.pedPos - V3(0, 0, 1.15f), g.ped, 1 | 2 | 16);
+			bool grounded = dn.hit || boxes_hit_blocks(feet - V3(0.25f, 0.25f, 0.15f), feet + V3(0.25f, 0.25f, 0.0f));
+			if (grounded && !up)
+				return; // standing at the foot of a ladder
+			s_climb = true;
+			CLEAR_PED_TASKS_IMMEDIATELY(g.ped);
+			FREEZE_ENTITY_POSITION(g.ped, TRUE);
+		}
+		DISABLE_CONTROL_ACTION(0, 22, TRUE);
+		DISABLE_CONTROL_ACTION(0, 36, TRUE);
+		float vz = up ? 2.35f : hold ? 0.0f : -2.35f; // Minecraft: 0.2 blocks a tick up, 0.15 down
+		V3 p = g.pedPos;
+		float dz = vz * std::min(g.dt, 0.1f);
+		if (dz < 0)
+		{
+			GtaHit dn = gta_probe(p, p - V3(0, 0, 1.0f - dz), g.ped, 1 | 2 | 16);
+			if (dn.hit || boxes_hit_blocks(V3(p.x - 0.25f, p.y - 0.25f, p.z - 1.0f + dz), V3(p.x + 0.25f, p.y + 0.25f, p.z - 0.9f)))
+			{
+				climb_stop(); // feet on the ground
+				return;
+			}
+		}
+		else if (dz > 0 && gta_probe(p + V3(0, 0, 0.7f), p + V3(0, 0, 0.9f + dz), g.ped, 1 | 2 | 16).hit)
+			dz = 0; // head against a ceiling
+		SET_ENTITY_COORDS_NO_OFFSET(g.ped, p.x, p.y, p.z + dz, FALSE, FALSE, FALSE);
+		// face the ladder
+		float h = (shapes::dir_of_facing(lad->facing) * 90.0f) + 180.0f;
+		SET_ENTITY_HEADING(g.ped, h);
 	}
 }

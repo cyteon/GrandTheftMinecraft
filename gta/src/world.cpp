@@ -201,7 +201,7 @@ Cell world_to_cell(int b, const V3 &p)
 	return {b, (int)std::floor(p.x), (int)std::floor(p.y), (int)std::floor(p.z - g_builds[b].zOff)};
 }
 
-VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist)
+VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidOnly)
 {
 	VoxelHit best;
 	best.t = maxDist;
@@ -236,7 +236,7 @@ VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist)
 			if (face >= 0)
 			{
 				auto it = g_blocks.find(cell_key({b, x, y, z}));
-				if (it != g_blocks.end())
+				if (it != g_blocks.end() && !(solidOnly && item(it->second.item).passable()))
 				{
 					best.hit = true;
 					best.cell = {b, x, y, z};
@@ -246,7 +246,8 @@ VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist)
 					break;
 				}
 			}
-			else if (g_blocks.count(cell_key({b, x, y, z}))) // started inside a block
+			else if (g_blocks.count(cell_key({b, x, y, z})) &&
+			         !(solidOnly && item(g_blocks[cell_key({b, x, y, z})].item).passable())) // started inside a block
 			{
 				best.hit = true;
 				best.cell = {b, x, y, z};

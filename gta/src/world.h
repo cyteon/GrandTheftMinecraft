@@ -70,7 +70,8 @@ struct VoxelHit
 	float t = 0;  // distance along the ray
 	V3 pos;
 };
-VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist);
+// solidOnly: fly through torches, plants, carpets, ladders (projectiles, gliding)
+VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidOnly = false);
 
 // Does any block overlap the axis-aligned box?
 bool boxes_hit_blocks(const V3 &mn, const V3 &mx);

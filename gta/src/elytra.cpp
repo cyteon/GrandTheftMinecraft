@@ -112,7 +112,7 @@ namespace elytra
 		V3 dir = d * (1.0f / len);
 		float pad = dir.z < -0.9f ? 0.0f : 0.4f; // the head sticks out ahead of the ped's centre (not below it)
 		GtaHit h = gta_probe_self(a, b + dir * pad, 1 | 2 | 16);
-		VoxelHit vh = voxel_raycast(a, dir, len + pad);
+		VoxelHit vh = voxel_raycast(a, dir, len + pad, true);
 		if (vh.hit && (!h.hit || vh.t <= h.t))
 		{
 			at = vh.pos;

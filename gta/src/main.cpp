@@ -177,6 +177,7 @@ static bool online_guard()
 		mobs::clear();
 		wither::clear();
 		flight::stop();
+		flight::climb_stop();
 	}
 	s_online = online;
 	return online;
@@ -207,6 +208,7 @@ static void tick()
 	{
 		g_mcMode = !g_mcMode;
 		flight::stop();
+		flight::climb_stop();
 		g_invOpen = false;
 		if (g_mcMode)
 			SET_FOLLOW_PED_CAM_VIEW_MODE(4);
@@ -315,6 +317,7 @@ static void tick()
 		interact::update(!g_invOpen);
 		elytra::update(!g_invOpen);
 		flight::update(!g_invOpen);
+		flight::climb_update(!g_invOpen);
 	}
 	else if (g_mcMode && alive && playing && g.inVehicle && !g_invOpen)
 	{
@@ -326,12 +329,14 @@ static void tick()
 		interact::g_target = interact::Target{};
 		interact::cancel_use();
 		flight::stop();
+		flight::climb_stop();
 		elytra::stop();
 	}
 	else
 	{
 		interact::g_target = interact::Target{};
 		flight::stop();
+		flight::climb_stop();
 		elytra::stop();
 	}
 	if (s_worldReady)

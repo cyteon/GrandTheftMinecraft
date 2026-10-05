@@ -368,7 +368,7 @@ namespace wither
 			GtaHit h = gta_probe(s.p, next, self ? self : g.ped, 1 | 2 | 4 | 8 | 16);
 			if (h.hit && h.entity == g.ped)
 				h.hit = false;
-			VoxelHit vh = voxel_raycast(s.p, (next - s.p).norm(), (next - s.p).len());
+			VoxelHit vh = voxel_raycast(s.p, (next - s.p).norm(), (next - s.p).len(), true);
 			if (h.hit || vh.hit || s.age > 6.0f)
 			{
 				V3 at = vh.hit && (!h.hit || vh.t <= h.t) ? vh.pos : h.hit ? h.pos : s.p;

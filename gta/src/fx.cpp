@@ -399,7 +399,7 @@ namespace fx
 			{
 				V3 dir = seg * (1.0f / segLen);
 				GtaHit gh = gta_probe(pl.p, next, g.ped);
-				VoxelHit vh = voxel_raycast(pl.p, dir, segLen);
+				VoxelHit vh = voxel_raycast(pl.p, dir, segLen, true);
 				if (vh.hit && (!gh.hit || vh.t <= gh.t))
 				{
 					landed = true;
@@ -1011,7 +1011,7 @@ namespace fx
 						gh.hit = false; // block props: the voxel ray is exact
 					if (gh.hit && gh.entity == a.obj)
 						gh.hit = false;
-					VoxelHit vh = voxel_raycast(a.p, dir, len);
+					VoxelHit vh = voxel_raycast(a.p, dir, len, true);
 					int type = gh.hit && gh.entity && DOES_ENTITY_EXIST(gh.entity) ? GET_ENTITY_TYPE(gh.entity) : 0;
 					// cars: where the arrow meets the car's box decides glass or bodywork (see car_span)
 					int victim = 0;
