@@ -689,20 +689,134 @@ namespace mcassets
 	}
 
 	// ---- the block pack's textures (recipes from dlc_tex.txt, written next to the DLC by gtmpack) ----
-	static void append_mips(const Img &base, std::vector<uint8_t> &out)
+	// ---- DXT (BC1 / BC3) block compression: our block sheets are 8x pixel art, so a 4x4 block is one colour at the
+	// top mips and the encoding is exact there; smaller mips get the usual endpoint fit ----
+	static uint16_t to565(const float *c)
 	{
-		// box-filtered chain down to 1x1, stored as BGRA (D3DFMT_A8R8G8B8)
+		auto q = [](float v, int bits) { return (int)std::lround(std::clamp(v, 0.0f, 255.0f) * ((1 << bits) - 1) / 255.0f); };
+		return (uint16_t)((q(c[0], 5) << 11) | (q(c[1], 6) << 5) | q(c[2], 5));
+	}
+	static void from565(uint16_t v, float *c)
+	{
+		int r = v >> 11, g = (v >> 5) & 63, b = v & 31;
+		c[0] = (float)((r << 3) | (r >> 2)), c[1] = (float)((g << 2) | (g >> 4)), c[2] = (float)((b << 3) | (b >> 2));
+	}
+
+	// px: 16 RGBA pixels; fourColour forces BC1's 4-colour mode (BC3's colour block); punch = transparent texels allowed
+	static void bc1_block(const float px[16][4], bool fourColour, std::vector<uint8_t> &out)
+	{
+		bool clear[16], anyClear = false;
+		int a = -1, b = -1;
+		float best = -1;
+		for (int i = 0; i < 16; i++)
+			anyClear |= clear[i] = !fourColour && px[i][3] < 128;
+		for (int i = 0; i < 16; i++)
+			for (int j = i; j < 16; j++)
+			{
+				if (clear[i] || clear[j])
+					continue;
+				float d = 0;
+				for (int k = 0; k < 3; k++)
+					d += (px[i][k] - px[j][k]) * (px[i][k] - px[j][k]);
+				if (d > best)
+					best = d, a = i, b = j;
+			}
+		uint16_t c0 = 0, c1 = 0;
+		if (a >= 0)
+			c0 = to565(px[a]), c1 = to565(px[b]);
+		bool three = anyClear; // BC1's 3-colour mode (colour0 <= colour1) has a transparent index
+		if (three ? c0 > c1 : c0 < c1)
+			std::swap(c0, c1);
+		float pal[4][3];
+		from565(c0, pal[0]), from565(c1, pal[1]);
+		for (int k = 0; k < 3; k++)
+		{
+			if (three || (!fourColour && c0 == c1))
+				pal[2][k] = (pal[0][k] + pal[1][k]) / 2, pal[3][k] = 0;
+			else
+				pal[2][k] = (2 * pal[0][k] + pal[1][k]) / 3, pal[3][k] = (pal[0][k] + 2 * pal[1][k]) / 3;
+		}
+		int nPal = three || (!fourColour && c0 == c1) ? 3 : 4;
+		uint32_t idx = 0;
+		for (int i = 0; i < 16; i++)
+		{
+			int sel = 3;
+			if (!clear[i])
+			{
+				float bd = 1e30f;
+				for (int p = 0; p < nPal; p++)
+				{
+					float d = 0;
+					for (int k = 0; k < 3; k++)
+						d += (px[i][k] - pal[p][k]) * (px[i][k] - pal[p][k]);
+					if (d < bd)
+						bd = d, sel = p;
+				}
+			}
+			idx |= (uint32_t)sel << (2 * i);
+		}
+		uint8_t blk[8] = {(uint8_t)c0, (uint8_t)(c0 >> 8), (uint8_t)c1, (uint8_t)(c1 >> 8),
+		                  (uint8_t)idx, (uint8_t)(idx >> 8), (uint8_t)(idx >> 16), (uint8_t)(idx >> 24)};
+		out.insert(out.end(), blk, blk + 8);
+	}
+
+	static void bc3_alpha(const float px[16][4], std::vector<uint8_t> &out)
+	{
+		float lo = 255, hi = 0;
+		for (int i = 0; i < 16; i++)
+			lo = std::min(lo, px[i][3]), hi = std::max(hi, px[i][3]);
+		uint8_t a0 = (uint8_t)std::lround(hi), a1 = (uint8_t)std::lround(lo);
+		float pal[8] = {(float)a0, (float)a1};
+		for (int k = 1; k < 7; k++)
+			pal[k + 1] = a0 > a1 ? ((7 - k) * a0 + k * a1) / 7.0f : a0;
+		uint64_t bits = 0;
+		for (int i = 0; i < 16; i++)
+		{
+			int sel = 0;
+			float bd = 1e30f;
+			for (int p = 0; p < 8; p++)
+				if (std::fabs(px[i][3] - pal[p]) < bd)
+					bd = std::fabs(px[i][3] - pal[p]), sel = p;
+			bits |= (uint64_t)sel << (3 * i);
+		}
+		out.push_back(a0), out.push_back(a1);
+		for (int k = 0; k < 6; k++)
+			out.push_back((uint8_t)(bits >> (8 * k)));
+	}
+
+	// fmt: "rgba" (BGRA bytes), "dxt1" or "dxt5"
+	static void append_mips(const Img &base, std::vector<uint8_t> &out, const std::string &fmt = "rgba")
+	{
+		// box-filtered chain down to 1x1
 		int w = base.w, h = base.h;
 		std::vector<float> cur(base.px.begin(), base.px.end());
 		while (true)
 		{
-			for (int i = 0; i < w * h; i++)
+			if (fmt == "dxt1" || fmt == "dxt5")
 			{
-				out.push_back((uint8_t)std::clamp(cur[i * 4 + 2], 0.0f, 255.0f));
-				out.push_back((uint8_t)std::clamp(cur[i * 4 + 1], 0.0f, 255.0f));
-				out.push_back((uint8_t)std::clamp(cur[i * 4 + 0], 0.0f, 255.0f));
-				out.push_back((uint8_t)std::clamp(cur[i * 4 + 3], 0.0f, 255.0f));
+				for (int by = 0; by < std::max(1, (h + 3) / 4); by++)
+					for (int bx = 0; bx < std::max(1, (w + 3) / 4); bx++)
+					{
+						float px[16][4];
+						for (int i = 0; i < 16; i++)
+						{
+							int x = std::min(w - 1, bx * 4 + i % 4), y = std::min(h - 1, by * 4 + i / 4);
+							for (int c = 0; c < 4; c++)
+								px[i][c] = cur[(y * w + x) * 4 + c];
+						}
+						if (fmt == "dxt5")
+							bc3_alpha(px, out);
+						bc1_block(px, fmt == "dxt5", out);
+					}
 			}
+			else
+				for (int i = 0; i < w * h; i++)
+				{
+					out.push_back((uint8_t)std::clamp(cur[i * 4 + 2], 0.0f, 255.0f));
+					out.push_back((uint8_t)std::clamp(cur[i * 4 + 1], 0.0f, 255.0f));
+					out.push_back((uint8_t)std::clamp(cur[i * 4 + 0], 0.0f, 255.0f));
+					out.push_back((uint8_t)std::clamp(cur[i * 4 + 3], 0.0f, 255.0f));
+				}
 			if (w == 1 && h == 1)
 				break;
 			int nw = std::max(1, w / 2), nh = std::max(1, h / 2);
@@ -814,7 +928,7 @@ namespace mcassets
 			else
 				continue;
 			std::vector<uint8_t> px;
-			append_mips(base, px);
+			append_mips(base, px, f.size() > 8 ? f[8] : "rgba");
 			if (px.size() != size)
 			{
 				logf("setup: %s size %u != layout %u", f[1].c_str(), (unsigned)px.size(), size);

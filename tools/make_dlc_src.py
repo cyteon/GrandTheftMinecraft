@@ -7,7 +7,8 @@ player's own Minecraft (or one fetched from Mojang's servers) using the recipes 
 
 Writes build/dlc_src/:
   <texture>.dds       placeholder textures (A8R8G8B8, full mip chain, marker in the first bytes)
-  tex_recipes.txt     texture;width;height;recipe   (recipe: "sheet <block name>" | "sprite <sprite>" | "arrow")
+  tex_recipes.txt     texture;width;height;recipe;format   (recipe: "sheet <block name>" | "sprite <sprite>" | "arrow";
+                      format: rgba | dxt1 | dxt5. Block sheets are 8x pixel art, so every 4x4 DXT block is one colour)
   <model>.geo         "v x y z nx ny nz u v" lines, then "i a b c ..." (triangles, counter-clockwise from outside)
   models.txt          model;texture;shader;material;collision ("-" or half-extents "hx,hy,hz")
 
@@ -337,17 +338,30 @@ def arrow_geo():
     return g
 
 
-def write_placeholder_dds(path, w, h, index):
-    """Blank A8R8G8B8 DDS with a full mip chain; the first 16 bytes are a marker gtmpack searches for."""
-    mips, mw, mh = [], w, h
+def mip_sizes(w, h, fmt):
+    sizes, mw, mh = [], w, h
     while True:
-        mips.append(mw * mh * 4)
+        if fmt == "rgba":
+            sizes.append(mw * mh * 4)
+        else:
+            sizes.append(max(1, (mw + 3) // 4) * max(1, (mh + 3) // 4) * (8 if fmt == "dxt1" else 16))
         if mw == 1 and mh == 1:
             break
         mw, mh = max(1, mw // 2), max(1, mh // 2)
-    flags = 0x1 | 0x2 | 0x4 | 0x8 | 0x1000 | 0x20000
-    hdr = struct.pack("<4sIIIIIII44x", b"DDS ", 124, flags, h, w, w * 4, 0, len(mips))
-    hdr += struct.pack("<II4sIIIII", 32, 0x41, bytes(4), 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000)
+    return sizes
+
+
+def write_placeholder_dds(path, w, h, index, fmt="rgba"):
+    """Blank DDS (A8R8G8B8, DXT1 or DXT5) with a full mip chain; the first 16 bytes are a marker gtmpack searches for."""
+    mips = mip_sizes(w, h, fmt)
+    if fmt == "rgba":
+        flags = 0x1 | 0x2 | 0x4 | 0x8 | 0x1000 | 0x20000
+        hdr = struct.pack("<4sIIIIIII44x", b"DDS ", 124, flags, h, w, w * 4, 0, len(mips))
+        hdr += struct.pack("<II4sIIIII", 32, 0x41, bytes(4), 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000)
+    else:
+        flags = 0x1 | 0x2 | 0x4 | 0x1000 | 0x20000 | 0x80000
+        hdr = struct.pack("<4sIIIIIII44x", b"DDS ", 124, flags, h, w, mips[0], 0, len(mips))
+        hdr += struct.pack("<II4sIIIII", 32, 0x4, fmt.upper().encode(), 0, 0, 0, 0, 0)
     hdr += struct.pack("<IIII4x", 0x1000 | 0x400000 | 0x8, 0, 0, 0)
     body = bytearray(sum(mips))
     marker = f"GTMTEX{index:06d}#".encode()
@@ -363,15 +377,15 @@ def main():
         f.unlink()
     rows, recipes = [], []
 
-    def texture(name, w, h, recipe):
-        write_placeholder_dds(out / f"{name}.dds", w, h, len(recipes))
-        recipes.append(f"{name};{w};{h};{recipe}")
+    def texture(name, w, h, recipe, fmt="rgba"):
+        write_placeholder_dds(out / f"{name}.dds", w, h, len(recipes), fmt)
+        recipes.append(f"{name};{w};{h};{recipe};{fmt}")
 
     rnd = random.Random(7)
     for b in blocks:
         name, flags = b["name"], b["flags"]
         tex = f"gtm_{name}"
-        texture(tex, 512, 128, f"sheet {name}")
+        texture(tex, 512, 128, f"sheet {name}", "dxt5" if "a" in flags else "dxt1")
         shader = "alpha" if "a" in flags else "cutout" if "c" in flags else "default"
         material = {"wood": 70, "cloth": 104, "glass": 69}.get(b["sound"], 1)
         if "k" in flags:  # mob skull: SkullModel's 8x8x8 head sitting on the floor of its cell, facing +y

@@ -47,15 +47,22 @@ static class Build
         public float Radius => (float)Math.Sqrt(Enumerable.Range(0, 3).Sum(k => Math.Pow(Math.Max(Math.Abs(Min[k]), Math.Abs(Max[k])), 2)));
     }
 
-    static (int w, int h, int mips) DdsInfo(string path)
+    static (int w, int h, int mips, string fmt) DdsInfo(string path)
     {
         using var br = new BinaryReader(File.OpenRead(path));
         br.ReadBytes(12);
         int h = br.ReadInt32(), w = br.ReadInt32();
         br.ReadBytes(8);
         int mips = br.ReadInt32();
-        return (w, h, Math.Max(1, mips));
+        br.ReadBytes(44 + 8);
+        string four = Encoding.ASCII.GetString(br.ReadBytes(4));
+        string fmt = four == "DXT1" ? "D3DFMT_DXT1" : four == "DXT5" ? "D3DFMT_DXT5" : "D3DFMT_A8R8G8B8";
+        return (w, h, Math.Max(1, mips), fmt);
     }
+
+    static int MipBytes(int w, int h, string fmt) =>
+        fmt == "dxt1" ? Math.Max(1, (w + 3) / 4) * Math.Max(1, (h + 3) / 4) * 8 :
+        fmt == "dxt5" ? Math.Max(1, (w + 3) / 4) * Math.Max(1, (h + 3) / 4) * 16 : w * h * 4;
 
     static string BoundsXml(ModelDef m)
     {
@@ -220,7 +227,7 @@ static class Build
         var sb = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TextureDictionary>\n");
         foreach (var t in textures)
         {
-            var (w, h, mips) = DdsInfo(Path.Combine(srcDir, t + ".dds"));
+            var (w, h, mips, fmt) = DdsInfo(Path.Combine(srcDir, t + ".dds"));
             sb.Append($@" <Item>
   <Name>{t}</Name>
   <Unk32 value=""128"" />
@@ -230,7 +237,7 @@ static class Build
   <Width value=""{w}"" />
   <Height value=""{h}"" />
   <MipLevels value=""{mips}"" />
-  <Format>D3DFMT_A8R8G8B8</Format>
+  <Format>{fmt}</Format>
   <FileName>{t}.dds</FileName>
  </Item>
 ");
@@ -405,14 +412,15 @@ static class Build
             int off = IndexOf(body, marker);
             if (off < 0) throw new Exception($"marker for {p[0]} not found in the ytd");
             int w = int.Parse(p[1]), h = int.Parse(p[2]), size = 0, mips = 0;
+            string fmt = p.Length > 4 ? p[4] : "rgba";
             for (int mw = w, mh = h; ; mw = Math.Max(1, mw / 2), mh = Math.Max(1, mh / 2))
             {
-                size += mw * mh * 4;
+                size += MipBytes(mw, mh, fmt);
                 mips++;
                 if (mw == 1 && mh == 1) break;
             }
             if (off + size > body.Length) throw new Exception($"{p[0]}: pixel data runs past the ytd");
-            sb.Append($"tex;{p[0]};{off};{size};{w};{h};{mips};{p[3]}\n");
+            sb.Append($"tex;{p[0]};{off};{size};{w};{h};{mips};{p[3]};{fmt}\n");
         }
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine($"wrote {outPath} ({recipes.Count} textures, ytd body {body.Length / 1024} KB)");
