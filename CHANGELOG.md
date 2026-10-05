@@ -2,7 +2,10 @@
 
 ## 1.2.0
 
-- **The Wither** boss (in progress).
+- **The Wither** (Spawn Eggs tab): a flying three-headed boss with Minecraft's boss bar. It charges up and blows up
+  when it spawns, hovers over its targets and fires exploding wither skulls from all three heads at GTA's people,
+  cops and cars (skulls break blocks too). Below half health it drops to its target's height and fires faster. Cops
+  shoot it, iron golems go after it, and it goes out with a huge explosion.
 
 ## 1.1.0
 

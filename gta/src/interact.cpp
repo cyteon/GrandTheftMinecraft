@@ -8,6 +8,7 @@
 #include "items.h"
 #include "log.h"
 #include "mobs.h"
+#include "wither.h"
 #include "elytra.h"
 #include <cstdio>
 
@@ -294,6 +295,18 @@ namespace interact
 				fx::launch_firework(t.gh.pos);
 			else
 				fx::launch_firework(g.pedPos + V3(g.camDir.x, g.camDir.y, 0).norm() * 1.5f - V3(0, 0, 0.9f));
+		}
+		else if (h->name == "wither_spawn_egg")
+		{
+			V3 at;
+			if (t.kind == Target::BLOCK)
+				at = cell_min(t.vh.cell) + V3(0.5f, 0.5f, 1.0f);
+			else if (t.kind == Target::GROUND || t.kind == Target::OBJECT)
+				at = t.gh.pos;
+			else
+				return;
+			if (wither::spawn(at))
+				gui::swing();
 		}
 		else if (mobs::egg_type(h->name) >= 0)
 		{

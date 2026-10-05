@@ -5,6 +5,7 @@
 #include "log.h"
 #include "rig.h"
 #include "world.h"
+#include "wither.h"
 #include <algorithm>
 #include <vector>
 
@@ -58,6 +59,14 @@ namespace mobs
 		for (auto &m : s_mobs)
 			if (m.ped == ped)
 				return true;
+		return false;
+	}
+
+	bool is_undead(int ped)
+	{
+		for (auto &m : s_mobs)
+			if (m.ped == ped)
+				return m.type == ZOMBIE || m.type == SKELETON;
 		return false;
 	}
 
@@ -177,7 +186,7 @@ namespace mobs
 			for (auto &o : s_mobs)
 				if (o.ped == p)
 					mobType = o.type;
-			bool isHostileMob = mobType >= 0 && SPEC[mobType].hostile;
+			bool isHostileMob = (mobType >= 0 && SPEC[mobType].hostile) || wither::is_wither(p);
 			int rank; // lower is preferred
 			if (hostile)
 			{
@@ -189,7 +198,7 @@ namespace mobs
 			{
 				if (isHostileMob)
 					rank = 0;
-				else if (mobType < 0 && is_cop_or_gang(p))
+				else if (mobType < 0 && !isHostileMob && is_cop_or_gang(p))
 					rank = 1;
 				else
 					continue;

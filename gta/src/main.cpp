@@ -11,6 +11,7 @@
 #include "steve.h"
 #include "elytra.h"
 #include "mobs.h"
+#include "wither.h"
 #include "rig.h"
 #include "input.h"
 #include "interact.h"
@@ -174,6 +175,7 @@ static bool online_guard()
 		hand::hide();
 		steve::hide();
 		mobs::clear();
+		wither::clear();
 		flight::stop();
 	}
 	s_online = online;
@@ -333,7 +335,10 @@ static void tick()
 		elytra::stop();
 	}
 	if (s_worldReady)
+	{
 		mobs::update();
+		wither::update();
+	}
 	fx::update();
 	stress_test();
 	if (s_worldReady)
@@ -345,6 +350,7 @@ static void tick()
 	if (g_mcMode && playing)
 	{
 		gui::draw_hud(onFoot);
+		wither::draw_boss_bar();
 		if (g_invOpen)
 			gui::draw_inventory();
 	}

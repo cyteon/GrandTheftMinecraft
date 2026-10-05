@@ -261,6 +261,66 @@ RIGS = {
 }
 
 
+def mc_rotated(g, scale, pivot, rot, boxes, tex):
+    """Boxes of a Minecraft sub-part that sits at `pivot` (Minecraft space, relative to the model's origin) and is
+    rotated by `rot` = (xRot, yRot, zRot) radians (PartPose: X then Y then Z), baked into g in our space."""
+    import math
+    tmp = Geo()
+    for box, uv, infl, mirror in boxes:
+        mc_box(tmp, scale, box, uv, tex, infl, mirror)
+    xr, yr, zr = rot
+
+    def rx(a, v): return (v[0], v[1] * math.cos(a) - v[2] * math.sin(a), v[1] * math.sin(a) + v[2] * math.cos(a))
+    def ry(a, v): return (v[0] * math.cos(a) + v[2] * math.sin(a), v[1], -v[0] * math.sin(a) + v[2] * math.cos(a))
+    def rz(a, v): return (v[0] * math.cos(a) - v[1] * math.sin(a), v[0] * math.sin(a) + v[1] * math.cos(a), v[2])
+    to_mc = lambda o: (-o[0], -o[2], -o[1])  # noqa: E731  ours -> Minecraft
+    from_mc = lambda m: (-m[0], -m[2], -m[1])  # noqa: E731
+    rot3 = lambda v: from_mc(rx(xr, ry(yr, rz(zr, to_mc(v)))))  # noqa: E731
+    off = from_mc(tuple(c * scale for c in pivot))
+    base = len(g.v)
+    for x, y, z, nx, ny, nz, u, v in tmp.v:
+        px, py, pz = rot3((x, y, z))
+        qx, qy, qz = rot3((nx, ny, nz))
+        g.v.append((px + off[0], py + off[1], pz + off[2], qx, qy, qz, u, v))
+    g.i += [base + k for k in tmp.i]
+
+
+# The Wither (WitherBossModel, drawn at 2x): posed by the ASI (it flies; no ped skeleton drives it).
+# Model origin = Minecraft (0, 0, 0) of the model; the ASI puts that 24 px above the Wither's "feet".
+WITHER_SCALE = 2 / 16
+WITHER_TEX = (64, 64)
+
+
+def wither_models(out, rows, texture):
+    tex = "gtm_tex_wither"
+    texture(tex, 512, 512, "entity entity/wither/wither.png")
+    g = Geo()  # body: shoulders, the tilted ribcage and the tail
+    mc_box(g, WITHER_SCALE, (-10, 3.9, -0.5, 20, 3, 3), (0, 16), WITHER_TEX)
+    rib = (-2, 6.9, -0.5)
+    mc_rotated(g, WITHER_SCALE, rib, (0.20420352, 0, 0), [
+        ((0, 0, 0, 3, 10, 3), (0, 22), 0.0, False),
+        ((-4, 1.5, 0.5, 11, 2, 2), (24, 22), 0.0, False),
+        ((-4, 4, 0.5, 11, 2, 2), (24, 22), 0.0, False),
+        ((-4, 6.5, 0.5, 11, 2, 2), (24, 22), 0.0, False)], WITHER_TEX)
+    import math
+    tail = (-2, 6.9 + math.cos(0.20420352) * 10, -0.5 + math.sin(0.20420352) * 10)
+    mc_rotated(g, WITHER_SCALE, tail, (0.83252203, 0, 0), [((0, 0, 0, 3, 6, 3), (12, 22), 0.0, False)], WITHER_TEX)
+    g.write(out / "gtm_wither_body.geo")
+    rows.append(f"gtm_wither_body;{tex};cutout;1;-")
+    g = Geo()
+    mc_box(g, WITHER_SCALE, (-4, -4, -4, 8, 8, 8), (0, 0), WITHER_TEX)
+    g.write(out / "gtm_wither_head.geo")
+    rows.append(f"gtm_wither_head;{tex};cutout;1;-")
+    g = Geo()
+    mc_box(g, WITHER_SCALE, (-4, -4, -4, 6, 6, 6), (32, 0), WITHER_TEX)
+    g.write(out / "gtm_wither_shead.geo")
+    rows.append(f"gtm_wither_shead;{tex};cutout;1;-")
+    g = Geo()  # the wither skull projectile (WitherSkullRenderer: an 8x8x8 head at 1x)
+    mc_box(g, 1 / 16, (-4, -4, -4, 8, 8, 8), (0, 35), WITHER_TEX)
+    g.write(out / "gtm_wither_skull.geo")
+    rows.append(f"gtm_wither_skull;{tex};cutout;1;-")
+
+
 def arrow_geo():
     """Minecraft-style arrow: two crossed 16x5 px planes, 0.7 m along +Y (z up), both sides."""
     g = Geo()
@@ -353,6 +413,7 @@ def main():
             # Minecraft pivot -> GTA space above the ground
             rig_lines.append(f"part;{rig};{model};{kind};{-px:g};{-pz:g};{24 - py:g};{b0};{b1}")
     (out / "rigs.txt").write_text("\n".join(rig_lines) + "\n")
+    wither_models(out, rows, texture)
     texture("gtm_arrow_e", 256, 256, "arrow")
     arrow_geo().write(out / "gtm_arrow.geo")
     rows.append("gtm_arrow;gtm_arrow_e;cutout;1;-")

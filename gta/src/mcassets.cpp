@@ -591,7 +591,8 @@ namespace mcassets
 		{"mob/creeper/say", 4}, {"mob/creeper/death", 0},
 		{"mob/irongolem/hit", 4}, {"mob/irongolem/damage", 2}, {"mob/irongolem/death", 0},
 		{"mob/irongolem/throw", 0}, {"fireworks/launch", 1}, {"fireworks/blast", 1}, {"fireworks/twinkle", 1},
-		{"item/elytra/elytra_loop", 0}};
+		{"item/elytra/elytra_loop", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
+		{"mob/wither/idle", 4}, {"mob/wither/hurt", 4}, {"mob/wither/death", 0}};
 
 	static bool build_sounds(const Source &src)
 	{

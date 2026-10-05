@@ -28,6 +28,7 @@ teleport you across Los Santos, arrows hit pedestrians.
 - **Mobs that fight GTA's people** (Spawn Eggs tab): zombies chase and hit pedestrians, skeletons shoot arrows,
   creepers hiss and explode, and iron golems fight on your side against monsters, cops and gangs. They're real GTA
   characters underneath (GTA does their walking and pathing, and cops shoot at them) wearing Minecraft bodies.
+- **The Wither**: a flying boss with Minecraft's boss bar that rains exploding skulls on the city.
 - **Elytra and firework rockets**: right-click the elytra to put it on, jump off something and press Space to glide
   with Minecraft's own flight physics; firework rockets boost you while gliding, or fly up and burst into colour.
 - **Creative flight**: double-tap Space.
