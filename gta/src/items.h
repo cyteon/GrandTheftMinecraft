@@ -21,12 +21,13 @@ struct Item
 	std::string name, display, tab, sound;
 	bool block = false;
 	bool alpha = false, light = false, gravity = false, tnt = false, cutout = false;
+	bool skull = false; // a half-size head on the floor of its cell, not a full cube
 	int maxStack = 64;
 	int icon = -1; // drawTexture id
 	// Face colours per level of detail: lod[k] holds an n x n grid (n = 1 << k) for top/side/bottom.
 	std::vector<Rgba> lod[5][3];
 	int tris[5][3] = {}; // triangles the renderer emits per face at each lod (runs merged, clear texels skipped)
-	bool opaque() const { return block && !alpha && !cutout; }
+	bool opaque() const { return block && !alpha && !cutout && !skull; }
 };
 
 extern std::vector<Item> g_items;

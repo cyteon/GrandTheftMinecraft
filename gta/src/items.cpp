@@ -103,6 +103,7 @@ bool items_load()
 		it.gravity = fl.find('g') != std::string::npos;
 		it.tnt = fl.find('t') != std::string::npos;
 		it.cutout = fl.find('c') != std::string::npos;
+		it.skull = fl.find('k') != std::string::npos;
 		it.maxStack = fl.find('s') != std::string::npos ? 1 : fl.find('p') != std::string::npos ? 16 : 64;
 		it.sound = f[5];
 		if (f.size() >= 9)

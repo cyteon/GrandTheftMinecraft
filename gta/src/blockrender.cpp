@@ -202,7 +202,10 @@ namespace blockrender
 				V3 pc = mn + V3(0.5f, 0.5f, 0.5f) + pn * 0.5f;
 				if ((g.camPos - pc).dot(pn) <= 0)
 					continue;
-				draw_face(mn, 1.0f, f, it, p->second, 0);
+				if (it.skull)
+					draw_face(mn + V3(0.25f, 0.25f, 0), 0.5f, f, it, p->second, 0);
+				else
+					draw_face(mn, 1.0f, f, it, p->second, 0);
 			}
 			blocksDrawn++;
 		}

@@ -209,6 +209,42 @@ namespace interact
 		return mn.x < b.x && mn.x + 1 > a.x && mn.y < b.y && mn.y + 1 > a.y && mn.z < b.z && mn.z + 1 > a.z;
 	}
 
+	// ---- summoning the Wither (Minecraft's WitherSkullBlock pattern): three wither skeleton skulls on a T of soul
+	// sand / soul soil, with the bottom corners empty, along either axis; checked when a skull goes on ----
+	static bool is_block(const Cell &c, const char *a, const char *b = nullptr)
+	{
+		const Block *k = block_at(c);
+		return k && (item(k->item).name == a || (b && item(k->item).name == b));
+	}
+
+	static void try_summon_wither(const Cell &placed)
+	{
+		for (int axis = 0; axis < 2; axis++)
+			for (int at = -1; at <= 1; at++) // where the new skull sits in the row
+			{
+				auto cell = [&](int k, int dz) {
+					Cell c = placed;
+					(axis ? c.y : c.x) += k - at;
+					c.z += dz;
+					return c;
+				};
+				bool ok = is_block(cell(0, -2), "soul_sand", "soul_soil") && !block_at(cell(-1, -2)) &&
+				          !block_at(cell(1, -2));
+				for (int k = -1; k <= 1 && ok; k++)
+					ok = is_block(cell(k, 0), "wither_skeleton_skull") && is_block(cell(k, -1), "soul_sand", "soul_soil");
+				if (!ok)
+					continue;
+				Cell parts[7] = {cell(-1, 0), cell(0, 0), cell(1, 0), cell(-1, -1), cell(0, -1), cell(1, -1), cell(0, -2)};
+				for (auto &c : parts)
+				{
+					fx::block_break(c, block_at(c)->item);
+					remove_block(c);
+				}
+				wither::spawn(cell_min(cell(0, -2)) + V3(0.5f, 0.5f, 0));
+				return;
+			}
+	}
+
 	static bool place(int itemId)
 	{
 		Target &t = g_target;
@@ -237,6 +273,8 @@ namespace interact
 			return false;
 		make_room(c);
 		audio::block_sound(item(itemId).sound, cell_center(c), false);
+		if (item(itemId).skull)
+			try_summon_wither(c);
 		return true;
 	}
 
@@ -295,18 +333,6 @@ namespace interact
 				fx::launch_firework(t.gh.pos);
 			else
 				fx::launch_firework(g.pedPos + V3(g.camDir.x, g.camDir.y, 0).norm() * 1.5f - V3(0, 0, 0.9f));
-		}
-		else if (h->name == "wither_spawn_egg")
-		{
-			V3 at;
-			if (t.kind == Target::BLOCK)
-				at = cell_min(t.vh.cell) + V3(0.5f, 0.5f, 1.0f);
-			else if (t.kind == Target::GROUND || t.kind == Target::OBJECT)
-				at = t.gh.pos;
-			else
-				return;
-			if (wither::spawn(at))
-				gui::swing();
 		}
 		else if (mobs::egg_type(h->name) >= 0)
 		{

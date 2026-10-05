@@ -50,7 +50,7 @@ def read_defs():
             continue
         f = line.split(";")
         if f[0] == "block":
-            blocks.append(dict(name=f[1], flags=f[4], sound=f[5]))
+            blocks.append(dict(name=f[1], flags=f[4], sound=f[5], top=f[6]))
         elif f[0] == "item":
             items.append(f[1])
             sprites.append(f[5])
@@ -374,10 +374,27 @@ def main():
         texture(tex, 512, 128, f"sheet {name}")
         shader = "alpha" if "a" in flags else "cutout" if "c" in flags else "default"
         material = {"wood": 70, "cloth": 104, "glass": 69}.get(b["sound"], 1)
-        cube(FACES_Z, 1.0, sheet_uv).write(out / f"gtm_{name}.geo")
-        rows.append(f"gtm_{name};{tex};{shader};{material};0.5,0.5,0.5")
-        cube(FACES_Y, HAND_SIZE, sheet_uv).write(out / f"gtm_{name}_h.geo")
-        rows.append(f"gtm_{name}_h;{tex};{shader};{material};-")
+        if "k" in flags:  # mob skull: SkullModel's 8x8x8 head sitting on the floor of its cell, facing +y
+            stex = f"gtm_tex_{name}"
+            texture(stex, 512, 256, f"entity entity/skeleton/{b['top']}.png")
+            head = Geo()
+            mc_box(head, 1 / 16, (-4, -8, -4, 8, 8, 8), (0, 0), (64, 32))
+            g = Geo()
+            g.v = [(x, y, z - 0.5, nx, ny, nz, u, v) for x, y, z, nx, ny, nz, u, v in head.v]
+            g.i = list(head.i)
+            g.write(out / f"gtm_{name}.geo")
+            rows.append(f"gtm_{name};{stex};cutout;{material};0.5,0.5,0.5")
+            k = HAND_SIZE  # in the hand: half a held block, face towards the viewer (ours -> item space)
+            g = Geo()
+            g.v = [(-x * k, (z - 0.25) * k, y * k, -nx, nz, ny, u, v) for x, y, z, nx, ny, nz, u, v in head.v]
+            g.i = list(head.i)
+            g.write(out / f"gtm_{name}_h.geo")
+            rows.append(f"gtm_{name}_h;{stex};cutout;{material};-")
+        else:
+            cube(FACES_Z, 1.0, sheet_uv).write(out / f"gtm_{name}.geo")
+            rows.append(f"gtm_{name};{tex};{shader};{material};0.5,0.5,0.5")
+            cube(FACES_Y, HAND_SIZE, sheet_uv).write(out / f"gtm_{name}_h.geo")
+            rows.append(f"gtm_{name}_h;{tex};{shader};{material};-")
         ox, oy = rnd.randrange(0, 13), rnd.randrange(0, 13)
         chip_uv = lambda col: ((0.25 + (ox + 0.1) / 64, (oy + 0.1) / 16), (0.25 + (ox + 3.9) / 64, (oy + 3.9) / 16))  # noqa: E731
         cube(FACES_Z, CHIP, chip_uv).write(out / f"gtm_{name}_p.geo")

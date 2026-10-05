@@ -426,6 +426,17 @@ namespace mcassets
 
 	static void block_faces(const BlockDef &b, Img &t, Img &s, Img &bt)
 	{
+		if (b.flags.find('k') != std::string::npos) // mob skull: the head of entity/skeleton/<top>.png (64x32)
+		{
+			Img e;
+			if (!tex("entity/skeleton/" + b.top + ".png", e) || e.w < 32 || e.h < 16)
+				e.w = 64, e.h = 32, e.px.assign(64 * 32 * 4, 255);
+			int k = e.w / 64;
+			t = resize_nn(crop(e, 8 * k, 0, 8 * k, 8 * k), 16, 16);
+			s = resize_nn(crop(e, 8 * k, 8 * k, 8 * k, 8 * k), 16, 16);
+			bt = resize_nn(crop(e, 16 * k, 0, 8 * k, 8 * k), 16, 16);
+			return;
+		}
 		t = block_tex(b.top), s = block_tex(b.side), bt = block_tex(b.bottom);
 		if (b.flags.find('r') != std::string::npos)
 			t = tint(t, GRASS_TINT);
