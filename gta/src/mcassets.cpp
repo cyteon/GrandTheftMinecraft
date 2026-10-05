@@ -822,7 +822,19 @@ namespace mcassets
 	}
 
 	// ---- state ----
-	static std::string ok_tag() { return std::string(GTM_VERSION) + " " + MC_VERSION; }
+	// rebuilt when the mod, Minecraft's version or the block/item list (defs.txt) changes
+	static std::string ok_tag()
+	{
+		std::vector<uint8_t> d;
+		read_file(g_dataDir + "defs.txt", d);
+		uint32_t h = 2166136261u; // FNV-1a
+		for (uint8_t c : d)
+			if (c != 13) // CRLF and LF copies hash the same
+				h = (h ^ c) * 16777619u;
+		char hex[9];
+		std::snprintf(hex, sizeof hex, "%08x", h);
+		return std::string(GTM_VERSION) + " " + MC_VERSION + " " + hex;
+	}
 
 	bool data_ready()
 	{
