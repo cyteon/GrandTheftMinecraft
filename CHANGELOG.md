@@ -8,6 +8,11 @@
   it spawns, hovers over its targets and fires exploding wither skulls from all three heads at GTA's people, cops and
   cars (skulls break blocks too). Below half health it drops to its target's height and fires faster. Cops shoot it,
   iron golems go after it, and it goes out with a huge explosion.
+- **Minecraft's creative tabs**: Building, Colored, Natural, Functional and Redstone Blocks along the top; Tools &
+  Utilities, Combat, Food & Drinks, Ingredients and Spawn Eggs along the bottom, with Minecraft's tab icons. Blocks
+  sit in the same tabs as in Minecraft (some in more than one).
+- **Food and ingredients** to hold: apple, golden apple, bread, steak, cooked porkchop, cookie, coal, iron and gold
+  ingots, diamond, emerald, lapis lazuli, redstone dust, stick, gunpowder.
 
 ## 1.1.0
 

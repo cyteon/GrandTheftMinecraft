@@ -33,6 +33,8 @@ namespace wither
 		int target[3] = {};     // per head (0 = centre)
 		uint32_t nextShot[3] = {}, nextRetarget = 0, nextIdle = 0;
 		int lastHealth = 0;
+		uint32_t shieldUntil = 0; // its own explosions can't hurt it (GTA applies their damage a frame or two later)
+		bool shielded = true;
 		int objs[4] = {};       // body, centre head, right head, left head
 		Hash models[4] = {};
 		V3 headDir[3];
@@ -274,7 +276,13 @@ namespace wither
 			if (w.age - dt < CHARGE) // the spawn explosion (Minecraft: power 7)
 			{
 				fx::explode(w.pos + V3(0, 0, 1.5f), 7.0f);
-				SET_ENTITY_INVINCIBLE(w.ped, FALSE, FALSE);
+				w.shieldUntil = g.now + 1000;
+			}
+			bool shield = g.now < w.shieldUntil;
+			if (shield != w.shielded)
+			{
+				SET_ENTITY_INVINCIBLE(w.ped, shield, FALSE);
+				w.shielded = shield;
 				w.lastHealth = GET_ENTITY_HEALTH(w.ped);
 			}
 			bool dead = IS_PED_DEAD_OR_DYING(w.ped, TRUE) || hp(w) <= 0;
@@ -365,6 +373,9 @@ namespace wither
 			{
 				V3 at = vh.hit && (!h.hit || vh.t <= h.t) ? vh.pos : h.hit ? h.pos : s.p;
 				fx::explode(at, 1.0f);
+				for (auto &w : s_withers) // a skull going off next to its owner
+					if (!w.deadSince && (w.pos + V3(0, 0, 2.2f) - at).len() < 8)
+						w.shieldUntil = g.now + 600;
 				rig::drop(s.obj);
 				s_skulls[i] = s_skulls.back();
 				s_skulls.pop_back();

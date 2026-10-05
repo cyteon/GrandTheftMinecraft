@@ -18,7 +18,7 @@ namespace gui
 	using namespace r2d;
 
 	static int t_cursor, t_hotbar, t_sel, t_cross, t_tabItems, t_scroller, t_scrollerOff;
-	static int t_tabSel[8], t_tabUn[8];
+	static int t_tabSel[2][8], t_tabUn[2][8]; // [top / bottom row][1..7]
 	static std::string s_nameText;
 	static uint32_t s_nameUntil = 0;
 	static float s_swing = 1.0f;  // 0..1 progress, 1 = idle
@@ -28,15 +28,19 @@ namespace gui
 	struct Tab
 	{
 		const char *key, *title, *icon;
+		int row, col; // Minecraft's CreativeModeTabs: row 0 above the panel, 1 below
 	};
 	static const Tab TABS[] = {
-		{"building", "Building Blocks", "bricks"},
-		{"colored", "Colored Blocks", "cyan_wool"},
-		{"functional", "Functional Blocks", "wither_skeleton_skull"},
-		{"redstone", "Redstone Blocks", "tnt"},
-		{"combat", "Combat", "diamond_sword"},
-		{"tools", "Tools & Utilities", "flint_and_steel"},
-		{"spawn", "Spawn Eggs", "creeper_spawn_egg"},
+		{"building", "Building Blocks", "bricks", 0, 0},
+		{"colored", "Colored Blocks", "cyan_wool", 0, 1},
+		{"natural", "Natural Blocks", "grass_block", 0, 2},
+		{"functional", "Functional Blocks", "oak_sign", 0, 3},
+		{"redstone", "Redstone Blocks", "redstone", 0, 4},
+		{"tools", "Tools & Utilities", "diamond_pickaxe", 1, 0},
+		{"combat", "Combat", "netherite_sword", 1, 1},
+		{"food", "Food & Drinks", "golden_apple", 1, 2},
+		{"ingredients", "Ingredients", "iron_ingot", 1, 3},
+		{"spawn", "Spawn Eggs", "pig_spawn_egg", 1, 4},
 	};
 	static const int NTABS = sizeof(TABS) / sizeof(TABS[0]);
 	static int s_tab = 0;
@@ -61,8 +65,10 @@ namespace gui
 		t_scrollerOff = tex("gui/scroller_disabled.png");
 		for (int i = 1; i <= 7; i++)
 		{
-			t_tabSel[i] = tex("gui/tab_top_selected_" + std::to_string(i) + ".png");
-			t_tabUn[i] = tex("gui/tab_top_unselected_" + std::to_string(i) + ".png");
+			t_tabSel[0][i] = tex("gui/tab_top_selected_" + std::to_string(i) + ".png");
+			t_tabUn[0][i] = tex("gui/tab_top_unselected_" + std::to_string(i) + ".png");
+			t_tabSel[1][i] = tex("gui/tab_bottom_selected_" + std::to_string(i) + ".png");
+			t_tabUn[1][i] = tex("gui/tab_bottom_unselected_" + std::to_string(i) + ".png");
 		}
 		const char *defaults[9] = {"grass_block", "dirt", "stone", "oak_planks", "glass",
 		                           "tnt", "flint_and_steel", "ender_pearl", "diamond_sword"};
@@ -167,8 +173,9 @@ namespace gui
 	static void rebuild_tab()
 	{
 		s_tabItems.clear();
+		std::string key = TABS[s_tab].key;
 		for (int i = 0; i < (int)g_items.size(); i++)
-			if (g_items[i].tab == TABS[s_tab].key)
+			if (("," + g_items[i].tab + ",").find("," + key + ",") != std::string::npos)
 				s_tabItems.push_back(i);
 		s_scroll = 0;
 	}
@@ -188,6 +195,13 @@ namespace gui
 		return l;
 	}
 
+	// a tab's top-left corner (26 x 32 sprite): above the panel or below it
+	static void tab_pos(const Layout &l, int t, float &x, float &y)
+	{
+		x = l.left + TABS[t].col * 27 * l.s;
+		y = TABS[t].row ? l.top + (136 - 4) * l.s : l.top - 28 * l.s;
+	}
+
 	static bool in(float mx, float my, float x, float y, float w, float h) { return mx >= x && my >= y && mx < x + w && my < y + h; }
 
 	// hovered: grid index (0..44) → 100 + n, hotbar slot → n (0..8), tab → 200 + t, else -1
@@ -202,8 +216,12 @@ namespace gui
 			if (in(mx, my, l.left + (9 + c * 18 - 1) * s, l.top + (112 - 1) * s, 18 * s, 18 * s))
 				return c;
 		for (int t = 0; t < NTABS; t++)
-			if (in(mx, my, l.left + t * 27 * s, l.top - 28 * s, 26 * s, 30 * s))
+		{
+			float x, y;
+			tab_pos(l, t, x, y);
+			if (in(mx, my, x, y + (TABS[t].row ? 2 : 0) * s, 26 * s, 30 * s))
 				return 200 + t;
+		}
 		return -1;
 	}
 
@@ -286,17 +304,19 @@ namespace gui
 		// dim the world like Minecraft's screen background
 		rect(0, 0, (float)g.screenW, (float)g.screenH, 0x80101010, L_INV_BACK);
 		for (int t = 0; t < NTABS; t++)
-			if (t != s_tab)
-				draw(t_tabUn[t + 1], l.left + t * 27 * s, l.top - 28 * s, 26 * s, 32 * s, 0xFFFFFFFF, L_INV_BACK + 1);
-		draw(t_tabItems, l.left, l.top, 195 * s, 136 * s, 0xFFFFFFFF, L_INV);
-		draw(t_tabSel[s_tab + 1], l.left + s_tab * 27 * s, l.top - 28 * s, 26 * s, 32 * s, 0xFFFFFFFF, L_INV + 1);
-		for (int t = 0; t < NTABS; t++)
 		{
-			int it = item_find(TABS[t].icon);
-			if (it >= 0)
-				draw(item(it).icon, l.left + (t * 27 + 5) * s, l.top + (-28 + 9) * s, 16 * s, 16 * s, 0xFFFFFFFF,
-				     L_INV_ITEM);
+			float x, y;
+			tab_pos(l, t, x, y);
+			const Tab &tb = TABS[t];
+			if (t == s_tab)
+				draw(t_tabSel[tb.row][tb.col + 1], x, y, 26 * s, 32 * s, 0xFFFFFFFF, L_INV + 1);
+			else
+				draw(t_tabUn[tb.row][tb.col + 1], x, y, 26 * s, 32 * s, 0xFFFFFFFF, L_INV_BACK + 1);
+			int icon = tex(std::string("items/") + tb.icon + ".png");
+			if (icon >= 0)
+				draw(icon, x + 5 * s, y + (tb.row ? 7 : 9) * s, 16 * s, 16 * s, 0xFFFFFFFF, L_INV_ITEM);
 		}
+		draw(t_tabItems, l.left, l.top, 195 * s, 136 * s, 0xFFFFFFFF, L_INV);
 		text(l.left + 8 * s, l.top + 6 * s, TABS[s_tab].title, 0x404040, false, L_INV_ITEM);
 		// grid
 		for (int r = 0; r < 5; r++)

@@ -379,6 +379,7 @@ namespace mcassets
 		std::string name, display, tab, flags, sprite;
 	};
 	static std::vector<BlockDef> s_blocks;
+	static std::vector<std::string> s_icons; // tab icons that aren't items
 	static std::vector<ItemDef> s_items;
 
 	static std::vector<std::string> split(const std::string &s, char d)
@@ -418,6 +419,8 @@ namespace mcassets
 			}
 			else if (f[0] == "item" && f.size() >= 6)
 				s_items.push_back({f[1], f[2], f[3], f[4], f[5]});
+			else if (f[0] == "icon" && f.size() >= 2)
+				s_icons.push_back(f[1]);
 		}
 		return !s_blocks.empty();
 	}
@@ -477,9 +480,12 @@ namespace mcassets
 			for (const char *st : {"selected", "unselected"})
 			{
 				Img i;
-				std::string n = std::string("tab_top_") + st + "_" + std::to_string(k);
-				if (tex("gui/sprites/container/creative_inventory/" + n + ".png", i))
-					save_png("gui/" + n + ".png", up(i));
+				for (const char *row : {"top", "bottom"})
+				{
+					std::string n = std::string("tab_") + row + "_" + st + "_" + std::to_string(k);
+					if (tex("gui/sprites/container/creative_inventory/" + n + ".png", i))
+						save_png("gui/" + n + ".png", up(i));
+				}
 			}
 		Img tab;
 		if (tex("gui/container/creative_inventory/tab_items.png", tab))
@@ -564,6 +570,12 @@ namespace mcassets
 				continue;
 			save_png("items/" + it.name + ".png", up(spr));
 			txt += it.name + ";" + it.display + ";item;" + it.tab + ";" + it.flags + ";;" + hexface(spr) + ";;\n";
+		}
+		for (auto &n : s_icons)
+		{
+			Img spr;
+			if (tex("item/" + n + ".png", spr))
+				save_png("items/" + n + ".png", up(spr));
 		}
 		return write_file(g_dataDir + "items.txt", txt.data(), txt.size());
 	}
