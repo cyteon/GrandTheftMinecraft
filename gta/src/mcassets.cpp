@@ -1205,15 +1205,18 @@ namespace mcassets
 	}
 
 	// ---- state ----
-	// rebuilt when the mod, Minecraft's version or the block/item list (defs.txt) changes
+	// rebuilt when the mod, Minecraft's version, the block/item list (defs.txt) or the icon geometry changes
 	static std::string ok_tag()
 	{
-		std::vector<uint8_t> d;
-		read_file(g_dataDir + "defs.txt", d);
-		uint32_t h = 2166136261u; // FNV-1a
-		for (uint8_t c : d)
-			if (c != 13) // CRLF and LF copies hash the same
-				h = (h ^ c) * 16777619u;
+		uint32_t h = 2166136261u; // FNV-1a over the block list and the inventory icon geometry
+		for (const char *f : {"defs.txt", "icons.txt"})
+		{
+			std::vector<uint8_t> d;
+			read_file(g_dataDir + f, d);
+			for (uint8_t c : d)
+				if (c != 13) // CRLF and LF copies hash the same
+					h = (h ^ c) * 16777619u;
+		}
 		char hex[9];
 		std::snprintf(hex, sizeof hex, "%08x", h);
 		return std::string(GTM_VERSION) + " " + MC_VERSION + " " + hex;

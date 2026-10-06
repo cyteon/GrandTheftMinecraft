@@ -99,6 +99,8 @@ namespace signs
 		std::sort(closeby.begin(), closeby.end(), [](const Near &a, const Near &b) { return a.d < b.d; });
 		if (closeby.size() > 8)
 			closeby.resize(8);
+		// each glyph texture can be drawn 64 times a frame (render2d); leave the HUD and tooltips 24 of them
+		int used[256] = {};
 		for (auto &n : closeby)
 		{
 			auto bit = g_blocks.find(n.key);
@@ -131,6 +133,13 @@ namespace signs
 				start = nl == std::string::npos ? text.size() + 1 : nl + 1;
 				if (line.empty())
 					continue;
+				bool fits = true;
+				for (unsigned char ch : line)
+					fits = fits && used[ch] < 40;
+				if (!fits)
+					continue;
+				for (unsigned char ch : line)
+					used[ch]++;
 				V3 top = P + U * ((20 - k * 10) * PX); // Minecraft: lines 10 font px apart, centred on the board
 				float sx, sy, rx, ry;
 				if (!GET_SCREEN_COORD_FROM_WORLD_COORD(top.x, top.y, top.z, &sx, &sy))

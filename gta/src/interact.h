@@ -6,6 +6,7 @@
 
 namespace interact
 {
+	void tick_world(); // pressure plates, campfires, buttons popping back: every frame, on foot or not
 	struct Target
 	{
 		enum Kind

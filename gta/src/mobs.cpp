@@ -553,8 +553,15 @@ namespace mobs
 				{
 					Cell c = key_cell(kv.first);
 					const Item &it = item(kv.second.item);
-					if (!it.opaque() || it.name == "bedrock" || it.name == "obsidian" ||
-					    (cell_center(c) - feet).len2() > 5.5f * 5.5f)
+					static const char *HOLDABLE[] = {"grass_block", "dirt", "coarse_dirt", "rooted_dirt", "podzol", "mycelium",
+					                                 "mud", "moss_block", "pale_moss_block", "sand", "red_sand", "gravel",
+					                                 "clay", "pumpkin", "carved_pumpkin", "melon", "netherrack",
+					                                 "crimson_nylium", "warped_nylium", "red_mushroom_block",
+					                                 "brown_mushroom_block", "mushroom_stem", "muddy_mangrove_roots"};
+					bool holdable = false;
+					for (const char *h : HOLDABLE)
+						holdable = holdable || it.name == h;
+					if (!holdable || (cell_center(c) - feet).len2() > 5.5f * 5.5f)
 						continue;
 					Cell up = c;
 					up.z++;

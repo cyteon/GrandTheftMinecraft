@@ -41,8 +41,10 @@ namespace falling
 		below.z--;
 		if (const Block *b = block_at(below))
 			return !item(b->item).passable();
+		// from the top of the cell down: on slopes the ground is often inside the cell, above its floor, and a probe
+		// starting under the surface wouldn't see it
 		V3 mn = cell_min(c);
-		GtaHit h = gta_probe(mn + V3(0.5f, 0.5f, 0.1f), mn + V3(0.5f, 0.5f, -0.1f), g.ped, 1 | 16);
+		GtaHit h = gta_probe(mn + V3(0.5f, 0.5f, 0.95f), mn + V3(0.5f, 0.5f, -0.1f), g.ped, 1 | 16);
 		return h.hit && !collision::is_ours(h.entity);
 	}
 
@@ -75,6 +77,8 @@ namespace falling
 			int np = shv::worldGetAllPeds(ents, 512);
 			for (int i = 0; i < np && dmg > 0; i++)
 			{
+				if (ents[i] == g.ped) // creative: the player is immune, like in Minecraft
+					continue;
 				V3 pp = GET_ENTITY_COORDS(ents[i], TRUE);
 				if (std::fabs(pp.x - at.x) < 0.8f && std::fabs(pp.y - at.y) < 0.8f && pp.z > at.z - 1.5f && pp.z < at.z + 1.5f)
 					APPLY_DAMAGE_TO_PED(ents[i], dmg, FALSE, 0, 0xA2719263 /* unarmed */);

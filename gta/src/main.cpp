@@ -207,22 +207,26 @@ static void tick()
 			SET_FOLLOW_PED_CAM_VIEW_MODE(4);
 	}
 
-	if (input::pressed(g_cfg.toggleKey))
+	// GTA's keyboard is open for a sign: the keys being typed aren't ours
+	bool typing = signs::editing();
+	if (!typing && input::pressed(g_cfg.toggleKey))
 	{
 		g_mcMode = !g_mcMode;
 		flight::stop();
 		flight::climb_stop();
+		if (g_invOpen)
+			gui::close_inventory_reset(); // a chest shuts, the stack on the cursor goes
 		g_invOpen = false;
 		if (g_mcMode)
 			SET_FOLLOW_PED_CAM_VIEW_MODE(4);
 		notify(g_mcMode ? "~g~Minecraft mode ON~s~ (F6)" : "~r~Minecraft mode OFF~s~ (F6)");
 		logf("mode %s", g_mcMode ? "on" : "off");
 	}
-	if (input::pressed(g_cfg.debugKey))
+	if (!typing && input::pressed(g_cfg.debugKey))
 		g_debug = !g_debug;
-	if (input::pressed(VK_F10))
+	if (!typing && input::pressed(VK_F10))
 		s_calib = !s_calib;
-	if (input::pressed(VK_F11))
+	if (!typing && input::pressed(VK_F11))
 	{
 		static const int steps[] = {0, 2000, 5000, 10000, 20000};
 		int i = 0;
@@ -263,7 +267,7 @@ static void tick()
 		if (fp)
 			SET_ENTITY_LOCALLY_INVISIBLE(g.ped);
 		steve::update(asSteve);
-		if (input::pressed('E'))
+		if (!typing && input::pressed('E'))
 		{
 			g_invOpen = !g_invOpen;
 			if (!g_invOpen)
@@ -290,7 +294,7 @@ static void tick()
 		gui::close_inventory_reset();
 	}
 
-	if (g_mcMode && playing && !g_invOpen && alive)
+	if (g_mcMode && playing && !g_invOpen && alive && !typing)
 	{
 		// hotbar: 1-9 and the mouse wheel (also in vehicles; it's only the GUI)
 		for (int k = 0; k < 9; k++)
@@ -349,6 +353,7 @@ static void tick()
 		mobs::update();
 		wither::update();
 		falling::update();
+		interact::tick_world();
 	}
 	fx::update();
 	stress_test();

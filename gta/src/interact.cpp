@@ -905,9 +905,10 @@ namespace interact
 		return true;
 	}
 
+	void tick_world() { tick(); }
+
 	void update(bool allowInput)
 	{
-		tick();
 		if (signs::editing())
 			allowInput = false;
 		find_target();
