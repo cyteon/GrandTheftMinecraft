@@ -41,6 +41,8 @@ static const char *DEFAULT_INI =
 	"; Stage 2 (DLC installed): blocks within PropRadius become real textured props, nearest first, at most\n"
 	"; MaxBlockProps (GTA gets unstable past ~1500 script objects). Farther blocks use the polygon renderer.\n"
 	"MaxBlockProps=900\n"
+	"; all the GTA objects the mod may have at once (block props, mob parts, arrows, debris): past GTA's pools it crashes\n"
+	"MaxModObjects=1100\n"
 	"PropRadius=150\n"
 	"; without the DLC: invisible collision crates\n"
 	"MaxCollisionProps=350\n"
@@ -87,6 +89,7 @@ void config_load()
 		else if (k == "PolyBudget") g_cfg.polyBudget = parse_int(s);
 		else if (k == "PolyDetailNear") g_cfg.polyDetailNear = parse_int(s);
 		else if (k == "MaxBlockProps") g_cfg.maxBlockProps = parse_int(s);
+		else if (k == "MaxModObjects") g_cfg.maxModObjects = std::max(200, std::min(1400, parse_int(s)));
 		else if (k == "PropRadius") g_cfg.propRadius = (float)std::atof(s);
 		else if (k == "MaxCollisionProps") g_cfg.maxCollisionProps = parse_int(s);
 		else if (k == "CollisionRadius") g_cfg.collisionRadius = (float)std::atof(s);

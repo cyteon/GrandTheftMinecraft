@@ -7,6 +7,7 @@ struct Config
 	int debugKey = 0x78;  // F9
 	int guiScale = 0;     // 0 = auto, like Minecraft
 	int maxCollisionProps = 350;
+	int maxModObjects = 1100; // every GTA object the mod makes (props, mob parts, arrows...): GTA's pools are fixed
 	float collisionRadius = 40.0f;
 	int maxBlockProps = 900; // DLC props (visible blocks); the rest fall back to polygons
 	float propRadius = 150.0f;

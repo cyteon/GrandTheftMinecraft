@@ -3,6 +3,7 @@
 #include "dlcpatch.h"
 #include "items.h"
 #include "log.h"
+#include "objects.h"
 #include "shapes.h"
 #include "world.h"
 #include <algorithm>
@@ -10,15 +11,23 @@
 #include <unordered_set>
 #include <vector>
 
+unsigned g_probeCount = 0, g_probePending = 0;
+
 GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags)
 {
 	GtaHit h;
 	int handle = START_EXPENSIVE_SYNCHRONOUS_SHAPE_TEST_LOS_PROBE(a.x, a.y, a.z, b.x, b.y, b.z, flags, ignoreEntity, 7);
+	g_probeCount++;
 	BOOL hit = FALSE;
 	Vector3 end{}, nrm{};
 	int ent = 0;
 	Hash mat = 0;
-	GET_SHAPE_TEST_RESULT_INCLUDING_MATERIAL(handle, &hit, &end, &nrm, &mat, &ent);
+	// 2 = done (the slot is freed by reading it), 1 = still running: read again until it's done
+	int status = GET_SHAPE_TEST_RESULT_INCLUDING_MATERIAL(handle, &hit, &end, &nrm, &mat, &ent);
+	for (int tries = 0; status == 1 && tries < 50; tries++)
+		status = GET_SHAPE_TEST_RESULT_INCLUDING_MATERIAL(handle, &hit, &end, &nrm, &mat, &ent);
+	if (status == 1)
+		g_probePending++;
 	if (hit)
 	{
 		h.hit = true;
@@ -176,11 +185,7 @@ namespace collision
 	static void destroy(int obj)
 	{
 		s_handles.erase(obj);
-		if (DOES_ENTITY_EXIST(obj))
-		{
-			SET_ENTITY_AS_MISSION_ENTITY(obj, TRUE, TRUE);
-			DELETE_OBJECT(&obj);
-		}
+		objects::destroy(obj);
 	}
 
 	void clear()
@@ -203,6 +208,7 @@ namespace collision
 
 		float r = s_dlc ? g_cfg.propRadius : g_cfg.collisionRadius;
 		int cap = s_dlc ? g_cfg.maxBlockProps : g_cfg.maxCollisionProps;
+		cap = std::min(cap, (int)s_props.size() + objects::room(objects::BLOCK)); // inside the mod's object budget
 		std::vector<std::pair<float, uint64_t>> want;
 		for (auto &kv : g_blocks)
 		{
@@ -270,7 +276,7 @@ namespace collision
 				y = mn.y + 0.5f - (s_min.y + s_max.y) * 0.5f;
 				z = mn.z + 1.0f - s_max.z; // top flush with the cell top
 			}
-			int obj = CREATE_OBJECT_NO_OFFSET(model, x, y, z, FALSE, TRUE, FALSE, 0);
+			int obj = objects::create(objects::BLOCK, model, V3(x, y, z));
 			if (!obj)
 				continue;
 			SET_ENTITY_ROTATION(obj, 0, 0, yaw, 2, TRUE);

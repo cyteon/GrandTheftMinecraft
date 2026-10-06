@@ -2,6 +2,7 @@
 #include "collision.h"
 #include "config.h"
 #include "log.h"
+#include "objects.h"
 #include <fstream>
 #include <map>
 #include <sstream>
@@ -105,12 +106,7 @@ namespace rig
 
 	void drop(int &obj)
 	{
-		if (obj && DOES_ENTITY_EXIST(obj))
-		{
-			SET_ENTITY_AS_MISSION_ENTITY(obj, TRUE, TRUE);
-			DELETE_OBJECT(&obj);
-		}
-		obj = 0;
+		objects::destroy(obj);
 	}
 
 	int Instance::live() const
@@ -168,7 +164,7 @@ namespace rig
 				REQUEST_MODEL(h);
 				return;
 			}
-			obj = CREATE_OBJECT_NO_OFFSET(h, pos.x, pos.y, pos.z, FALSE, TRUE, FALSE, 0);
+			obj = objects::create(objects::RIG, h, pos);
 			if (!obj)
 				return;
 			model = h;

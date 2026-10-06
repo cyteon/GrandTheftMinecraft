@@ -1,4 +1,5 @@
 #include "hand.h"
+#include "objects.h"
 #include "common.h"
 #include "collision.h"
 #include "items.h"
@@ -196,12 +197,7 @@ namespace hand
 
 	void hide()
 	{
-		if (s_obj && DOES_ENTITY_EXIST(s_obj))
-		{
-			SET_ENTITY_AS_MISSION_ENTITY(s_obj, TRUE, TRUE);
-			DELETE_OBJECT(&s_obj);
-		}
-		s_obj = 0;
+		objects::destroy(s_obj);
 		s_objModel = 0;
 	}
 
@@ -269,7 +265,7 @@ namespace hand
 			hide();
 		if (!s_obj)
 		{
-			s_obj = CREATE_OBJECT_NO_OFFSET(model, pos.x, pos.y, pos.z, FALSE, TRUE, FALSE, 0);
+			s_obj = objects::create(objects::HAND, model, pos);
 			if (!s_obj)
 				return false;
 			s_objModel = model;

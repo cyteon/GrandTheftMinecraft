@@ -33,6 +33,9 @@
   power the blocks touching them, and a lever or button powers the block it's mounted on too. Powered doors,
   trapdoors and fence gates open (iron doors and trapdoors only this way, like in Minecraft), redstone lamps light up,
   TNT ignites and note blocks play.
+- Fixed occasional crashes: every GTA object the mod creates now counts against one budget (`MaxModObjects`, 1100)
+  so GTA's fixed object pools can't run out, at most 6 arrows stick in one person or car, and every collision probe's
+  result is read so its slot is freed.
 - **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.
 - Arrows, ender pearls and wither skulls fly through torches, plants, carpets, signs and the like instead of
   sticking in the air around them.

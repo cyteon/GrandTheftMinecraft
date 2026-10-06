@@ -16,6 +16,7 @@ struct GtaHit
 // Synchronous LOS probe (world, vehicles, peds, objects, foliage). Hits on our own block props are reported with
 // entity set; callers use collision::is_ours() to tell them apart.
 GtaHit gta_probe(const V3 &a, const V3 &b, int ignoreEntity, int flags = 1 | 2 | 4 | 8 | 16 | 256);
+extern unsigned g_probeCount, g_probePending; // diagnostics: probes run, results that weren't ready
 
 // Like gta_probe, but passes through the player's ped and the vehicle they're in (re-probing past them).
 GtaHit gta_probe_self(const V3 &a, const V3 &b, int flags = 1 | 2 | 4 | 8 | 16 | 256, int alsoIgnore = 0);

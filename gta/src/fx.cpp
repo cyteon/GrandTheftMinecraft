@@ -1,4 +1,5 @@
 #include "fx.h"
+#include "objects.h"
 #include "audio.h"
 #include "blockrender.h"
 #include "collision.h"
@@ -101,19 +102,11 @@ namespace fx
 		return h;
 	}
 
-	static void delete_obj(int &obj)
-	{
-		if (obj && DOES_ENTITY_EXIST(obj))
-		{
-			SET_ENTITY_AS_MISSION_ENTITY(obj, TRUE, TRUE);
-			DELETE_OBJECT(&obj);
-		}
-		obj = 0;
-	}
+	static void delete_obj(int &obj) { objects::destroy(obj); }
 
 	static int spawn_physics(Hash model, const V3 &p, const V3 &vel)
 	{
-		int obj = CREATE_OBJECT(model, p.x, p.y, p.z, FALSE, TRUE, TRUE);
+		int obj = objects::create(objects::FX, model, p, true);
 		if (!obj)
 			return 0;
 		SET_ENTITY_DYNAMIC(obj, TRUE);
@@ -572,7 +565,7 @@ namespace fx
 				{
 					if (HAS_MODEL_LOADED(h))
 					{
-						r.obj = CREATE_OBJECT_NO_OFFSET(h, r.p.x, r.p.y, r.p.z, FALSE, TRUE, FALSE, 0);
+						r.obj = objects::create(objects::FX, h, r.p);
 						if (r.obj)
 						{
 							FREEZE_ENTITY_POSITION(r.obj, TRUE);
@@ -744,7 +737,7 @@ namespace fx
 		a.crit = crit;
 		if (Hash h = model_if_loaded("gtm_arrow"))
 		{
-			a.obj = CREATE_OBJECT_NO_OFFSET(h, a.p.x, a.p.y, a.p.z, FALSE, TRUE, FALSE, 0);
+			a.obj = objects::create(objects::FX, h, a.p);
 			if (a.obj)
 			{
 				FREEZE_ENTITY_POSITION(a.obj, TRUE);
@@ -770,6 +763,15 @@ namespace fx
 	{
 		if (!a.obj)
 			return;
+		// at most a few arrows hang on one person or car (each is an attachment in GTA's pools)
+		int on = 0;
+		for (auto &o : s_arrows)
+			on += o.stuck && o.stuckIn == ent && o.obj;
+		if (on >= 6)
+		{
+			delete_obj(a.obj);
+			return;
+		}
 		int boneIndex = 0;
 		V3 o, x, y, z;
 		if (ped)

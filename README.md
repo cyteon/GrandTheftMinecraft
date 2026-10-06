@@ -100,6 +100,7 @@ In a vehicle the hotbar stays but GTA's driving controls are untouched.
 | `Volume` | 0.8 | Minecraft sound volume |
 | `PlayAsSteve` | 1 | Third person shows Steve instead of the GTA character (on foot) |
 | `SkinFile` | empty | Path to your own 64x64 Minecraft skin PNG (classic arms); applied at the next launch |
+| `MaxModObjects` | 1100 | All the GTA objects the mod may have at once (block props, mob parts, arrows, debris); GTA's object pools are fixed and crash the game when full |
 | `PropRadius`, `MaxBlockProps` | 150, 900 | Blocks within this distance become real GTA objects (nearest first, capped: GTA gets unstable past ~1500 script objects); farther ones use the fallback renderer |
 | `RenderDistance`, `FullDetailDistance`, `PolyBudget` | 64, 24, 30000 | The fallback renderer's distance, detail and triangle budget |
 | `MinecraftJar`, `MinecraftAssets` | empty | Use a specific Minecraft 1.21.11 jar / assets folder instead of searching |
