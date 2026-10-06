@@ -12,7 +12,6 @@
 #include "elytra.h"
 #include "mobs.h"
 #include "signs.h"
-#include "fluids.h"
 #include "falling.h"
 #include "wither.h"
 #include "rig.h"
@@ -349,7 +348,6 @@ static void tick()
 	{
 		mobs::update();
 		wither::update();
-		fluids::update();
 		falling::update();
 	}
 	fx::update();

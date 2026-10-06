@@ -2,7 +2,6 @@
 #include "audio.h"
 #include "blockrender.h"
 #include "collision.h"
-#include "fluids.h"
 #include "items.h"
 #include "rig.h"
 #include "shapes.h"
@@ -63,21 +62,6 @@ namespace falling
 			remove_block(c); // plants, torches, water: replaced
 		const Item &it = item(f.item);
 		int placed = f.item;
-		// concrete powder that lands in or by water hardens
-		size_t p = it.name.find("_concrete_powder");
-		if (p != std::string::npos)
-			for (int k = 0; k < 6; k++)
-			{
-				Cell n = c;
-				n.x += FACE_N[k][0], n.y += FACE_N[k][1], n.z += FACE_N[k][2];
-				if (fluids::kind(block_at(n)) == 1)
-				{
-					int to = item_find(it.name.substr(0, p) + "_concrete");
-					if (to >= 0)
-						placed = to;
-					break;
-				}
-			}
 		place_block(c, placed, f.facing, 0);
 		V3 at = cell_center(c);
 		bool anvil = it.shape == SH_ANVIL;

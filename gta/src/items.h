@@ -46,8 +46,7 @@ enum Shape : uint8_t
 	SH_BREWING,
 	SH_CAULDRON,
 	SH_CAMPFIRE,
-	SH_POT,
-	SH_FLUID
+	SH_POT
 };
 
 struct Item
@@ -71,7 +70,7 @@ struct Item
 	{
 		return shape == SH_TORCH || shape == SH_CROSS || shape == SH_LANTERN || shape == SH_CARPET || shape == SH_LADDER ||
 		       shape == SH_SIGN || shape == SH_BANNER || shape == SH_BUTTON || shape == SH_LEVER || shape == SH_PLATE ||
-		       shape == SH_RAIL || shape == SH_FLUID;
+		       shape == SH_RAIL;
 	}
 };
 

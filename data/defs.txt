@@ -4,10 +4,10 @@
 # block;name;Display Name;tab;flags;sound;top texture;side texture;bottom texture[;front texture]
 #   (empty side/bottom = top; a front needs flag o, it turns towards you when placed)
 #   flags: a alpha (glass), c cutout (leaves), l light, g gravity, t tnt, r grass-tint top, f foliage-tint all,
-#          w water tint, o has a front (furnace...), k mob head (top = its texture under entity/, e.g. zombie/zombie)
+#          o has a front (furnace...), k mob head (top = its texture under entity/, e.g. zombie/zombie)
 #   flags may end in :<shape>[@<base>]: slab stairs wall fence gate pane carpet torch lantern cross ladder
 #   door trapdoor bed chest sign banner button lever plate rail anvil enchanting brewing cauldron campfire
-#   pot fluid. Beds, chests, signs and banners take their look from the top field: a texture under entity/ (or
+#   pot. Beds, chests, signs and banners take their look from the top field: a texture under entity/ (or
 #   banner:<dye colour>); their @base block gives the chips and the far-away colours. With @base the textures (and sound, if empty) come from that block.
 # item;name;Display Name;tab;flags;sprite   flags: s stack 1, p stack 16
 # sprite;name   extra held-item sprites (bow/crossbow pull states)
@@ -743,8 +743,6 @@ block;cauldron;Cauldron;functional;:cauldron;stone;cauldron_top;cauldron_side;ca
 block;campfire;Campfire;functional;cl:campfire;wood;campfire_log_lit;campfire_log;campfire_log;campfire_fire
 block;soul_campfire;Soul Campfire;functional;cl:campfire;wood;soul_campfire_log_lit;campfire_log;campfire_log;soul_campfire_fire
 block;flower_pot;Flower Pot;functional;:pot;stone;dirt;flower_pot;flower_pot
-block;water;Water;;aw:fluid;glass;water_still;water_flow;water_still
-block;lava;Lava;;l:fluid;stone;lava_still;lava_flow;lava_still
 item;wooden_sword;Wooden Sword;combat;s;wooden_sword
 item;stone_sword;Stone Sword;combat;s;stone_sword
 item;copper_sword;Copper Sword;combat;s;copper_sword
@@ -782,9 +780,6 @@ item;netherite_shovel;Netherite Shovel;tools;s;netherite_shovel
 item;netherite_pickaxe;Netherite Pickaxe;tools;s;netherite_pickaxe
 item;netherite_axe;Netherite Axe;tools,combat;s;netherite_axe
 item;netherite_hoe;Netherite Hoe;tools;s;netherite_hoe
-item;bucket;Bucket;tools;p;bucket
-item;water_bucket;Water Bucket;tools;s;water_bucket
-item;lava_bucket;Lava Bucket;tools;s;lava_bucket
 item;flint_and_steel;Flint and Steel;tools;s;flint_and_steel
 item;ender_pearl;Ender Pearl;tools;p;ender_pearl
 item;elytra;Elytra;tools;s;elytra

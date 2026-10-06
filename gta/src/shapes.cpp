@@ -165,19 +165,6 @@ namespace shapes
 		case SH_ANVIL:
 		case SH_CAMPFIRE:
 			return {"", yaw};
-		case SH_FLUID:
-		{
-			// the surface height by flow level (or falling), sides only towards other things
-			int mask = 0;
-			for (int d = 0; d < 4; d++)
-			{
-				const Block *nb = block_at(step(c, d));
-				if (!nb || (nb->item != b.item && !item(nb->item).opaque()))
-					mask |= BIT[d];
-			}
-			std::string lvl = (b.state & 8) ? "f" : std::to_string(b.state & 7);
-			return {"_" + lvl + "_" + std::to_string(mask), 0};
-		}
 		default:
 			return {"", (it.oriented || it.skull) ? yaw : 0};
 		}

@@ -18,12 +18,8 @@
   shows on the sign), banners in all 16 colours, buttons and levers (they press and flip), pressure plates (they go
   down when people or cars are on them), rails (they join up and curve at corners), anvils, enchanting table, brewing
   stand, cauldron, campfires (they glow and burn whoever stands in them) and flower pots.
-- **Water and lava** with buckets (and an empty bucket to scoop a source back up): they flow like Minecraft's,
-  spreading out, pouring down holes and slopes and drying up when their source is gone, two water sources make a
-  third, and lava meeting water turns to obsidian, cobblestone or stone. Lava sets people and cars on fire; water puts
-  fires out, carries people along and slows cars down.
 - **Falling blocks**: sand, gravel, concrete powder and anvils fall when nothing holds them up. Anvils hurt whoever
-  they land on and dent cars; concrete powder that lands in water hardens into concrete.
+  they land on and dent cars.
 - **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.
 - Arrows, ender pearls and wither skulls fly through torches, plants, carpets, signs and the like instead of
   sticking in the air around them.

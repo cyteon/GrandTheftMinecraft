@@ -13,7 +13,6 @@
 #include "mobs.h"
 #include "shapes.h"
 #include "signs.h"
-#include "fluids.h"
 #include "wither.h"
 #include "elytra.h"
 #include <cstdio>
@@ -348,9 +347,7 @@ namespace interact
 		{
 			if (pi.shape == SH_SLAB && b->item == itemId && !(b->state & ST_DOUBLE)) // into the slab's other half
 				return double_slab(c, itemId);
-			if (item(b->item).shape != SH_FLUID)
-				return false;
-			remove_block(c); // a block put into water or lava replaces it
+			return false;
 		}
 		if (!pi.passable() && overlaps_player(cell_min(c)))
 			return false;
@@ -601,48 +598,6 @@ namespace interact
 				else
 					START_SCRIPT_FIRE(t.gh.pos.x, t.gh.pos.y, t.gh.pos.z, 5, FALSE);
 				audio::play_at("fire/ignite", t.gh.pos, 1.0f, frand(0.8f, 1.2f));
-			}
-		}
-		else if (h->name == "water_bucket" || h->name == "lava_bucket")
-		{
-			// a source where a block would go (creative: the bucket stays full)
-			Cell c;
-			if (t.kind == Target::BLOCK)
-			{
-				const int *n = FACE_N[t.vh.face];
-				const Block *b = block_at(t.vh.cell);
-				c = b && item(b->item).passable() ? t.vh.cell
-				                                   : Cell{t.vh.cell.b, t.vh.cell.x + n[0], t.vh.cell.y + n[1], t.vh.cell.z + n[2]};
-			}
-			else if (t.kind == Target::GROUND || t.kind == Target::OBJECT)
-			{
-				int b = build_for_point(t.gh.pos);
-				if (b < 0)
-					return;
-				V3 p = t.gh.pos;
-				c = t.gh.normal.z > 0.7f ? Cell{b, (int)std::floor(p.x), (int)std::floor(p.y), (int)std::floor(p.z - g_builds[b].zOff + 0.05f)}
-				                         : world_to_cell(b, p + t.gh.normal * 0.5f);
-			}
-			else
-				return;
-			bool lava = h->name == "lava_bucket";
-			if (fluids::place(c, lava ? 2 : 1))
-			{
-				gui::swing();
-				audio::play_at(lava ? "item/bucket/empty_lava" : "item/bucket/empty", cell_center(c), 1.0f, 1.0f);
-			}
-		}
-		else if (h->name == "bucket")
-		{
-			// scoop up a source
-			VoxelHit vh = voxel_raycast(g.camPos, g.camDir, 5.0f, false, true);
-			const Block *b = vh.hit ? block_at(vh.cell) : nullptr;
-			int k = fluids::kind(b);
-			if (k && !(b->state & 15))
-			{
-				remove_block(vh.cell);
-				gui::swing();
-				audio::play_at(k == 2 ? "item/bucket/fill_lava" : "item/bucket/fill", cell_center(vh.cell), 1.0f, 1.0f);
 			}
 		}
 		else if (h->name == "elytra")
