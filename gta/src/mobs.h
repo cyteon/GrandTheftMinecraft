@@ -36,4 +36,5 @@ namespace mobs
 	int egg_type(const std::string &itemName); // "zombie_spawn_egg" -> ZOMBIE, -1 if not an egg
 	bool is_mob(int ped);
 	bool is_undead(int ped); // zombies and skeletons (the Wither spares them, like Minecraft)
+	bool shear(int ped);     // shears on a sheep: its wool comes off (and grows back)
 }

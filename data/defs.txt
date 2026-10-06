@@ -780,6 +780,7 @@ item;netherite_shovel;Netherite Shovel;tools;s;netherite_shovel
 item;netherite_pickaxe;Netherite Pickaxe;tools;s;netherite_pickaxe
 item;netherite_axe;Netherite Axe;tools,combat;s;netherite_axe
 item;netherite_hoe;Netherite Hoe;tools;s;netherite_hoe
+item;shears;Shears;tools;s;shears
 item;flint_and_steel;Flint and Steel;tools;s;flint_and_steel
 item;ender_pearl;Ender Pearl;tools;p;ender_pearl
 item;elytra;Elytra;tools;s;elytra

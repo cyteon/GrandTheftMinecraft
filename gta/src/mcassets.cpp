@@ -855,7 +855,7 @@ namespace mcassets
 		{"random/anvil_land", 0}, {"mob/pig/say", 3}, {"mob/pig/death", 0}, {"mob/cow/say", 4}, {"mob/cow/hurt", 3},
 		{"mob/sheep/say", 3}, {"mob/chicken/say", 3}, {"mob/chicken/hurt", 2}, {"mob/spider/say", 4},
 		{"mob/spider/death", 0}, {"mob/endermen/idle", 5}, {"mob/endermen/hit", 4}, {"mob/endermen/death", 0},
-		{"mob/endermen/scream", 4}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
+		{"mob/endermen/scream", 4}, {"mob/sheep/shear", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
 		{"mob/wither/idle", 4}, {"mob/wither/hurt", 4}, {"mob/wither/death", 0}};
 
 	static bool build_sounds(const Source &src)

@@ -26,17 +26,18 @@ namespace mobs
 		int mcHealth;                   // Minecraft hit points
 		float speed;                    // GTA move blend ratio (1 walk, 2 run)
 		Kind kind;
+		const char *driver;             // the invisible GTA ped underneath: sized like the mob (nullptr = a person)
 	};
 	static const Spec SPEC[NTYPES] = {
 		{"zombie", "zombie_spawn_egg", "zombie", "say", "hurt", "death", 20, 1.3f, HOSTILE},
 		{"skeleton", "skeleton_spawn_egg", "skeleton", "say", "hurt", "death", 20, 1.6f, HOSTILE},
 		{"creeper", "creeper_spawn_egg", "creeper", "say", nullptr, "death", 20, 1.4f, HOSTILE},
 		{"golem", "iron_golem_spawn_egg", "irongolem", nullptr, "damage", "death", 100, 1.0f, ALLY},
-		{"pig", "pig_spawn_egg", "pig", "say", "say", "death", 10, 1.0f, PASSIVE},
-		{"cow", "cow_spawn_egg", "cow", "say", "hurt", "hurt", 10, 1.0f, PASSIVE},
-		{"sheep", "sheep_spawn_egg", "sheep", "say", "say", "say", 8, 1.0f, PASSIVE},
-		{"chicken", "chicken_spawn_egg", "chicken", "say", "hurt", "hurt", 4, 1.0f, PASSIVE},
-		{"spider", "spider_spawn_egg", "spider", "say", "say", "death", 16, 2.2f, NEUTRAL},
+		{"pig", "pig_spawn_egg", "pig", "say", "say", "death", 10, 1.0f, PASSIVE, "a_c_pig"},
+		{"cow", "cow_spawn_egg", "cow", "say", "hurt", "hurt", 10, 1.0f, PASSIVE, "a_c_cow"},
+		{"sheep", "sheep_spawn_egg", "sheep", "say", "say", "say", 8, 1.0f, PASSIVE, "a_c_boar"},
+		{"chicken", "chicken_spawn_egg", "chicken", "say", "hurt", "hurt", 4, 1.0f, PASSIVE, "a_c_hen"},
+		{"spider", "spider_spawn_egg", "spider", "say", "say", "death", 16, 2.2f, NEUTRAL, "a_c_coyote"},
 		{"enderman", "enderman_spawn_egg", "endermen", "idle", "hit", "death", 40, 1.3f, NEUTRAL},
 		{"snow_golem", "snow_golem_spawn_egg", "snowgolem", nullptr, nullptr, nullptr, 4, 1.0f, ALLY},
 	};
@@ -60,6 +61,10 @@ namespace mobs
 		int carry = -1;                       // enderman: the block it holds
 		uint32_t nextCarry = 0, nextTeleport = 0;
 		bool hostileGroup = false;
+		uint32_t regrowAt = 0; // sheep: sheared until then
+		bool climbing = false; // spider: going up a wall
+		V3 wallDir;
+		uint32_t blockedSince = 0;
 	};
 	static std::vector<Mob> s_mobs;
 	static Hash s_hostile = 0, s_ally = 0, s_animal = 0;
@@ -98,6 +103,22 @@ namespace mobs
 		for (auto &m : s_mobs)
 			if (m.ped == ped)
 				return m.type == ZOMBIE || m.type == SKELETON;
+		return false;
+	}
+
+	bool shear(int ped)
+	{
+		for (auto &m : s_mobs)
+			if (m.ped == ped && m.type == SHEEP && !m.regrowAt && !m.deadSince)
+			{
+				m.regrowAt = g.now + (uint32_t)frand(60000, 120000); // Minecraft: it grows back (by eating grass)
+				m.body.hide();
+				m.body.rig = "sheep_sheared";
+				V3 p = GET_ENTITY_COORDS(ped, TRUE);
+				audio::play_at("mob/sheep/shear", p, 1.0f, 1.0f);
+				fx::poof(p);
+				return true;
+			}
 		return false;
 	}
 
@@ -172,10 +193,13 @@ namespace mobs
 	{
 		if (s_mobs.size() >= MAX_MOBS || !rig::available(SPEC[t].rig))
 			return false;
-		REQUEST_MODEL(s_pedModel);
-		for (int i = 0; i < 100 && !HAS_MODEL_LOADED(s_pedModel); i++)
+		Hash model = s_pedModel;
+		if (SPEC[t].driver && IS_MODEL_VALID(GET_HASH_KEY(SPEC[t].driver)))
+			model = GET_HASH_KEY(SPEC[t].driver);
+		REQUEST_MODEL(model);
+		for (int i = 0; i < 100 && !HAS_MODEL_LOADED(model); i++)
 			WAIT(0);
-		int ped = CREATE_PED(26, s_pedModel, feet.x, feet.y, feet.z + 1.0f, heading, FALSE, TRUE);
+		int ped = CREATE_PED(model == s_pedModel ? 26 : 28, model, feet.x, feet.y, feet.z + 0.5f, heading, FALSE, TRUE);
 		if (!ped)
 			return false;
 		const Spec &sp = SPEC[t];
@@ -681,6 +705,76 @@ namespace mobs
 		}
 	}
 
+	// Spiders climb walls (Minecraft: like a ladder, 0.2 blocks a tick, body level): when one runs into a wall on the
+	// way to prey that's above it, it goes straight up and steps onto the top. Returns true while climbing.
+	static bool wall_ahead(const Mob &m, const V3 &feet, const V3 &dir, float up)
+	{
+		V3 a = feet + V3(0, 0, up), b = a + dir * 1.0f;
+		GtaHit h = gta_probe(a, b, m.ped, 1 | 16);
+		if (h.hit && !collision::is_ours(h.entity) && std::fabs(h.normal.z) < 0.5f)
+			return true;
+		return voxel_raycast(a, dir, 1.0f, true).hit;
+	}
+
+	static bool climb(Mob &m, const V3 &pos, float dt)
+	{
+		Vector3 mn{}, mx{};
+		GET_MODEL_DIMENSIONS(GET_ENTITY_MODEL(m.ped), &mn, &mx);
+		V3 feet = pos + V3(0, 0, mn.z);
+		if (m.climbing)
+		{
+			bool stillWall = wall_ahead(m, feet, m.wallDir, 0.15f);
+			bool targetAbove = alive(m.target) && V3(GET_ENTITY_COORDS(m.target, TRUE)).z > feet.z;
+			if (!stillWall || !targetAbove || IS_PED_DEAD_OR_DYING(m.ped, TRUE))
+			{
+				// over the top: onto it (or let go)
+				m.climbing = false;
+				FREEZE_ENTITY_POSITION(m.ped, FALSE);
+				if (!stillWall)
+				{
+					V3 top = pos + m.wallDir * 0.9f + V3(0, 0, 0.3f);
+					SET_ENTITY_COORDS_NO_OFFSET(m.ped, top.x, top.y, top.z, FALSE, FALSE, FALSE);
+				}
+				m.lastTarget = -1;
+				return false;
+			}
+			float dz = 2.35f * dt;
+			if (gta_probe(pos + V3(0, 0, mx.z), pos + V3(0, 0, mx.z + dz + 0.1f), m.ped, 1 | 16).hit)
+			{
+				m.climbing = false; // under an overhang: drop off
+				FREEZE_ENTITY_POSITION(m.ped, FALSE);
+				return false;
+			}
+			SET_ENTITY_COORDS_NO_OFFSET(m.ped, pos.x, pos.y, pos.z + dz, FALSE, FALSE, FALSE);
+			SET_ENTITY_HEADING(m.ped, std::atan2(-m.wallDir.x, m.wallDir.y) * 180.0f / PI);
+			return true;
+		}
+		if (!alive(m.target) || !hunting(m))
+			return false;
+		V3 tp = GET_ENTITY_COORDS(m.target, TRUE);
+		V3 flat(tp.x - pos.x, tp.y - pos.y, 0);
+		if (tp.z - feet.z < 2.0f || flat.len() > 14.0f || flat.len() < 0.5f)
+		{
+			m.blockedSince = 0;
+			return false;
+		}
+		V3 dir = flat.norm();
+		if (!wall_ahead(m, feet, dir, 0.3f))
+		{
+			m.blockedSince = 0;
+			return false;
+		}
+		if (!m.blockedSince)
+			m.blockedSince = g.now;
+		if (g.now - m.blockedSince < 400)
+			return false; // a moment against the wall first
+		m.climbing = true;
+		m.wallDir = dir;
+		CLEAR_PED_TASKS_IMMEDIATELY(m.ped);
+		FREEZE_ENTITY_POSITION(m.ped, TRUE);
+		return true;
+	}
+
 	void update()
 	{
 		float dt = std::min(g.dt, 0.1f);
@@ -724,7 +818,18 @@ namespace mobs
 					say(m, SPEC[m.type].say, 0.8f);
 					m.nextSay = g.now + (uint32_t)frand(6000, 16000);
 				}
-				think(m, pos);
+				if (m.regrowAt && g.now >= m.regrowAt)
+				{
+					m.regrowAt = 0;
+					m.body.hide();
+					m.body.rig = "sheep";
+				}
+				if (m.type == SPIDER && climb(m, pos, dt))
+				{
+					pos = GET_ENTITY_COORDS(m.ped, TRUE);
+				}
+				else
+					think(m, pos);
 				// creeper: hiss, flash white, explode after 1.5 s (30 ticks)
 				if (m.type == CREEPER && m.fuse >= 0)
 				{

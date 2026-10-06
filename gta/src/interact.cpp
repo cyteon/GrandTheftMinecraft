@@ -641,6 +641,11 @@ namespace interact
 				audio::play_at("fire/ignite", t.gh.pos, 1.0f, frand(0.8f, 1.2f));
 			}
 		}
+		else if (h->name == "shears")
+		{
+			if (t.kind == Target::PED && mobs::shear(t.gh.entity))
+				gui::swing();
+		}
 		else if (h->name == "elytra")
 		{
 			gui::swing();

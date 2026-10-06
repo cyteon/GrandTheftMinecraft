@@ -242,14 +242,15 @@ LEG = lambda uv, h=6: [((-2, 0, -2, 4, h, 4), uv, 0.0, False)]  # noqa: E731
 
 
 def quadruped(head, body, leg_uv, leg_h, legs, extra=()):
-    """QuadrupedModel: front legs follow the thighs, hind legs the opposite thighs (a walk)."""
+    """QuadrupedModel: legs swing with the walk ('walk': phase 0 / 1 = half a stride apart, amplitude 1.4 x 100),
+    like Minecraft's limbSwing: right hind and left front together, the other two opposite."""
     (fx, fy, fz), (hx, hy, hz) = legs
     return [("head", head[0], "head", (0, 0), head[1]),
             ("body", body[0], "body", (0, 0), body[1]),
-            ("rfleg", (-fx, fy, fz), "limb", THIGH_R, LEG(leg_uv, leg_h)),
-            ("lfleg", (fx, fy, fz), "limb", THIGH_L, LEG(leg_uv, leg_h)),
-            ("rhleg", (-hx, hy, hz), "limb", THIGH_L, LEG(leg_uv, leg_h)),
-            ("lhleg", (hx, hy, hz), "limb", THIGH_R, LEG(leg_uv, leg_h))] + list(extra)
+            ("rfleg", (-fx, fy, fz), "walk", (1, 140), LEG(leg_uv, leg_h)),
+            ("lfleg", (fx, fy, fz), "walk", (0, 140), LEG(leg_uv, leg_h)),
+            ("rhleg", (-hx, hy, hz), "walk", (0, 140), LEG(leg_uv, leg_h)),
+            ("lhleg", (hx, hy, hz), "walk", (1, 140), LEG(leg_uv, leg_h))] + list(extra)
 
 
 def spider_legs():
@@ -309,8 +310,8 @@ RIGS = {
                                               ((-2, -4, -4, 4, 2, 2), (14, 0), 0.0, False),
                                               ((-1, -2, -3, 2, 2, 2), (14, 4), 0.0, False)]),
         ("body", (0, 16, 0), "body", (0, 0), [((-3, -4, -3, 6, 8, 6), (0, 9), 0.0, False, (PI / 2, 0, 0))]),
-        ("rleg", (-2, 19, 1), "limb", THIGH_R, [((-1, 0, -3, 3, 5, 3), (26, 0), 0.0, False)]),
-        ("lleg", (1, 19, 1), "limb", THIGH_L, [((-1, 0, -3, 3, 5, 3), (26, 0), 0.0, False)]),
+        ("rleg", (-2, 19, 1), "walk", (0, 140), [((-1, 0, -3, 3, 5, 3), (26, 0), 0.0, False)]),
+        ("lleg", (1, 19, 1), "walk", (1, 140), [((-1, 0, -3, 3, 5, 3), (26, 0), 0.0, False)]),
         ("rwing", (-4, 13, 0), "body", (0, 0), [((0, 0, -3, 1, 4, 6), (24, 13), 0.0, False)]),
         ("lwing", (4, 13, 0), "body", (0, 0), [((-1, 0, -3, 1, 4, 6), (24, 13), 0.0, False)]),
     ]),
@@ -675,6 +676,9 @@ def main():
     (out / "gtm_sprite.geo").unlink()
     (out / "gtm_sprite_tp.geo").unlink()
     # entity rigs (Steve, mobs): one model per part, origin at the part's pivot; rigs.txt tells the ASI how to pose them
+    sheep = RIGS["sheep"]
+    RIGS["sheep_sheared"] = (sheep[0], sheep[1], sheep[2],
+                             [(n, pv, k, b, [bx for bx in boxes if bx[1][1] < 32]) for n, pv, k, b, boxes in sheep[3]])
     rig_lines = ["# rig;name;scale (m per model pixel)",
                  "# part;rig;model;kind;pivot x;pivot y;pivot z (GTA space, pixels above the ground);bone0;bone1"]
     for rig, (recipe, (tw, th), scale, parts) in RIGS.items():

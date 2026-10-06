@@ -14,8 +14,9 @@ namespace rig
 		HEAD,
 		LIMB,
 		FWDARM,
-		WING, // posed by whoever wears it (elytra)
-		SWING // a leg turning about the vertical with the walk (spiders); b0 = which way (+1 / -1)
+		WING,  // posed by whoever wears it (elytra)
+		SWING, // a leg turning about the vertical with the walk (spiders); b0 = which way (+1 / -1)
+		WALK   // a leg swinging forward and back with the walk; b0 = half a stride later (1) or not, b1 = amplitude x 100
 	};
 	struct PartDef
 	{
@@ -58,6 +59,7 @@ namespace rig
 				         : f[3] == "fwdarm" ? FWDARM
 				         : f[3] == "wing"   ? WING
 				         : f[3] == "swing"  ? SWING
+				         : f[3] == "walk"   ? WALK
 				                            : LIMB;
 				p.pivot = V3(std::stof(f[4]), std::stof(f[5]), std::stof(f[6]));
 				p.b0 = std::stoi(f[7]), p.b1 = std::stoi(f[8]);
@@ -216,7 +218,23 @@ namespace rig
 			F = (F - U * F.dot(U)).norm();
 		}
 		V3 R = F.cross(U);
-		V3 feet = pedPos - U * 0.98f; // a ped's root is ~1 m above its feet
+		// the ped's root sits above its feet by its model's depth below the origin (~1 m for people, less for animals)
+		static std::map<Hash, float> rootH;
+		Hash mdl = GET_ENTITY_MODEL(ped);
+		if (!rootH.count(mdl))
+		{
+			Vector3 mn{}, mx{};
+			GET_MODEL_DIMENSIONS(mdl, &mn, &mx);
+			rootH[mdl] = clampf(-mn.z, 0.15f, 1.2f);
+		}
+		V3 feet = pedPos - U * (IS_PED_HUMAN(ped) ? 0.98f : rootH[mdl]);
+		// Minecraft's walk cycle: limbSwing grows with distance moved, limbSwingAmount with speed (to 1 at a run)
+		float dtp = inst.lastPose ? std::min(0.1f, (g.now - inst.lastPose) / 1000.0f) : 0;
+		inst.lastPose = g.now;
+		V3 vel = GET_ENTITY_VELOCITY(ped);
+		float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
+		inst.walkAmount += (std::min(1.0f, speed / 5.0f) - inst.walkAmount) * std::min(1.0f, dtp * 8);
+		inst.walkPhase += 20.0f * inst.walkAmount * dtp;
 		float s = def.scale;
 
 		// head direction: given (clamped to 75 degrees either side of the body, like Minecraft) or straight ahead
@@ -238,13 +256,17 @@ namespace rig
 			V3 X = R, Y = F, Z = U;
 			if (pd.kind == HEAD)
 				X = Rh, Y = Fh, Z = Uh;
-			else if (pd.kind == SWING)
+			else if (pd.kind == SWING) // spider legs: forward and back about the vertical, alternately
 			{
-				// how far the right thigh swings forward / back drives every leg, alternately
-				V3 thigh = (V3(GET_PED_BONE_COORDS(ped, 52301, 0, 0, 0)) - V3(GET_PED_BONE_COORDS(ped, 51826, 0, 0, 0))).norm();
-				float a = std::asin(clampf(thigh.dot(F), -1, 1)) * 0.8f * (float)pd.b0;
+				float a = std::cos(inst.walkPhase * 0.6662f * 2) * 0.4f * inst.walkAmount * (float)pd.b0;
 				X = R * std::cos(a) + F * std::sin(a);
 				Y = F * std::cos(a) - R * std::sin(a);
+			}
+			else if (pd.kind == WALK) // QuadrupedModel: xRot = cos(limbSwing * 0.6662 (+ pi)) * 1.4 * limbSwingAmount
+			{
+				float a = std::cos(inst.walkPhase * 0.6662f + (pd.b0 ? PI : 0)) * (pd.b1 / 100.0f) * inst.walkAmount;
+				V3 d = (U * -std::cos(a) + F * std::sin(a)).norm();
+				limb_axes(d, F, X, Y, Z);
 			}
 			else if (pd.kind == LIMB || pd.kind == FWDARM)
 			{

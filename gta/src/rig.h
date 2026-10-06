@@ -29,6 +29,8 @@ namespace rig
 		std::string rig;
 		std::vector<int> objs;
 		std::vector<Frame> frames; // per part, after pose()
+		float walkPhase = 0, walkAmount = 0; // Minecraft's limbSwing / limbSwingAmount, from how fast it moves
+		uint32_t lastPose = 0;
 		uint32_t firstPose = 0;    // diagnostics
 		int logged = 0;
 		void hide();

@@ -23,7 +23,10 @@
   mobs.
 - **New mobs** (Spawn Eggs tab): pigs, cows, sheep and chickens that wander about and panic when hurt; spiders that
   hunt at night (leaping at their prey) and leave you alone by day unless hit; endermen that wander, carry your
-  blocks off and put them down elsewhere, teleport away when hurt and come back for whoever hit them.
+  blocks off and put them down elsewhere, teleport away when hurt and come back for whoever hit them. The animals and
+  spiders ride GTA's own animals (hen, pig, cow, boar, coyote), so they're the right size to shoot and run over, and
+  their legs move with their walk like Minecraft's. Spiders climb walls to get at prey above them.
+- **Shears**: right-click a sheep to shear it; its wool grows back after a minute or two.
 - **Falling blocks**: sand, gravel, concrete powder and anvils fall when nothing holds them up. Anvils hurt whoever
   they land on and dent cars.
 - **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.
