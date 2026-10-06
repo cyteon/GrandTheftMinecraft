@@ -4,6 +4,7 @@
 #include "log.h"
 #include "shapes.h"
 #include "falling.h"
+#include "redstone.h"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -72,6 +73,7 @@ static void refresh(const Cell &c)
 static void touched(const Cell &c)
 {
 	falling::on_change(c);
+	redstone::on_change(c);
 	refresh(c);
 	for (int f = 0; f < 6; f++)
 		refresh(neighbour(c, f));

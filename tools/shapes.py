@@ -369,10 +369,18 @@ def pot():
     return {"": (q, [((5, 5, 0), (11, 11, 6))])}, None
 
 
+def lamp():
+    """A redstone lamp: a plain cube, lit (the front column holds redstone_lamp_on) while powered."""
+    off = box((0, 0, 0), (16, 16, 16), cols={n: 1 for n in FRAMES})
+    on = box((0, 0, 0), (16, 16, 16), cols={n: 3 for n in FRAMES})
+    full = [((0, 0, 0), (16, 16, 16))]
+    return {"": (off, full), "_on": (on, full)}, off
+
+
 SHAPES = {"slab": slab, "stairs": stairs, "wall": wall, "fence": fence, "gate": gate, "pane": pane,
           "carpet": carpet, "torch": torch, "lantern": lantern, "cross": cross, "ladder": ladder, "door": door,
           "trapdoor": trapdoor, "button": button, "lever": lever, "plate": plate, "rail": rail, "anvil": anvil,
-          "enchanting": enchanting, "brewing": brewing, "cauldron": cauldron, "campfire": campfire, "pot": pot}
+          "enchanting": enchanting, "brewing": brewing, "cauldron": cauldron, "campfire": campfire, "pot": pot, "lamp": lamp}
 
 
 def build(shape, front=False):

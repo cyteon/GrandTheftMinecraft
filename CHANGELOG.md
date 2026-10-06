@@ -29,6 +29,10 @@
 - **Shears**: right-click a sheep to shear it; its wool grows back after a minute or two.
 - **Falling blocks**: sand, gravel, concrete powder and anvils fall when nothing holds them up. Anvils hurt whoever
   they land on and dent cars.
+- **Redstone power** (direct, no wire yet): levers, buttons, pressure plates, redstone blocks and redstone torches
+  power the blocks touching them, and a lever or button powers the block it's mounted on too. Powered doors,
+  trapdoors and fence gates open (iron doors and trapdoors only this way, like in Minecraft), redstone lamps light up,
+  TNT ignites and note blocks play.
 - **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.
 - Arrows, ender pearls and wither skulls fly through torches, plants, carpets, signs and the like instead of
   sticking in the air around them.

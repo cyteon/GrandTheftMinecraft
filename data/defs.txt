@@ -7,7 +7,7 @@
 #          o has a front (furnace...), k mob head (top = its texture under entity/, e.g. zombie/zombie)
 #   flags may end in :<shape>[@<base>]: slab stairs wall fence gate pane carpet torch lantern cross ladder
 #   door trapdoor bed chest sign banner button lever plate rail anvil enchanting brewing cauldron campfire
-#   pot. Beds, chests, signs and banners take their look from the top field: a texture under entity/ (or
+#   pot lamp. Beds, chests, signs and banners take their look from the top field: a texture under entity/ (or
 #   banner:<dye colour>); their @base block gives the chips and the far-away colours. With @base the textures (and sound, if empty) come from that block.
 # item;name;Display Name;tab;flags;sprite   flags: s stack 1, p stack 16
 # sprite;name   extra held-item sprites (bow/crossbow pull states)
@@ -193,7 +193,7 @@ block;carved_pumpkin;Carved Pumpkin;natural;o;wood;pumpkin_top;pumpkin_side;pump
 block;jack_o_lantern;Jack o'Lantern;natural,functional;ol;wood;pumpkin_top;pumpkin_side;pumpkin_top;jack_o_lantern
 block;dispenser;Dispenser;redstone;o;stone;furnace_top;furnace_side;furnace_top;dispenser_front
 block;dropper;Dropper;redstone;o;stone;furnace_top;furnace_side;furnace_top;dropper_front
-block;redstone_lamp;Redstone Lamp;redstone;;glass;redstone_lamp;;
+block;redstone_lamp;Redstone Lamp;redstone;:lamp;glass;redstone_lamp;;;redstone_lamp_on
 block;target;Target;redstone;;grass;target_top;target_side;target_top
 block;note_block;Note Block;redstone;;wood;note_block;;
 block;slime_block;Slime Block;redstone;a;grass;slime_block;;

@@ -165,6 +165,8 @@ namespace shapes
 		case SH_ANVIL:
 		case SH_CAMPFIRE:
 			return {"", yaw};
+		case SH_LAMP:
+			return {open ? "_on" : "", 0};
 		default:
 			return {"", (it.oriented || it.skull) ? yaw : 0};
 		}

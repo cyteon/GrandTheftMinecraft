@@ -146,11 +146,11 @@ namespace blockrender
 		for (auto &cd : s_cands)
 		{
 			const Block &bk = g_blocks[cd.key];
-			if (item(bk.item).light && lights.size() < 24)
+			if ((item(bk.item).light || (item(bk.item).shape == SH_LAMP && (bk.state & ST_OPEN))) && lights.size() < 24)
 				lights.push_back({0, cell_center(key_cell(cd.key))});
 			if (collision::has_prop(cd.key))
 				continue; // a real textured prop stands here (Stage 2)
-			if (collision::dlc() && item(bk.item).shape != SH_CUBE)
+			if (collision::dlc() && item(bk.item).shape != SH_CUBE && item(bk.item).shape != SH_LAMP)
 				continue; // shaped blocks (fences, plants...) aren't drawn as polygon cubes in the distance
 			V3 mn = cell_min(key_cell(cd.key));
 			int faces = 0;

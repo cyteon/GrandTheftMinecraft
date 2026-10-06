@@ -46,7 +46,8 @@ enum Shape : uint8_t
 	SH_BREWING,
 	SH_CAULDRON,
 	SH_CAMPFIRE,
-	SH_POT
+	SH_POT,
+	SH_LAMP
 };
 
 struct Item
@@ -63,7 +64,7 @@ struct Item
 	// Face colours per level of detail: lod[k] holds an n x n grid (n = 1 << k) for top/side/bottom.
 	std::vector<Rgba> lod[5][3];
 	int tris[5][3] = {}; // triangles the renderer emits per face at each lod (runs merged, clear texels skipped)
-	bool opaque() const { return block && !alpha && !cutout && !skull && shape == SH_CUBE; }
+	bool opaque() const { return block && !alpha && !cutout && !skull && (shape == SH_CUBE || shape == SH_LAMP); }
 	bool held3d() const { return block && sprite.empty(); }
 	// our own movement checks (flight, gliding, making room) let you through these
 	bool passable() const

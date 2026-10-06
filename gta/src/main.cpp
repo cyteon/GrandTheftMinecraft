@@ -13,6 +13,7 @@
 #include "mobs.h"
 #include "signs.h"
 #include "falling.h"
+#include "redstone.h"
 #include "wither.h"
 #include "rig.h"
 #include "input.h"
@@ -353,6 +354,7 @@ static void tick()
 		mobs::update();
 		wither::update();
 		falling::update();
+		redstone::update();
 		interact::tick_world();
 	}
 	fx::update();
