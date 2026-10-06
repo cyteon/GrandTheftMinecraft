@@ -111,8 +111,9 @@ MANUAL = """GrandTheftMinecraft {v} - manual install (the .oiv does all of this 
 """
 
 
-RELEASE_NOTES = """Minecraft creative mode inside GTA V story mode: the Minecraft HUD and creative inventory, 69 blocks that
-are real GTA objects (lit, shadowed, solid), Minecraft mobs that fight GTA's people, Steve, elytra, TNT and more.
+RELEASE_NOTES = """Minecraft creative mode inside GTA V story mode: the Minecraft HUD and creative inventory, over 700
+blocks and items that are real GTA objects (lit, shadowed, solid; stairs, doors, chests, signs, redstone...), Minecraft
+mobs and golems that fight GTA's people, the Wither, Steve, elytra, TNT and more.
 
 ## What's new in {v}
 

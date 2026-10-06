@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.5.0
+
+- **Golems built from blocks**, like in Minecraft: a T of four iron blocks with a carved pumpkin (or jack o'lantern)
+  on top makes an iron golem; two snow blocks with a pumpkin make a **snow golem**, which throws snowballs at hostile
+  mobs.
+- **New mobs** (Spawn Eggs tab): pigs, cows, sheep and chickens that wander about and panic when hurt; spiders that
+  hunt at night (leaping at their prey) and leave you alone by day unless hit; endermen that wander, carry your
+  blocks off and put them down elsewhere, teleport away when hurt and come back for whoever hit them. The animals and
+  spiders ride GTA's own animals (hen, pig, cow, boar, coyote), so they're the right size to shoot and run over, and
+  their legs move with their walk like Minecraft's. Spiders climb walls to get at prey above them.
+- **Shears**: right-click a sheep to shear it; its wool grows back after a minute or two.
+- **Falling blocks**: sand, gravel, concrete powder and anvils fall when nothing holds them up. Anvils hurt whoever
+  they land on and dent cars.
+- **Redstone power** (direct, no wire yet): levers, buttons, pressure plates, redstone blocks and redstone torches
+  power the blocks touching them, and a lever or button powers the block it's mounted on too. Powered doors,
+  trapdoors and fence gates open (iron doors and trapdoors only this way, like in Minecraft), redstone lamps light up,
+  TNT ignites and note blocks play.
+- **Exact hitboxes**: aiming, placing and the selection outline use each block's real shape (a stair's steps, a
+  slab's half, a fence's post and rails, a pressure plate's sliver) instead of a full block, so you can click past or
+  onto them like in Minecraft. Arrows stick where they really hit.
+- Fixed occasional crashes: every GTA object the mod creates now counts against one budget (`MaxModObjects`, 1100)
+  so GTA's fixed object pools can't run out, at most 6 arrows stick in one person or car, and every collision probe's
+  result is read so its slot is freed.
+- Fixed: typing on a sign no longer opens the inventory, switches hotbar slots or toggles Minecraft mode.
+- Fixed: turning Minecraft mode off with a chest open left the chest open (and E showed it again).
+- Fixed: Steve's held item in third person and his gliding pose (body part names got mixed up in 1.4.0).
+- Fixed: sign text could lose letters when several signs were in view.
+- Pressure plates and campfires also react while you're driving.
+
 ## 1.4.0
 
 - **Shaped blocks** (about 270 new): slabs (top, bottom, double), stairs (with Minecraft's corner shapes), walls,
@@ -18,24 +47,6 @@
   shows on the sign), banners in all 16 colours, buttons and levers (they press and flip), pressure plates (they go
   down when people or cars are on them), rails (they join up and curve at corners), anvils, enchanting table, brewing
   stand, cauldron, campfires (they glow and burn whoever stands in them) and flower pots.
-- **Golems built from blocks**, like in Minecraft: a T of four iron blocks with a carved pumpkin (or jack o'lantern)
-  on top makes an iron golem; two snow blocks with a pumpkin make a **snow golem**, which throws snowballs at hostile
-  mobs.
-- **New mobs** (Spawn Eggs tab): pigs, cows, sheep and chickens that wander about and panic when hurt; spiders that
-  hunt at night (leaping at their prey) and leave you alone by day unless hit; endermen that wander, carry your
-  blocks off and put them down elsewhere, teleport away when hurt and come back for whoever hit them. The animals and
-  spiders ride GTA's own animals (hen, pig, cow, boar, coyote), so they're the right size to shoot and run over, and
-  their legs move with their walk like Minecraft's. Spiders climb walls to get at prey above them.
-- **Shears**: right-click a sheep to shear it; its wool grows back after a minute or two.
-- **Falling blocks**: sand, gravel, concrete powder and anvils fall when nothing holds them up. Anvils hurt whoever
-  they land on and dent cars.
-- **Redstone power** (direct, no wire yet): levers, buttons, pressure plates, redstone blocks and redstone torches
-  power the blocks touching them, and a lever or button powers the block it's mounted on too. Powered doors,
-  trapdoors and fence gates open (iron doors and trapdoors only this way, like in Minecraft), redstone lamps light up,
-  TNT ignites and note blocks play.
-- Fixed occasional crashes: every GTA object the mod creates now counts against one budget (`MaxModObjects`, 1100)
-  so GTA's fixed object pools can't run out, at most 6 arrows stick in one person or car, and every collision probe's
-  result is read so its slot is freed.
 - **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.
 - Arrows, ender pearls and wither skulls fly through torches, plants, carpets, signs and the like instead of
   sticking in the air around them.
