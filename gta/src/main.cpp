@@ -12,6 +12,8 @@
 #include "elytra.h"
 #include "mobs.h"
 #include "signs.h"
+#include "fluids.h"
+#include "falling.h"
 #include "wither.h"
 #include "rig.h"
 #include "input.h"
@@ -177,6 +179,7 @@ static bool online_guard()
 		steve::hide();
 		mobs::clear();
 		wither::clear();
+		falling::clear();
 		flight::stop();
 		flight::climb_stop();
 	}
@@ -346,6 +349,8 @@ static void tick()
 	{
 		mobs::update();
 		wither::update();
+		fluids::update();
+		falling::update();
 	}
 	fx::update();
 	stress_test();

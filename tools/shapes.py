@@ -369,10 +369,22 @@ def pot():
     return {"": (q, [((5, 5, 0), (11, 11, 6))])}, None
 
 
+def fluid():
+    """Water / lava: a surface at the flow level's height (Minecraft: 8/9 of a block for a source, less as it runs
+    out; full while falling), sides only where the next cell isn't the same fluid: _<level 0-7 | f>_<side mask>."""
+    out = {}
+    for lvl in [str(k) for k in range(8)] + ["f"]:
+        h = 16 if lvl == "f" else 14.2 * (8 - int(lvl)) / 8
+        for mask in range(16):
+            skip = [DOWN] + [n for bit, n in ((1, N), (2, E), (4, S), (8, W)) if not mask & bit]
+            out[f"_{lvl}_{mask}"] = (box((0, 0, 0), (16, 16, h), skip=tuple(skip)), [])
+    return out, None
+
+
 SHAPES = {"slab": slab, "stairs": stairs, "wall": wall, "fence": fence, "gate": gate, "pane": pane,
           "carpet": carpet, "torch": torch, "lantern": lantern, "cross": cross, "ladder": ladder, "door": door,
           "trapdoor": trapdoor, "button": button, "lever": lever, "plate": plate, "rail": rail, "anvil": anvil,
-          "enchanting": enchanting, "brewing": brewing, "cauldron": cauldron, "campfire": campfire, "pot": pot}
+          "enchanting": enchanting, "brewing": brewing, "cauldron": cauldron, "campfire": campfire, "pot": pot, "fluid": fluid}
 
 
 def build(shape, front=False):

@@ -470,6 +470,8 @@ namespace mcassets
 			t = tint(t, GRASS_TINT);
 		if (b.flags.find('f') != std::string::npos)
 			t = tint(t, FOLIAGE_TINT), s = tint(s, FOLIAGE_TINT), bt = tint(bt, FOLIAGE_TINT);
+		if (b.flags.find('w') != std::string::npos) // water's textures are grey: the plains water colour
+			t = tint(t, 0x3F76E4), s = tint(s, 0x3F76E4), bt = tint(bt, 0x3F76E4);
 		t = resize_nn(t, 16, 16), s = resize_nn(s, 16, 16), bt = resize_nn(bt, 16, 16);
 	}
 
@@ -851,7 +853,9 @@ namespace mcassets
 		{"item/elytra/elytra_loop", 0}, {"block/wooden_door/open", 2}, {"block/wooden_door/close", 3},
 		{"block/wooden_trapdoor/open", 5}, {"block/wooden_trapdoor/close", 3}, {"block/fence_gate/open", 2},
 		{"block/fence_gate/close", 2}, {"block/copper_door/toggle", 3}, {"block/chest/open", 0},
-		{"block/chest/close", 3}, {"block/enderchest/open", 0}, {"block/enderchest/close", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
+		{"block/chest/close", 3}, {"block/enderchest/open", 0}, {"block/enderchest/close", 0},
+		{"item/bucket/fill", 3}, {"item/bucket/empty", 3}, {"item/bucket/fill_lava", 3}, {"item/bucket/empty_lava", 3},
+		{"liquid/lavapop", 0}, {"random/fizz", 0}, {"random/anvil_land", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
 		{"mob/wither/idle", 4}, {"mob/wither/hurt", 4}, {"mob/wither/death", 0}};
 
 	static bool build_sounds(const Source &src)

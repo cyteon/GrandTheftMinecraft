@@ -81,7 +81,8 @@ struct VoxelHit
 	V3 pos;
 };
 // solidOnly: fly through torches, plants, carpets, ladders (projectiles, gliding)
-VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidOnly = false);
+// fluids are skipped unless hitFluids (an empty bucket)
+VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidOnly = false, bool hitFluids = false);
 
 // Does any block overlap the axis-aligned box?
 bool boxes_hit_blocks(const V3 &mn, const V3 &mx);

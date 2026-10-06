@@ -3,6 +3,8 @@
 #include "items.h"
 #include "log.h"
 #include "shapes.h"
+#include "fluids.h"
+#include "falling.h"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -70,6 +72,8 @@ static void refresh(const Cell &c)
 
 static void touched(const Cell &c)
 {
+	fluids::on_change(c);
+	falling::on_change(c);
 	refresh(c);
 	for (int f = 0; f < 6; f++)
 		refresh(neighbour(c, f));
@@ -218,7 +222,7 @@ Cell world_to_cell(int b, const V3 &p)
 	return {b, (int)std::floor(p.x), (int)std::floor(p.y), (int)std::floor(p.z - g_builds[b].zOff)};
 }
 
-VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidOnly)
+VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidOnly, bool hitFluids)
 {
 	VoxelHit best;
 	best.t = maxDist;
@@ -253,7 +257,8 @@ VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidO
 			if (face >= 0)
 			{
 				auto it = g_blocks.find(cell_key({b, x, y, z}));
-				if (it != g_blocks.end() && !(solidOnly && item(it->second.item).passable()))
+				if (it != g_blocks.end() && !(solidOnly && item(it->second.item).passable()) &&
+				    (hitFluids || item(it->second.item).shape != SH_FLUID))
 				{
 					best.hit = true;
 					best.cell = {b, x, y, z};
@@ -264,7 +269,8 @@ VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidO
 				}
 			}
 			else if (g_blocks.count(cell_key({b, x, y, z})) &&
-			         !(solidOnly && item(g_blocks[cell_key({b, x, y, z})].item).passable())) // started inside a block
+			         !(solidOnly && item(g_blocks[cell_key({b, x, y, z})].item).passable()) &&
+			         (hitFluids || item(g_blocks[cell_key({b, x, y, z})].item).shape != SH_FLUID)) // started inside a block
 			{
 				best.hit = true;
 				best.cell = {b, x, y, z};
