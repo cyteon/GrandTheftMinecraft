@@ -254,28 +254,55 @@ VoxelHit voxel_raycast(const V3 &from, const V3 &dir, float maxDist, bool solidO
 		int face = -1;
 		while (t <= best.t)
 		{
-			if (face >= 0)
+			auto it = g_blocks.find(cell_key({b, x, y, z}));
+			if (it != g_blocks.end() && !(solidOnly && item(it->second.item).passable()))
 			{
-				auto it = g_blocks.find(cell_key({b, x, y, z}));
-				if (it != g_blocks.end() && !(solidOnly && item(it->second.item).passable()))
+				// the block's own boxes (a slab's half, a stair's steps, a plate's sliver), in build space
+				shapes::Box boxes[16];
+				int n = shapes::outline({b, x, y, z}, it->second, boxes);
+				float bestT = 1e30f;
+				int bestFace = 0;
+				for (int k = 0; k < n; k++)
+				{
+					float lo[3] = {x + boxes[k].lo.x, y + boxes[k].lo.y, z + boxes[k].lo.z};
+					float hi[3] = {x + boxes[k].hi.x, y + boxes[k].hi.y, z + boxes[k].hi.z};
+					float org[3] = {o.x, o.y, o.z}, d[3] = {dir.x, dir.y, dir.z};
+					float t0 = -1e30f, t1 = 1e30f;
+					int axis = 2;
+					bool miss = false;
+					for (int a = 0; a < 3 && !miss; a++)
+					{
+						if (std::fabs(d[a]) < 1e-9f)
+						{
+							miss = org[a] < lo[a] || org[a] > hi[a];
+							continue;
+						}
+						float ta = (lo[a] - org[a]) / d[a], tb = (hi[a] - org[a]) / d[a];
+						if (ta > tb)
+							std::swap(ta, tb);
+						if (ta > t0)
+							t0 = ta, axis = a;
+						t1 = std::min(t1, tb);
+					}
+					if (miss || t0 > t1 || t1 < 0)
+						continue;
+					float th = std::max(t0, 0.0f);
+					if (th < bestT)
+					{
+						bestT = th;
+						// the face entered (normal = FACE_N[face]); starting inside counts as the top
+						bestFace = t0 < 0 ? 0 : axis == 0 ? (d[0] > 0 ? 5 : 4) : axis == 1 ? (d[1] > 0 ? 3 : 2) : (d[2] > 0 ? 1 : 0);
+					}
+				}
+				if (bestT <= best.t && bestT <= maxDist)
 				{
 					best.hit = true;
 					best.cell = {b, x, y, z};
-					best.face = face;
-					best.t = t;
-					best.pos = from + dir * t;
+					best.face = bestFace;
+					best.t = bestT;
+					best.pos = from + dir * bestT;
 					break;
 				}
-			}
-			else if (g_blocks.count(cell_key({b, x, y, z})) &&
-			         !(solidOnly && item(g_blocks[cell_key({b, x, y, z})].item).passable())) // started inside a block
-			{
-				best.hit = true;
-				best.cell = {b, x, y, z};
-				best.face = 0;
-				best.t = 0;
-				best.pos = from;
-				break;
 			}
 			if (tx < ty && tx < tz)
 				t = tx, x += sx, tx += dx, face = sx > 0 ? 5 : 4;

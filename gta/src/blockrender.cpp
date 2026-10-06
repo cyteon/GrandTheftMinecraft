@@ -2,6 +2,8 @@
 #include "collision.h"
 #include "config.h"
 #include "items.h"
+#include "shapes.h"
+#include "world.h"
 #include <algorithm>
 #include <cstring>
 #include <vector>
@@ -234,14 +236,23 @@ namespace blockrender
 
 	void draw_outline(const Cell &c)
 	{
-		V3 a = cell_min(c) - V3(0.003f, 0.003f, 0.003f);
-		V3 b = a + V3(1.006f, 1.006f, 1.006f);
-		V3 p[8];
-		for (int i = 0; i < 8; i++)
-			p[i] = {(i & 1) ? b.x : a.x, (i & 2) ? b.y : a.y, (i & 4) ? b.z : a.z};
+		const Block *bk = block_at(c);
+		shapes::Box boxes[16];
+		int n = bk ? shapes::outline(c, *bk, boxes) : 0;
+		if (!n)
+			boxes[0] = {V3(0, 0, 0), V3(1, 1, 1)}, n = 1;
+		V3 mn = cell_min(c);
 		static const int E[12][2] = {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {0, 2}, {1, 3}, {4, 6}, {5, 7}, {0, 4}, {1, 5}, {2, 6}, {3, 7}};
-		for (auto &e : E)
-			GRAPHICS::DRAW_LINE(p[e[0]].x, p[e[0]].y, p[e[0]].z, p[e[1]].x, p[e[1]].y, p[e[1]].z, 0, 0, 0, 160);
+		for (int k = 0; k < n; k++)
+		{
+			V3 a = mn + boxes[k].lo - V3(0.003f, 0.003f, 0.003f);
+			V3 b = mn + boxes[k].hi + V3(0.003f, 0.003f, 0.003f);
+			V3 p[8];
+			for (int i = 0; i < 8; i++)
+				p[i] = {(i & 1) ? b.x : a.x, (i & 2) ? b.y : a.y, (i & 4) ? b.z : a.z};
+			for (auto &e : E)
+				GRAPHICS::DRAW_LINE(p[e[0]].x, p[e[0]].y, p[e[0]].z, p[e[1]].x, p[e[1]].y, p[e[1]].z, 0, 0, 0, 160);
+		}
 	}
 
 	void draw_quad_billboard(const V3 &p, float size, uint8_t r, uint8_t g_, uint8_t b, uint8_t a)

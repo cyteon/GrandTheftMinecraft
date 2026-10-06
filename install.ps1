@@ -97,6 +97,7 @@ Copy-Item (Join-Path $Repo "data\defs.txt") (Join-Path $Data "defs.txt") -Force
 Copy-Item $Layout (Join-Path $Data "dlc_tex.txt") -Force
 Copy-Item (Join-Path $Repo "build\dlc_src\rigs.txt") (Join-Path $Data "rigs.txt") -Force
 Copy-Item (Join-Path $Repo "build\dlc_src\icons.txt") (Join-Path $Data "icons.txt") -Force
+Copy-Item (Join-Path $Repo "build\dlc_src\shapes.txt") (Join-Path $Data "shapes.txt") -Force
 # a new block pack has blank textures again: forget the old fill so the mod rebuilds it
 Remove-Item (Join-Path $Data "dlc_ready.txt") -ErrorAction SilentlyContinue
 Write-Host "installed GrandTheftMinecraft\ defs (the mod builds the Minecraft assets on first launch)"

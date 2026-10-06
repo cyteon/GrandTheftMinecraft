@@ -417,6 +417,30 @@ def icon_tris(quads):
     return out
 
 
+def clip_box(lo, hi):
+    lo = tuple(max(0.0, min(16.0, c)) for c in lo)
+    hi = tuple(max(0.0, min(16.0, c)) for c in hi)
+    return (lo, hi) if all(hi[i] - lo[i] > 0.01 for i in range(3)) else None
+
+
+def outline(quads, coll):
+    """Minecraft's outline shape for a model: its collision boxes kept inside the block (fences and walls collide
+    1.5 blocks high but outline 1), else the bounds of its geometry (torches, plants, plates, signs...)."""
+    if coll:
+        boxes = [clip_box(lo, hi) for lo, hi in coll]
+    else:
+        pts = [p for q in quads for p in q.p]
+        if not pts:
+            return []
+        boxes = [clip_box(tuple(min(p[i] for p in pts) for i in range(3)), tuple(max(p[i] for p in pts) for i in range(3)))]
+    return [b for b in boxes if b]
+
+
+def outline_spec(boxes):
+    """shapes.txt: boxes in block pixels 'x0,y0,z0,x1,y1,z1' joined by '|' (empty: no line written)."""
+    return "|".join(",".join(f"{c:.4g}" for c in lo + hi) for lo, hi in boxes)
+
+
 def coll_spec(boxes):
     """models.txt collision: boxes 'hx,hy,hz,cx,cy,cz' (metres, relative to the block centre) joined by '|'."""
     if not boxes:

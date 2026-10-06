@@ -586,6 +586,11 @@ def main():
 
     rnd = random.Random(7)
     made_tex, icons, icon_done = set(), [], set()
+    outlines = ["# model;boxes in block pixels x0,y0,z0,x1,y1,z1 joined by | (models not listed: a full block)"]
+
+    def add_outline(model, boxes):
+        if boxes and not (len(boxes) == 1 and boxes[0] == ((0, 0, 0), (16, 16, 16))):
+            outlines.append(f"{model};{shapes.outline_spec(boxes)}")
 
     def tri_line(t):
         n, *vs = t
@@ -603,6 +608,12 @@ def main():
                 made_tex.add(etex)
                 texture(etex, tw, th, recipe)
             for suffix, (g, coll) in variants.items():
+                if coll:
+                    add_outline(f"gtm_{name}{suffix}", [b for b in (shapes.clip_box(lo, hi) for lo, hi in coll) if b])
+                else:
+                    px = [((x + 0.5) * 16, (y + 0.5) * 16, (z + 0.5) * 16) for x, y, z, *_ in g.v]
+                    ob = shapes.clip_box(tuple(min(p[i] for p in px) for i in range(3)), tuple(max(p[i] for p in px) for i in range(3)))
+                    add_outline(f"gtm_{name}{suffix}", [ob] if ob else [])
                 g.write(out / f"gtm_{name}{suffix}.geo")
                 rows.append(f"gtm_{name}{suffix};{etex};cutout;{material};{shapes.coll_spec(coll)}")
             if hand:
@@ -616,6 +627,7 @@ def main():
         elif b["shape"]:  # slabs, stairs, fences... (tools/shapes.py): a model per variant, the ASI picks one
             variants, hand = shapes.build(b["shape"], front=bool(b["front"]))
             for suffix, (quads, coll) in variants.items():
+                add_outline(f"gtm_{name}{suffix}", shapes.outline(quads, coll))
                 g = Geo()
                 shapes.emit(quads, g, "world")
                 g.write(out / f"gtm_{name}{suffix}.geo")
@@ -644,6 +656,7 @@ def main():
             g.i = list(head.i)
             g.write(out / f"gtm_{name}.geo")
             rows.append(f"gtm_{name};{stex};cutout;{material};0.25,0.25,0.25,0,0,-0.25")  # the head only
+            add_outline(f"gtm_{name}", [((4, 4, 0), (12, 12, 8))])
             k = HAND_SIZE  # in the hand: half a held block, face towards the viewer (ours -> item space)
             g = Geo()
             g.v = [(-x * k, (z - 0.25) * k, y * k, -nx, nz, ny, u, v) for x, y, z, nx, ny, nz, u, v in head.v]
@@ -725,6 +738,7 @@ def main():
             tpl_seen.add(key)
         lines.append(l)
     (out / "icons.txt").write_text("\n".join(lines) + "\n")
+    (out / "shapes.txt").write_text("\n".join(outlines) + "\n")
     (out / "tex_recipes.txt").write_text("\n".join(recipes) + "\n")
     print(f"wrote {out}: {len(rows)} models, {len(recipes)} placeholder textures")
 

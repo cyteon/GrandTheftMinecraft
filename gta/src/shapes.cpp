@@ -1,5 +1,12 @@
 #include "shapes.h"
 #include "items.h"
+#include "config.h"
+#include "log.h"
+#include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <unordered_map>
+#include <vector>
 
 namespace shapes
 {
@@ -114,6 +121,72 @@ namespace shapes
 						return {"_corner", k * 90.0f};
 		}
 		return {"_ns", (mask & 10) && !(mask & 5) ? 90.0f : 0.0f};
+	}
+
+	// shapes.txt from the block pack's generator: model -> boxes (block pixels, the model's own orientation)
+	static std::unordered_map<std::string, std::vector<Box>> s_outlines;
+	static bool s_loaded = false;
+
+	static void load_outlines()
+	{
+		s_loaded = true;
+		std::ifstream in(g_dataDir + "shapes.txt");
+		std::string line;
+		while (std::getline(in, line))
+		{
+			if (line.empty() || line[0] == '#')
+				continue;
+			size_t semi = line.find(';');
+			if (semi == std::string::npos)
+				continue;
+			std::vector<Box> boxes;
+			std::stringstream ss(line.substr(semi + 1));
+			std::string part;
+			while (std::getline(ss, part, '|'))
+			{
+				float v[6] = {};
+				if (std::sscanf(part.c_str(), "%f,%f,%f,%f,%f,%f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5]) == 6)
+					boxes.push_back({V3(v[0], v[1], v[2]) * (1 / 16.0f), V3(v[3], v[4], v[5]) * (1 / 16.0f)});
+			}
+			s_outlines[line.substr(0, semi)] = boxes;
+		}
+		logf("shapes: %d outline shapes", (int)s_outlines.size());
+	}
+
+	int outline(const Cell &c, const Block &b, Box *out)
+	{
+		const Item &it = item(b.item);
+		if (it.shape == SH_CUBE && !it.skull)
+		{
+			out[0] = {V3(0, 0, 0), V3(1, 1, 1)};
+			return 1;
+		}
+		if (!s_loaded)
+			load_outlines();
+		Look lk = look(c, b);
+		auto f = s_outlines.find("gtm_" + it.name + lk.suffix);
+		if (f == s_outlines.end() || f->second.empty())
+		{
+			out[0] = {V3(0, 0, 0), V3(1, 1, 1)};
+			return 1;
+		}
+		// turned about the block's vertical centre line like its prop (the bounds of the turned box)
+		float a = deg2rad(lk.yaw), ca = std::cos(a), sa = std::sin(a);
+		int n = 0;
+		for (const Box &bx : f->second)
+		{
+			if (n >= 16)
+				break;
+			V3 lo(1e9f, 1e9f, bx.lo.z), hi(-1e9f, -1e9f, bx.hi.z);
+			for (int k = 0; k < 4; k++)
+			{
+				float x = (k & 1 ? bx.hi.x : bx.lo.x) - 0.5f, y = (k & 2 ? bx.hi.y : bx.lo.y) - 0.5f;
+				float rx = x * ca - y * sa + 0.5f, ry = x * sa + y * ca + 0.5f;
+				lo.x = std::min(lo.x, rx), lo.y = std::min(lo.y, ry), hi.x = std::max(hi.x, rx), hi.y = std::max(hi.y, ry);
+			}
+			out[n++] = {lo, hi};
+		}
+		return n;
 	}
 
 	Look look(const Cell &c, const Block &b)
