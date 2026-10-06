@@ -852,7 +852,10 @@ namespace mcassets
 		{"block/wooden_trapdoor/open", 5}, {"block/wooden_trapdoor/close", 3}, {"block/fence_gate/open", 2},
 		{"block/fence_gate/close", 2}, {"block/copper_door/toggle", 3}, {"block/chest/open", 0},
 		{"block/chest/close", 3}, {"block/enderchest/open", 0}, {"block/enderchest/close", 0},
-		{"random/anvil_land", 0}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
+		{"random/anvil_land", 0}, {"mob/pig/say", 3}, {"mob/pig/death", 0}, {"mob/cow/say", 4}, {"mob/cow/hurt", 3},
+		{"mob/sheep/say", 3}, {"mob/chicken/say", 3}, {"mob/chicken/hurt", 2}, {"mob/spider/say", 4},
+		{"mob/spider/death", 0}, {"mob/endermen/idle", 5}, {"mob/endermen/hit", 4}, {"mob/endermen/death", 0},
+		{"mob/endermen/scream", 4}, {"mob/wither/spawn", 0}, {"mob/wither/shoot", 0},
 		{"mob/wither/idle", 4}, {"mob/wither/hurt", 4}, {"mob/wither/death", 0}};
 
 	static bool build_sounds(const Source &src)
@@ -1136,6 +1139,37 @@ namespace mcassets
 				if (!tex(r[1], e))
 					e.w = 64, e.h = 64, e.px.assign(64 * 64 * 4, 255);
 				base = resize_nn(e, w, h);
+			}
+			else if ((r[0] == "stack" || r[0] == "overlay") && r.size() > 2)
+			{
+				// stack: two textures one above the other (a sheep and its fur); overlay: the second laid over the first
+				Img a, b;
+				if (!tex(r[1], a))
+					a.w = 64, a.h = 32, a.px.assign(64 * 32 * 4, 255);
+				if (!tex(r[2], b) || b.w != a.w)
+					b = a;
+				Img c;
+				if (r[0] == "stack")
+				{
+					c.w = a.w, c.h = a.h + b.h;
+					c.px = a.px;
+					c.px.insert(c.px.end(), b.px.begin(), b.px.end());
+				}
+				else
+				{
+					c = a;
+					for (int y = 0; y < std::min(a.h, b.h); y++)
+						for (int x = 0; x < a.w; x++)
+						{
+							uint8_t *d = c.at(x, y);
+							const uint8_t *o = b.at(x, y);
+							float k = o[3] / 255.0f;
+							for (int ch = 0; ch < 3; ch++)
+								d[ch] = (uint8_t)(d[ch] * (1 - k) + o[ch] * k);
+							d[3] = std::max(d[3], o[3]);
+						}
+				}
+				base = resize_nn(c, w, h);
 			}
 			else if (r[0] == "banner" && r.size() > 1)
 				base = resize_nn(banner_tex(r[1]), w, h);

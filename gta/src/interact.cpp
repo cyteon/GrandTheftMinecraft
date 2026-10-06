@@ -307,6 +307,45 @@ namespace interact
 	// Placing a block where you click, with Minecraft's rules for shaped ones: slabs and stairs go in the half you
 	// click (a slab on a slab doubles it), torches and ladders on walls face away from them, lanterns under a block
 	// hang, plants and carpets need a floor, doors take two blocks and pair up into double doors.
+	// Minecraft's CarvedPumpkinBlock patterns, checked when the pumpkin goes on: a snow golem from two snow blocks, an
+	// iron golem from a T of iron blocks (with the spaces beside the head and under the arms clear), along either axis
+	static void try_summon_golem(const Cell &head)
+	{
+		Cell b1 = head, b2 = head;
+		b1.z--, b2.z -= 2;
+		auto take = [](const Cell &c) {
+			if (const Block *b = block_at(c))
+			{
+				fx::block_break(c, b->item);
+				remove_block(c);
+			}
+		};
+		V3 d = g.pedPos - cell_center(b2);
+		float heading = std::atan2(-d.x, d.y) * 180.0f / PI;
+		if (is_block(b1, "snow_block") && is_block(b2, "snow_block"))
+		{
+			take(head), take(b1), take(b2);
+			mobs::spawn(mobs::SNOW_GOLEM, cell_min(b2) + V3(0.5f, 0.5f, 0), heading);
+			return;
+		}
+		if (!is_block(b1, "iron_block") || !is_block(b2, "iron_block"))
+			return;
+		for (int axis = 0; axis < 2; axis++)
+		{
+			auto side = [&](const Cell &c, int k) {
+				Cell o = c;
+				(axis ? o.y : o.x) += k;
+				return o;
+			};
+			if (!is_block(side(b1, -1), "iron_block") || !is_block(side(b1, 1), "iron_block") ||
+			    block_at(side(head, -1)) || block_at(side(head, 1)) || block_at(side(b2, -1)) || block_at(side(b2, 1)))
+				continue;
+			take(head), take(b1), take(side(b1, -1)), take(side(b1, 1)), take(b2);
+			mobs::spawn(mobs::GOLEM, cell_min(b2) + V3(0.5f, 0.5f, 0), heading);
+			return;
+		}
+	}
+
 	static bool place(int itemId)
 	{
 		Target &t = g_target;
@@ -450,6 +489,8 @@ namespace interact
 		audio::block_sound(pi.sound, cell_center(c), false);
 		if (pi.skull)
 			try_summon_wither(c);
+		if (pi.name == "carved_pumpkin" || pi.name == "jack_o_lantern")
+			try_summon_golem(c);
 		if (pi.shape == SH_SIGN)
 			signs::edit(c); // Minecraft opens the sign editor as you place it
 		return true;

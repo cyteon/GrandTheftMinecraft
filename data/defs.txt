@@ -803,6 +803,13 @@ item;zombie_spawn_egg;Zombie Spawn Egg;spawn;;zombie_spawn_egg
 item;skeleton_spawn_egg;Skeleton Spawn Egg;spawn;;skeleton_spawn_egg
 item;creeper_spawn_egg;Creeper Spawn Egg;spawn;;creeper_spawn_egg
 item;iron_golem_spawn_egg;Iron Golem Spawn Egg;spawn;;iron_golem_spawn_egg
+item;pig_spawn_egg;Pig Spawn Egg;spawn;;pig_spawn_egg
+item;cow_spawn_egg;Cow Spawn Egg;spawn;;cow_spawn_egg
+item;sheep_spawn_egg;Sheep Spawn Egg;spawn;;sheep_spawn_egg
+item;chicken_spawn_egg;Chicken Spawn Egg;spawn;;chicken_spawn_egg
+item;spider_spawn_egg;Spider Spawn Egg;spawn;;spider_spawn_egg
+item;enderman_spawn_egg;Enderman Spawn Egg;spawn;;enderman_spawn_egg
+item;snow_golem_spawn_egg;Snow Golem Spawn Egg;spawn;;snow_golem_spawn_egg
 sprite;bow_pulling_0
 sprite;bow_pulling_1
 sprite;bow_pulling_2
@@ -810,6 +817,7 @@ sprite;crossbow_pulling_0
 sprite;crossbow_pulling_1
 sprite;crossbow_pulling_2
 sprite;crossbow_arrow
+sprite;snowball
 block;wither_skeleton_skull;Wither Skeleton Skull;functional;k;stone;skeleton/wither_skeleton;;
 icon;oak_sign
 icon;diamond_pickaxe

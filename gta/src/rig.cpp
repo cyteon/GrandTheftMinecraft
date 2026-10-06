@@ -14,7 +14,8 @@ namespace rig
 		HEAD,
 		LIMB,
 		FWDARM,
-		WING // posed by whoever wears it (elytra)
+		WING, // posed by whoever wears it (elytra)
+		SWING // a leg turning about the vertical with the walk (spiders); b0 = which way (+1 / -1)
 	};
 	struct PartDef
 	{
@@ -50,11 +51,13 @@ namespace rig
 			{
 				PartDef p;
 				p.model = f[2];
-				p.name = p.model.substr(p.model.find('_', 4) + 1); // gtm_<rig>_<name>
+				std::string prefix = "gtm_r_" + f[1] + "_"; // gtm_r_<rig>_<name>
+				p.name = p.model.rfind(prefix, 0) == 0 ? p.model.substr(prefix.size()) : p.model;
 				p.kind = f[3] == "body"   ? BODY
 				         : f[3] == "head"   ? HEAD
 				         : f[3] == "fwdarm" ? FWDARM
 				         : f[3] == "wing"   ? WING
+				         : f[3] == "swing"  ? SWING
 				                            : LIMB;
 				p.pivot = V3(std::stof(f[4]), std::stof(f[5]), std::stof(f[6]));
 				p.b0 = std::stoi(f[7]), p.b1 = std::stoi(f[8]);
@@ -235,6 +238,14 @@ namespace rig
 			V3 X = R, Y = F, Z = U;
 			if (pd.kind == HEAD)
 				X = Rh, Y = Fh, Z = Uh;
+			else if (pd.kind == SWING)
+			{
+				// how far the right thigh swings forward / back drives every leg, alternately
+				V3 thigh = (V3(GET_PED_BONE_COORDS(ped, 52301, 0, 0, 0)) - V3(GET_PED_BONE_COORDS(ped, 51826, 0, 0, 0))).norm();
+				float a = std::asin(clampf(thigh.dot(F), -1, 1)) * 0.8f * (float)pd.b0;
+				X = R * std::cos(a) + F * std::sin(a);
+				Y = F * std::cos(a) - R * std::sin(a);
+			}
 			else if (pd.kind == LIMB || pd.kind == FWDARM)
 			{
 				V3 d;

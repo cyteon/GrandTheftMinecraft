@@ -18,6 +18,12 @@
   shows on the sign), banners in all 16 colours, buttons and levers (they press and flip), pressure plates (they go
   down when people or cars are on them), rails (they join up and curve at corners), anvils, enchanting table, brewing
   stand, cauldron, campfires (they glow and burn whoever stands in them) and flower pots.
+- **Golems built from blocks**, like in Minecraft: a T of four iron blocks with a carved pumpkin (or jack o'lantern)
+  on top makes an iron golem; two snow blocks with a pumpkin make a **snow golem**, which throws snowballs at hostile
+  mobs.
+- **New mobs** (Spawn Eggs tab): pigs, cows, sheep and chickens that wander about and panic when hurt; spiders that
+  hunt at night (leaping at their prey) and leave you alone by day unless hit; endermen that wander, carry your
+  blocks off and put them down elsewhere, teleport away when hurt and come back for whoever hit them.
 - **Falling blocks**: sand, gravel, concrete powder and anvils fall when nothing holds them up. Anvils hurt whoever
   they land on and dent cars.
 - **Ladders can be climbed**: walk or jump into one to climb, let go to slide down, crouch to hold on.

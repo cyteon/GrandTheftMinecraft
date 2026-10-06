@@ -32,8 +32,10 @@ teleport you across Los Santos, arrows hit pedestrians.
 - **Play as Steve**: in third person you're Steve (or your own skin), animated by GTA's own walk, run and jump
   animations, looking where you look and holding your item.
 - **Mobs that fight GTA's people** (Spawn Eggs tab): zombies chase and hit pedestrians, skeletons shoot arrows,
-  creepers hiss and explode, and iron golems fight on your side against monsters, cops and gangs. They're real GTA
-  characters underneath (GTA does their walking and pathing, and cops shoot at them) wearing Minecraft bodies.
+  creepers hiss and explode, spiders hunt at night, endermen carry your blocks off and teleport, and iron and snow
+  golems (spawn eggs, or built from blocks like in Minecraft) fight on your side. Pigs, cows, sheep and chickens
+  wander the streets. They're real GTA characters underneath (GTA does their walking and pathing, and cops shoot at
+  them) wearing Minecraft bodies.
 - **The Wither**: build it like in Minecraft (a T of soul sand with three wither skeleton skulls on top); a
   flying boss with Minecraft's boss bar that rains exploding skulls on the city.
 - **Elytra and firework rockets**: right-click the elytra to put it on, jump off something and press Space to glide

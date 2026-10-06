@@ -235,6 +235,35 @@ PLAYER_LAYERS = {"head": ((32, 0), 0.5), "body": ((16, 32), 0.25), "rarm": ((40,
                  "larm": ((48, 48), 0.25), "rleg": ((0, 32), 0.25), "lleg": ((0, 48), 0.25)}
 OLD_UV = {"head": (0, 0), "body": (16, 16), "rarm": (40, 16), "larm": None, "rleg": (0, 16), "lleg": None}
 
+import math
+PI = math.pi
+THIGH_R, THIGH_L = (51826, 52301), (58271, 14201)
+LEG = lambda uv, h=6: [((-2, 0, -2, 4, h, 4), uv, 0.0, False)]  # noqa: E731
+
+
+def quadruped(head, body, leg_uv, leg_h, legs, extra=()):
+    """QuadrupedModel: front legs follow the thighs, hind legs the opposite thighs (a walk)."""
+    (fx, fy, fz), (hx, hy, hz) = legs
+    return [("head", head[0], "head", (0, 0), head[1]),
+            ("body", body[0], "body", (0, 0), body[1]),
+            ("rfleg", (-fx, fy, fz), "limb", THIGH_R, LEG(leg_uv, leg_h)),
+            ("lfleg", (fx, fy, fz), "limb", THIGH_L, LEG(leg_uv, leg_h)),
+            ("rhleg", (-hx, hy, hz), "limb", THIGH_L, LEG(leg_uv, leg_h)),
+            ("lhleg", (hx, hy, hz), "limb", THIGH_R, LEG(leg_uv, leg_h))] + list(extra)
+
+
+def spider_legs():
+    """SpiderModel: four legs a side splayed out (rest pose of setupAnim); they swing with the walk ('swing')."""
+    out = []
+    z_rot = [PI / 4, 0.58119464, 0.58119464, PI / 4]
+    y_rot = [PI / 4, PI / 8, -PI / 8, -PI / 4]
+    for i, z in enumerate([2, 1, 0, -1]):  # hind to front
+        sign = 1 if i % 2 == 0 else -1
+        out.append((f"rleg{i}", (-4, 15, z), "swing", (sign, 0), [((-15, -1, -1, 16, 2, 2), (18, 0), 0.0, False, (0, y_rot[i], -z_rot[i]))]))
+        out.append((f"lleg{i}", (4, 15, z), "swing", (-sign, 0), [((-1, -1, -1, 16, 2, 2), (18, 0), 0.0, False, (0, -y_rot[i], z_rot[i]))]))
+    return out
+
+
 RIGS = {
     # name: (texture recipe, texture size, scale m/px, parts)
     "steve": ("skin", (64, 64), 0.9375 / 16, humanoid(4, PLAYER_LAYERS, PLAYER_UV)),
@@ -257,6 +286,56 @@ RIGS = {
         ("lwing", (5, 0, 2), "wing", (0, 0), [((-10, 0, 0, 10, 20, 2), (22, 0), 1.0, False)]),
         ("rwing", (-5, 0, 2), "wing", (0, 0), [((0, 0, 0, 10, 20, 2), (22, 0), 1.0, True)]),
     ]),
+    # Minecraft's animals and more (model classes: PigModel, CowModel (1.21.5), SheepModel + fur, ChickenModel,
+    # SpiderModel, EndermanModel, SnowGolemModel); bodies lie flat via PartPose xRot = 90 degrees
+    "pig": ("entity entity/pig/temperate_pig.png", (64, 64), 1 / 16, quadruped(
+        ((0, 12, -6), [((-4, -4, -8, 8, 8, 8), (0, 0), 0.0, False), ((-2, 0, -9, 4, 3, 1), (16, 16), 0.0, False)]),
+        ((0, 11, 2), [((-5, -10, -7, 10, 16, 8), (28, 8), 0.0, False, (PI / 2, 0, 0))]),
+        (0, 16), 6, ((3, 18, -5), (3, 18, 7)))),
+    "cow": ("entity entity/cow/temperate_cow.png", (64, 64), 1 / 16, quadruped(
+        ((0, 4, -8), [((-4, -4, -6, 8, 8, 6), (0, 0), 0.0, False), ((-3, 1, -7, 6, 3, 1), (1, 33), 0.0, False),
+                      ((-5, -5, -5, 1, 3, 1), (22, 0), 0.0, False), ((4, -5, -5, 1, 3, 1), (22, 0), 0.0, False)]),
+        ((0, 5, 2), [((-6, -10, -7, 12, 18, 10), (18, 4), 0.0, False, (PI / 2, 0, 0)),
+                     ((-2, 2, -8, 4, 6, 1), (52, 0), 0.0, False, (PI / 2, 0, 0))]),
+        (0, 16), 12, ((4, 12, -6), (4, 12, 7)))),
+    # sheep.png with its fur (sheep_wool.png) stacked under it: the fur boxes read 32 px lower
+    "sheep": ("stack entity/sheep/sheep.png entity/sheep/sheep_wool.png", (64, 64), 1 / 16, quadruped(
+        ((0, 6, -8), [((-3, -4, -6, 6, 6, 8), (0, 0), 0.0, False), ((-3, -4, -4, 6, 6, 6), (0, 32), 0.6, False)]),
+        ((0, 5, 2), [((-4, -10, -7, 8, 16, 6), (28, 8), 0.0, False, (PI / 2, 0, 0)),
+                     ((-4, -10, -7, 8, 16, 6), (28, 40), 1.75, False, (PI / 2, 0, 0))]),
+        (0, 16), 12, ((3, 12, -5), (3, 12, 7)))),
+    "chicken": ("entity entity/chicken/temperate_chicken.png", (64, 32), 1 / 16, [
+        ("head", (0, 15, -4), "head", (0, 0), [((-2, -6, -2, 4, 6, 3), (0, 0), 0.0, False),
+                                              ((-2, -4, -4, 4, 2, 2), (14, 0), 0.0, False),
+                                              ((-1, -2, -3, 2, 2, 2), (14, 4), 0.0, False)]),
+        ("body", (0, 16, 0), "body", (0, 0), [((-3, -4, -3, 6, 8, 6), (0, 9), 0.0, False, (PI / 2, 0, 0))]),
+        ("rleg", (-2, 19, 1), "limb", THIGH_R, [((-1, 0, -3, 3, 5, 3), (26, 0), 0.0, False)]),
+        ("lleg", (1, 19, 1), "limb", THIGH_L, [((-1, 0, -3, 3, 5, 3), (26, 0), 0.0, False)]),
+        ("rwing", (-4, 13, 0), "body", (0, 0), [((0, 0, -3, 1, 4, 6), (24, 13), 0.0, False)]),
+        ("lwing", (4, 13, 0), "body", (0, 0), [((-1, 0, -3, 1, 4, 6), (24, 13), 0.0, False)]),
+    ]),
+    "spider": ("entity entity/spider/spider.png", (64, 32), 1 / 16, [
+        ("head", (0, 15, -3), "head", (0, 0), [((-4, -4, -8, 8, 8, 8), (32, 4), 0.0, False)]),
+        ("body", (0, 15, 0), "body", (0, 0), [((-3, -3, -3, 6, 6, 6), (0, 0), 0.0, False),
+                                             ((-5, -4, 3, 10, 8, 12), (0, 12), 0.0, False)]),
+    ] + spider_legs()),
+    # enderman.png with its glowing eyes laid over it
+    "enderman": ("overlay entity/enderman/enderman.png entity/enderman/enderman_eyes.png", (64, 32), 1 / 16, [
+        ("head", (0, -14, 0), "head", (0, 0), [((-4, -8, -4, 8, 8, 8), (0, 0), 0.0, False),
+                                              ((-4, -8, -4, 8, 8, 8), (0, 16), -0.5, False)]),
+        ("body", (0, -14, 0), "body", (0, 0), [((-4, 0, -2, 8, 12, 4), (32, 16), 0.0, False)]),
+        ("rarm", (-5, -12, 0), "limb", HUMANOID_BONES["rarm"], [((-1, -2, -1, 2, 30, 2), (56, 0), 0.0, False)]),
+        ("larm", (5, -12, 0), "limb", HUMANOID_BONES["larm"], [((-1, -2, -1, 2, 30, 2), (56, 0), 0.0, True)]),
+        ("rleg", (-2, -5, 0), "limb", THIGH_R, [((-1, 0, -1, 2, 30, 2), (56, 0), 0.0, False)]),
+        ("lleg", (2, -5, 0), "limb", THIGH_L, [((-1, 0, -1, 2, 30, 2), (56, 0), 0.0, True)]),
+    ]),
+    "snow_golem": ("entity entity/snow_golem.png", (64, 64), 1 / 16, [
+        ("head", (0, 4, 0), "head", (0, 0), [((-4, -8, -4, 8, 8, 8), (0, 0), -0.5, False)]),
+        ("body", (0, 13, 0), "body", (0, 0), [((-5, -10, -5, 10, 10, 10), (0, 16), -0.5, False),
+                                              ((-6, -12, -6, 12, 12, 12), (0, 36), -0.5, False, (0, 0, 0), (0, 11, 0)),
+                                              ((-1, 0, -1, 12, 2, 2), (32, 0), -0.5, False, (0, 0, 1.0), (5, -7, 1)),
+                                              ((-1, 0, -1, 12, 2, 2), (32, 0), -0.5, False, (0, PI, -1.0), (-5, -7, -1))]),
+    ]),
     "golem": ("entity entity/iron_golem/iron_golem.png", (128, 128), 1 / 16, [
         ("head", (0, -7, -2), "head", (0, 0), [((-4, -12, -5.5, 8, 10, 8), (0, 0), 0.0, False),
                                               ((-1, -5, -7.5, 2, 4, 2), (24, 0), 0.0, False)]),
@@ -274,7 +353,7 @@ RIGS = {
 
 def mc_rotated(g, scale, pivot, rot, boxes, tex):
     """Boxes of a Minecraft sub-part that sits at `pivot` (Minecraft space, relative to the model's origin) and is
-    rotated by `rot` = (xRot, yRot, zRot) radians (PartPose: X then Y then Z), baked into g in our space."""
+    rotated by `rot` = (xRot, yRot, zRot) radians (ModelPart: X first, then Y, then Z), baked into g in our space."""
     import math
     tmp = Geo()
     for box, uv, infl, mirror in boxes:
@@ -286,7 +365,7 @@ def mc_rotated(g, scale, pivot, rot, boxes, tex):
     def rz(a, v): return (v[0] * math.cos(a) - v[1] * math.sin(a), v[0] * math.sin(a) + v[1] * math.cos(a), v[2])
     to_mc = lambda o: (-o[0], -o[2], -o[1])  # noqa: E731  ours -> Minecraft
     from_mc = lambda m: (-m[0], -m[2], -m[1])  # noqa: E731
-    rot3 = lambda v: from_mc(rx(xr, ry(yr, rz(zr, to_mc(v)))))  # noqa: E731
+    rot3 = lambda v: from_mc(rz(zr, ry(yr, rx(xr, to_mc(v)))))  # noqa: E731  X first, then Y, then Z
     off = from_mc(tuple(c * scale for c in pivot))
     base = len(g.v)
     for x, y, z, nx, ny, nz, u, v in tmp.v:
@@ -604,8 +683,12 @@ def main():
         rig_lines.append(f"rig;{rig};{scale:.6f}")
         for name, (px, py, pz), kind, (b0, b1), boxes in parts:
             g = Geo()
-            for box, uv, infl, mirror in boxes:
-                mc_box(g, scale, box, uv, (tw, th), infl, mirror)
+            for bx in boxes:
+                box, uv, infl, mirror = bx[:4]
+                if len(bx) > 4:  # (xRot, yRot, zRot) about the part's pivot (+ a sub-pivot offset)
+                    mc_rotated(g, scale, bx[5] if len(bx) > 5 else (0, 0, 0), bx[4], [(box, uv, infl, mirror)], (tw, th))
+                else:
+                    mc_box(g, scale, box, uv, (tw, th), infl, mirror)
             if kind == "wing":
                 g.double_sided()
             model = f"gtm_r_{rig}_{name}"  # r_: rig parts (zombie_head is also a block)
@@ -613,6 +696,13 @@ def main():
             rows.append(f"{model};{tex};cutout;1;-")
             # Minecraft pivot -> GTA space above the ground
             rig_lines.append(f"part;{rig};{model};{kind};{-px:g};{-pz:g};{24 - py:g};{b0};{b1}")
+    pumpkin = shapes.box((0, 0, 0), (16, 16, 16), front=True)
+    g = Geo()
+    shapes.emit(pumpkin, g, "world")
+    g.v = [(x * 0.625, y * 0.625, z * 0.625 + 5.5 / 16, nx, ny, nz, u, v) for x, y, z, nx, ny, nz, u, v in g.v]
+    g.write(out / "gtm_r_snow_golem_pumpkin.geo")
+    rows.append("gtm_r_snow_golem_pumpkin;gtm_carved_pumpkin;default;1;-")
+    rig_lines.append("part;snow_golem;gtm_r_snow_golem_pumpkin;head;0;0;20;0;0")
     (out / "rigs.txt").write_text("\n".join(rig_lines) + "\n")
     wither_models(out, rows, texture)
     texture("gtm_arrow_e", 256, 256, "arrow")
