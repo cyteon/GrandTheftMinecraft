@@ -68,6 +68,15 @@ teleport you across Los Santos, arrows hit pedestrians.
 
 A manual-install zip is also on the Releases page (see `INSTALL.txt` inside).
 
+**Update:** close GTA, download the new `.oiv` from [Releases](https://github.com/cyteon/GrandTheftMinecraft/releases)
+and install it with OpenIV's **Package Installer** to the `mods` folder, just like the first time. It replaces the mod's
+files and keeps your builds (`world.txt`) and settings (`config.ini`). On the next launch the mod rebuilds its
+Minecraft textures and sounds for a few seconds; restart GTA once if it asks.
+
+With the manual zip instead: copy `GrandTheftMinecraft.asi`, the files in the `GrandTheftMinecraft` folder and
+`mods\update\x64\dlcpacks\gtm\dlc.rpf` over the old ones (your `world.txt` and `config.ini` aren't in the zip, so
+they stay). Coming from 1.5.0 or older, also make the `gameconfig.xml` change described in `INSTALL.txt` once.
+
 **Uninstall:** delete `GrandTheftMinecraft.asi`, the `GrandTheftMinecraft` folder and `mods\update\x64\dlcpacks\gtm`
 from the GTA folder, and remove the `dlcpacks:/gtm/` line from `mods\update\update.rpf\common\data\dlclist.xml` in
 OpenIV. The installer also raised GTA's `fwDynamicArchetypeComponent` pool to 24576 in

@@ -147,6 +147,10 @@ mobs and golems that fight GTA's people, the Wither, Steve, elytra, TNT and more
    mod builds its textures and sounds from your Minecraft 1.21.11 (or Mojang's official servers).
 5. **Restart GTA once** when it says so. The textured blocks load from then on.
 
+**Updating:** close GTA and install the new `.oiv` the same way (OpenIV > Tools > Package Installer, to the mods
+folder). It replaces the mod's files and keeps your builds and settings; the next launch rebuilds the textures for a
+few seconds.
+
 Press **F6** to switch Minecraft mode on and off, **E** for the creative inventory. All controls and settings are in
 the [README](https://github.com/cyteon/GrandTheftMinecraft#controls).
 
