@@ -8,7 +8,7 @@
 - **Fixed the random crashes** (in cars, gliding, flying around the city): GTA keeps one slot per prop type in play in a
   pool of 16384 (`fwDynamicArchetypeComponent`), and since 1.4.0 the block pack's thousands of models plus a busy city
   ran it dry. The installer now raises that pool to 24576 in GTA's `gameconfig.xml` (in OpenIV's mods folder, next to
-  the DLC list entry), and the block pack needs 869 fewer models (block-break chips are drawn instead).
+  the DLC list entry), and the block pack needs about 730 fewer models (block-break chips are drawn instead).
 - Faster start-up and smoother frames: item icons load when they're first shown (not all ~800 at once), and model
   lookups no longer call into the game hundreds of times a frame.
 - If GTA crashes, `gtm.log` now ends with a crash report (where it crashed, the call stack and what the mod was doing),
