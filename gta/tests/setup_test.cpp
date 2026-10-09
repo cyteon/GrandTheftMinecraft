@@ -1,6 +1,8 @@
 // Offline test of first-launch setup: mcassets (find/download Minecraft, build assets, textures.bin) and dlcpatch
 // (fill dlc.rpf), on a fake game folder. Usage: setup_test <fake game dir>   (needs GrandTheftMinecraft\defs.txt,
 // GrandTheftMinecraft\dlc_tex.txt and mods\update\x64\dlcpacks\gtm\dlc.rpf in it)
+// Build it -static (like the ASI): otherwise Windows may load another toolchain's libstdc++-6.dll from PATH (Git's)
+// and it crashes in the first std::ifstream - that was the old "flaky -O2 crash", never a bug in the mod.
 #include "../src/config.h"
 #include "../src/dlcpatch.h"
 #include "../src/log.h"
