@@ -88,6 +88,15 @@ namespace crashlog
 			    (unsigned long long)r->ExceptionInformation[1]);
 		out("  rax %llx rbx %llx rcx %llx rdx %llx rsi %llx rdi %llx", c->Rax, c->Rbx, c->Rcx, c->Rdx, c->Rsi, c->Rdi);
 		out("  r8 %llx r9 %llx r10 %llx r11 %llx rsp %llx rbp %llx", c->R8, c->R9, c->R10, c->R11, c->Rsp, c->Rbp);
+		// GTA's pool allocator crash (GTA5.exe+0x1387d00, rcx = the pool): its capacity and slot size name the pool
+		// (gameconfig.xml PoolSize); layout: storage, capacity, free count, slot size, free list head
+		for (DWORD64 p : {c->Rcx, c->Rbx})
+			if (p && !IsBadReadPtr((void *)p, 0x30))
+			{
+				const DWORD64 *q = (const DWORD64 *)p;
+				out("  [%llx] storage %llx capacity %llu free %llu slot %llu head %llx flags %llx", (unsigned long long)p,
+				    q[0], q[1] & 0xffffffff, q[2] & 0xffffffff, q[3] & 0xffffffff, q[4], q[5]);
+			}
 		// the call stack, unwound with the modules' own unwind data
 		CONTEXT ctx = *c;
 		out("  stack:");
