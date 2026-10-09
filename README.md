@@ -70,7 +70,9 @@ A manual-install zip is also on the Releases page (see `INSTALL.txt` inside).
 
 **Uninstall:** delete `GrandTheftMinecraft.asi`, the `GrandTheftMinecraft` folder and `mods\update\x64\dlcpacks\gtm`
 from the GTA folder, and remove the `dlcpacks:/gtm/` line from `mods\update\update.rpf\common\data\dlclist.xml` in
-OpenIV.
+OpenIV. The installer also raised GTA's `fwDynamicArchetypeComponent` pool to 24576 in
+`mods\update\update.rpf\common\data\gameconfig.xml` (the block pack's models need the room); it's harmless to leave,
+or set it back to 16384.
 
 ## Controls
 
