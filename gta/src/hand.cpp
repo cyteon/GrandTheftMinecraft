@@ -235,7 +235,7 @@ namespace hand
 		if (!collision::dlc()) // block pack missing or its textures not filled yet
 			return false;
 		std::string name = it.held3d() ? "gtm_" + it.name + "_h" : "gtm_i_" + sprite;
-		Hash model = GET_HASH_KEY(name.c_str());
+		Hash model = joaat(name);
 		if (!IS_MODEL_VALID(model))
 			return false;
 		if (!HAS_MODEL_LOADED(model))

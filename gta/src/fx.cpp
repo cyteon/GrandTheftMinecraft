@@ -91,7 +91,7 @@ namespace fx
 	{
 		if (!collision::dlc()) // block pack missing or its textures not filled yet
 			return 0;
-		Hash h = GET_HASH_KEY(name.c_str());
+		Hash h = joaat(name);
 		if (!IS_MODEL_VALID(h))
 			return 0;
 		if (!HAS_MODEL_LOADED(h))
@@ -560,7 +560,7 @@ namespace fx
 			V3 ix = (d - up).norm(), iy = (d + up).norm(), iz = ix.cross(iy);
 			if (collision::dlc())
 			{
-				Hash h = GET_HASH_KEY("gtm_i_firework_rocket");
+				Hash h = joaat("gtm_i_firework_rocket");
 				if (!r.obj && IS_MODEL_VALID(h))
 				{
 					if (HAS_MODEL_LOADED(h))

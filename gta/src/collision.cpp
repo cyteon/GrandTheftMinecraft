@@ -88,7 +88,7 @@ namespace collision
 		float bestScore = 1e9f;
 		for (const char *name : CANDIDATES)
 		{
-			Hash h = GET_HASH_KEY(name);
+			Hash h = joaat(name);
 			if (!IS_MODEL_VALID(h))
 				continue;
 			REQUEST_MODEL(h);
@@ -120,7 +120,7 @@ namespace collision
 		{
 			if (!g_items[i].block)
 				continue;
-			Hash h = GET_HASH_KEY(("gtm_" + g_items[i].name).c_str());
+			Hash h = joaat("gtm_" + g_items[i].name);
 			if (IS_MODEL_VALID(h))
 			{
 				s_itemModel[i] = h;
@@ -150,7 +150,7 @@ namespace collision
 		auto it = s_models.find(name);
 		if (it != s_models.end())
 			return it->second;
-		Hash h = GET_HASH_KEY(name.c_str());
+		Hash h = joaat(name);
 		if (!IS_MODEL_VALID(h))
 			h = 0;
 		s_models[name] = h;

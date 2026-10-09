@@ -82,7 +82,7 @@ namespace rig
 		if (it == s_rigs.end() || it->second.parts.empty() || !collision::dlc())
 			return false; // never "available" with nothing to show (the GTA ped would just vanish)
 		for (auto &p : it->second.parts)
-			if (!IS_MODEL_VALID(GET_HASH_KEY(p.model.c_str())))
+			if (!IS_MODEL_VALID(joaat(p.model)))
 				return false;
 		return true;
 	}
@@ -152,7 +152,7 @@ namespace rig
 
 	void place(int &obj, Hash &model, const std::string &name, const V3 &pos, const V3 &X, const V3 &Y, const V3 &Z)
 	{
-		Hash h = GET_HASH_KEY(name.c_str());
+		Hash h = joaat(name);
 		if (obj && (model != h || !DOES_ENTITY_EXIST(obj)))
 			drop(obj);
 		if (!obj)
@@ -298,7 +298,7 @@ namespace rig
 			     (int)IS_ENTITY_VISIBLE(ped), g.now - inst.firstPose);
 			for (size_t i = 0; i < def.parts.size(); i++)
 			{
-				Hash h = GET_HASH_KEY(def.parts[i].model.c_str());
+				Hash h = joaat(def.parts[i].model);
 				int o = inst.objs[i];
 				V3 op = o && DOES_ENTITY_EXIST(o) ? V3(GET_ENTITY_COORDS(o, FALSE)) : V3();
 				logf("  %s: valid %d loaded %d obj %d exists %d visible %d alpha %d at %.2f %.2f %.2f", def.parts[i].model.c_str(),

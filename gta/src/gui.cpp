@@ -114,7 +114,7 @@ namespace gui
 	{
 		if (s.empty())
 			return;
-		draw(item(s.item).icon, x, y, sz, sz, 0xFFFFFFFF, level);
+		draw(item_icon(s.item), x, y, sz, sz, 0xFFFFFFFF, level);
 		if (s.count > 1)
 		{
 			std::string n = std::to_string(s.count);

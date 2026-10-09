@@ -3,6 +3,7 @@
 #include "natives_gen.h"
 #include <cmath>
 #include <cstdint>
+#include <string>
 #include <cstdlib>
 
 // Natives by bare name (qualify the rare name that exists in two namespaces).
@@ -56,3 +57,21 @@ struct Frame
 extern Frame g;
 extern bool g_mcMode;   // Minecraft mode on (F6)
 extern bool g_debug;    // F9 overlay
+
+// GTA's GET_HASH_KEY without the native call: Jenkins' one-at-a-time hash of the lowercased name
+inline Hash joaat(const char *s)
+{
+	uint32_t h = 0;
+	for (; *s; s++)
+	{
+		unsigned char c = (unsigned char)*s;
+		h += (c >= 'A' && c <= 'Z') ? c + 32 : c;
+		h += h << 10;
+		h ^= h >> 6;
+	}
+	h += h << 3;
+	h ^= h >> 11;
+	h += h << 15;
+	return h;
+}
+inline Hash joaat(const std::string &s) { return joaat(s.c_str()); }

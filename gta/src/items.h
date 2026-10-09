@@ -60,7 +60,7 @@ struct Item
 	Shape shape = SH_CUBE;
 	std::string sprite; // a block held and shown flat as this sprite (plants, torches, doors...); "" = 3D
 	int maxStack = 64;
-	int icon = -1; // drawTexture id
+	int icon = -2; // drawTexture id (-2 = not loaded yet: see item_icon)
 	// Face colours per level of detail: lod[k] holds an n x n grid (n = 1 << k) for top/side/bottom.
 	std::vector<Rgba> lod[5][3];
 	int tris[5][3] = {}; // triangles the renderer emits per face at each lod (runs merged, clear texels skipped)
@@ -79,6 +79,7 @@ extern std::vector<Item> g_items;
 bool items_load();
 int item_find(const std::string &name); // -1 if unknown
 inline const Item &item(int id) { return g_items[id]; }
+int item_icon(int id); // the icon's texture, loaded on first use (-1 if missing)
 
 // Detail n (1, 2, 4, 8, 16) → lod index.
 inline int lod_index(int n) { return n >= 16 ? 4 : n >= 8 ? 3 : n >= 4 ? 2 : n >= 2 ? 1 : 0; }

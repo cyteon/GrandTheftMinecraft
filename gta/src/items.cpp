@@ -121,11 +121,18 @@ bool items_load()
 					it.shape = (Shape)k;
 			it.sprite = f[10];
 		}
-		it.icon = r2d::tex("items/" + it.name + ".png");
 		g_items.push_back(std::move(it));
 	}
 	logf("items: %d loaded", (int)g_items.size());
 	return !g_items.empty();
+}
+
+int item_icon(int id)
+{
+	Item &it = g_items[id];
+	if (it.icon == -2)
+		it.icon = r2d::tex("items/" + it.name + ".png");
+	return it.icon;
 }
 
 int item_find(const std::string &name)
