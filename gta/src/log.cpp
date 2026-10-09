@@ -4,12 +4,18 @@
 #include <cstdio>
 
 static FILE *g_log = nullptr;
+static char g_path[MAX_PATH] = "GrandTheftMinecraft.log";
 
 void log_open(const std::string &path)
 {
 	if (!g_log)
+	{
 		g_log = std::fopen(path.c_str(), "w");
+		std::snprintf(g_path, sizeof g_path, "%s", path.c_str());
+	}
 }
+
+const char *log_path() { return g_path; }
 
 void logf(const char *fmt, ...)
 {

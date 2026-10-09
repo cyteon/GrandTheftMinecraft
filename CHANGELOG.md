@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.1
+
+- Fixed crashes around getting into vehicles: the mod now treats getting in as being in a vehicle (no Minecraft
+  on-foot logic during GTA's animation), lets go of flight, gliding and ladders when you press the enter key, and only
+  switches you to bare hands when you're holding something else instead of every frame.
+- If GTA crashes, `gtm.log` now ends with a crash report (where it crashed, the call stack and what the mod was doing),
+  next to Rockstar's own crash dump.
+
 ## 1.5.0
 
 - **Golems built from blocks**, like in Minecraft: a T of four iron blocks with a carved pumpkin (or jack o'lantern)

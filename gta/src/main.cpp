@@ -15,6 +15,8 @@
 #include "falling.h"
 #include "redstone.h"
 #include "objects.h"
+#include "crashlog.h"
+#include "elytra.h"
 #include "wither.h"
 #include "rig.h"
 #include "input.h"
@@ -71,7 +73,7 @@ static void update_frame()
 	g.now = (uint32_t)GET_GAME_TIMER();
 	g.player = PLAYER_ID();
 	g.ped = PLAYER_PED_ID();
-	g.inVehicle = IS_PED_IN_ANY_VEHICLE(g.ped, FALSE);
+	g.inVehicle = IS_PED_IN_ANY_VEHICLE(g.ped, FALSE) || IS_PED_GETTING_INTO_A_VEHICLE(g.ped);
 	g.pedPos = GET_ENTITY_COORDS(g.ped, TRUE);
 	g.camPos = GET_FINAL_RENDERED_CAM_COORD();
 	g.camRot = GET_FINAL_RENDERED_CAM_ROT(2);
@@ -100,6 +102,14 @@ static void disable_gta_controls()
 	                           51, 38, 46, 54, 241, 242};                  // E (context / pickup / talk), wheel
 	for (int c : CTRL)
 		DISABLE_CONTROL_ACTION(0, c, TRUE);
+}
+
+// unarmed, but only when something else is in the hand: switching weapons every frame makes GTA rebuild weapon /
+// animation state each frame (bad during its vehicle tasks)
+static void unarm()
+{
+	if (GET_SELECTED_PED_WEAPON(g.ped) != 0xA2719263)
+		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
 }
 
 static void stress_test()
@@ -223,6 +233,7 @@ static void tick()
 			SET_FOLLOW_PED_CAM_VIEW_MODE(4);
 		notify(g_mcMode ? "~g~Minecraft mode ON~s~ (F6)" : "~r~Minecraft mode OFF~s~ (F6)");
 		logf("mode %s", g_mcMode ? "on" : "off");
+		crashlog::note(g_mcMode ? "Minecraft mode on" : "Minecraft mode off");
 	}
 	if (!typing && input::pressed(g_cfg.debugKey))
 		g_debug = !g_debug;
@@ -238,7 +249,37 @@ static void tick()
 		logf("stress test: %d triangles", s_stress);
 	}
 
+	// about to get into a vehicle: let go of flight / gliding / a ladder first (a frozen, script-moved ped fights
+	// GTA's enter-vehicle task)
+	if (g_mcMode && (IS_CONTROL_JUST_PRESSED(0, 23) || IS_DISABLED_CONTROL_JUST_PRESSED(0, 23)) &&
+	    (flight::active() || flight::climbing() || elytra::gliding()))
+	{
+		flight::stop();
+		flight::climb_stop();
+		elytra::stop();
+		crashlog::note("enter vehicle pressed while flying / gliding / climbing: released");
+	}
 	bool alive = !IS_ENTITY_DEAD(g.ped, FALSE);
+	// for crash reports: what the mod is doing (cheap; printed only if GTA crashes)
+	{
+		static bool wasIn = false, wasEntering = false;
+		bool entering = IS_PED_GETTING_INTO_A_VEHICLE(g.ped);
+		if (entering != wasEntering)
+			crashlog::note(entering ? "getting into a vehicle" : "stopped getting into a vehicle");
+		if (g.inVehicle != wasIn)
+			crashlog::note(g.inVehicle ? "in a vehicle" : "out of the vehicle");
+		wasIn = g.inVehicle, wasEntering = entering;
+		crashlog::frame("mode %d alive %d vehicle %d entering %d flying %d gliding %d climbing %d inventory %d "
+		                "objects %d mobs %d at %.0f %.0f %.0f",
+		                g_mcMode, alive, g.inVehicle, entering, flight::active(), elytra::gliding(), flight::climbing(),
+		                g_invOpen, objects::live_total(), mobs::count(), g.pedPos.x, g.pedPos.y, g.pedPos.z);
+		static uint32_t nextInstall = 0;
+		if (g.now >= nextInstall) // stay first in line if something else installs a crash handler later
+		{
+			nextInstall = g.now + 5000;
+			crashlog::install();
+		}
+	}
 	bool onFoot = g_mcMode && alive && !g.inVehicle && playing;
 	if (g_mcMode && alive)
 	{
@@ -255,7 +296,7 @@ static void tick()
 		HIDE_HUD_AND_RADAR_THIS_FRAME();
 		INVALIDATE_IDLE_CAM();
 		disable_gta_controls();
-		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
+		unarm();
 		// Minecraft has no body in first person (hide GTA's arms: door reaches, phone calls...); in third person the
 		// player is Steve, so the GTA ped hides there too whenever Steve can be shown
 		bool fp = GET_FOLLOW_PED_CAM_VIEW_MODE() == 4;
@@ -336,7 +377,7 @@ static void tick()
 		static const int DRIVEBY[] = {68, 69, 70, 91, 92, 345, 346, 347, 24, 25, 257, 140, 141, 142};
 		for (int c : DRIVEBY)
 			DISABLE_CONTROL_ACTION(0, c, TRUE);
-		SET_CURRENT_PED_WEAPON(g.ped, 0xA2719263 /* unarmed */, TRUE);
+		unarm();
 		interact::g_target = interact::Target{};
 		interact::cancel_use();
 		flight::stop();
@@ -398,6 +439,7 @@ static void init_all()
 static void script_main()
 {
 	logf("script start (GrandTheftMinecraft " GTM_VERSION ")");
+	crashlog::install();
 	g_mcMode = g_cfg.startEnabled;
 	if (mcassets::data_ready())
 		init_all();
