@@ -15,7 +15,6 @@ Writes build/dlc_src/:
 Models
   gtm_<block>      1 m world block, centred, box collision (GTA space: z up)
   gtm_<block>_h    the block held in first person (Minecraft item space: y up, z towards the viewer; 0.25 m)
-  gtm_<block>_p    a 0.12 m break chip (a 4x4 texel window of the side texture), small box collision
   gtm_i_<sprite>   held item: a generic 16x16 extrusion; the cutout shader trims it to the sprite's shape
   gtm_arrow        flying/stuck arrow: crossed planes along +Y (GTA space)
   gtm_i_<sprite>_tp  held item in third person (0.5 m)
@@ -598,7 +597,7 @@ def main():
     for b in blocks:
         name, flags = b["name"], b["flags"]
         tex = f"gtm_{b['base'] or name}"
-        if not b["base"]:
+        if not b["base"] and "k" not in flags:  # mob heads draw with their entity texture only
             texture(tex, 512, 128, f"sheet {name}", "dxt5" if "a" in flags else "dxt1")
         shader = "alpha" if "a" in flags else "cutout" if "c" in flags else "default"
         material = {"wood": 70, "cloth": 104, "glass": 69}.get(b["sound"], 1)
@@ -672,10 +671,7 @@ def main():
             rows.append(f"gtm_{name};{tex};{shader};{material};0.5,0.5,0.5")
             cube(fy, HAND_SIZE, sheet_uv).write(out / f"gtm_{name}_h.geo")
             rows.append(f"gtm_{name}_h;{tex};{shader};{material};-")
-        ox, oy = rnd.randrange(0, 13), rnd.randrange(0, 13)
-        chip_uv = lambda col: ((0.25 + (ox + 0.1) / 64, (oy + 0.1) / 16), (0.25 + (ox + 3.9) / 64, (oy + 3.9) / 16))  # noqa: E731
-        cube(FACES_Z, CHIP, chip_uv).write(out / f"gtm_{name}_p.geo")
-        rows.append(f"gtm_{name}_p;{tex};{shader};{material};{CHIP / 2},{CHIP / 2},{CHIP / 2}")
+        rnd.randrange(0, 13), rnd.randrange(0, 13)  # (was a chip model's texture window; keeps later randomness stable)
     sprite_geo(HAND_SIZE).write(out / "gtm_sprite.geo")
     for sp in dict.fromkeys(sprites):
         tex = f"gtm_i_{sp}"

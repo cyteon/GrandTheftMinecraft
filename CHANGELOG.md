@@ -5,6 +5,10 @@
 - Fixed crashes around getting into vehicles: the mod now treats getting in as being in a vehicle (no Minecraft
   on-foot logic during GTA's animation), lets go of flight, gliding and ladders when you press the enter key, and only
   switches you to bare hands when you're holding something else instead of every frame.
+- **Fixed the random crashes** (in cars, gliding, flying around the city): GTA keeps one slot per prop type in play in a
+  pool of 16384 (`fwDynamicArchetypeComponent`), and since 1.4.0 the block pack's thousands of models plus a busy city
+  ran it dry. The installer now raises that pool to 24576 in GTA's `gameconfig.xml` (in OpenIV's mods folder, next to
+  the DLC list entry), and the block pack needs 869 fewer models (block-break chips are drawn instead).
 - If GTA crashes, `gtm.log` now ends with a crash report (where it crashed, the call stack and what the mod was doing),
   next to Rockstar's own crash dump.
 

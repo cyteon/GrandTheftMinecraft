@@ -94,6 +94,9 @@ def assembly():
 			<xml path="common\\data\\dlclist.xml">
 				<add xpath="/SMandatoryPacksData/Paths" append="Last"><Item>dlcpacks:/gtm/</Item></add>
 			</xml>
+			<xml path="common\\data\\gameconfig.xml">
+				<replace xpath="/fwAllConfigs/ConfigArray/Item/Config/PoolSizes/Entries/Item[PoolName='fwDynamicArchetypeComponent']/PoolSize"><PoolSize value="24576"/></replace>
+			</xml>
 		</archive>
 	</content>
 </package>
@@ -107,6 +110,8 @@ MANUAL = """GrandTheftMinecraft {v} - manual install (the .oiv does all of this 
 3. Copy mods\\update\\x64\\dlcpacks\\gtm\\dlc.rpf into your GTA folder (create the folders).
 4. In OpenIV (edit mode), copy update\\update.rpf into mods\\update\\ if it isn't there yet, open
    mods\\update\\update.rpf\\common\\data\\dlclist.xml and add  <Item>dlcpacks:/gtm/</Item>  before </Paths>.
+   In the same archive open common\\data\\gameconfig.xml, find  <PoolName>fwDynamicArchetypeComponent</PoolName>
+   and change the PoolSize under it from 16384 to 24576 (the block pack's models need the room).
 5. Start GTA (story mode). First launch builds the Minecraft assets; restart once for the textured blocks.
 """
 
